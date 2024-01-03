@@ -13,19 +13,17 @@ setup_suite() {
   source "$LIBRARY_PATH"
 }
 
-test_is_empty_returns_0_if_the_given_var_name_is_unset() {
-  unset TEST_VAR
-  assert 'bg::is_empty TEST_VAR' "bg::is_empty should return 0 when the given var name is unset"
+test_is_empty_returns_0_if_given_no_args() {
+  assert 'bg::is_empty' "bg::is_empty should return 0 when the given var name is unset"
 }
 
-test_is_empty_returns_0_if_the_given_var_name_expands_to_an_empty_string() {
-  TEST_VAR=""
-  assert 'bg::is_empty TEST_VAR' "bg::is_empty should return 0 when the given var name is unset"
+test_is_empty_returns_0_if_given_an_empty_string() {
+  assert 'bg::is_empty ""' "bg::is_empty should return 0 when the given var name is unset"
 }
 
-test_is_empty_returns_1_if_the_given_var_name_expands_to_a_non_empty_string() {
+test_is_empty_returns_1_if_given_a_non_empty_string() {
   TEST_VAR="test_string"
-  assert_fail 'bg::is_empty TEST_VAR' "bg::is_empty should return 0 when the given var name is unset"
+  assert_fail 'bg::is_empty test_string' "bg::is_empty should return 0 when the given var name is unset"
 }
 
 test_is_shell_bash_returns_0_if_running_in_bash() {

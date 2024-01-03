@@ -2,20 +2,19 @@
 ################################################################################
 
 ################################################################################
-# Checks if the variable with the given name is empty 
+# Checks if the first argument is an empty string 
 # Globals:
 #   None
 # Arguments:
-#   Name of variable to check
+#   Sstring to check
 # Outputs:
 #   None
 # Returns:
-#   0 if the variable with the given name is unset or expands to an empty string
+#   0 if the first argument is missing or an empty string 
 #   1 otherwise
 ################################################################################
 bg::is_empty() {
-  local var_name="${1:-}"
-  [[ -z "${!var_name}" ]] \
+  [[ -z "${1:-}" ]] \
     && return 0
   return 1 
 }
@@ -35,7 +34,7 @@ bg::is_empty() {
 ################################################################################
 bg::is_shell_bash() {
   local bash_version_var_name="${_BG_BASH_VERSION_VAR_NAME:-BASH_VERSION}"
-  if bg::is_empty "${bash_version_var_name}"; then
+  if bg::is_empty "${!bash_version_var_name}"; then
     return 1
   else
     return 0
