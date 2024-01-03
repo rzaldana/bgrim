@@ -41,6 +41,19 @@ bg::is_shell_bash() {
   fi
 }
 
+################################################################################
+# Checks if the given string is a valid variable name (i.e. it's made up 
+# exclusively of alphanumeric characters and underscores
+# Globals:
+#   None
+# Arguments:
+#   String to evaluate
+# Outputs:
+#   None
+# Returns:
+#   0 if the given string is a valid variable name 
+#   1 otherwise
+################################################################################
 bg::is_valid_var_name() {
   local input_string="${1:-}"
   local re="^[a-zA-Z0-9_]+$"
@@ -51,6 +64,19 @@ bg::is_valid_var_name() {
   fi
 }
 
+################################################################################
+# Checks if an array with the given name exists in the current environment
+# i.e. if a variable with the given name and the -a attribute exists
+# Globals:
+#   None
+# Arguments:
+#   Name of array to look for
+# Outputs:
+#   None
+# Returns:
+#   0 if the given name refers to an existing array variable
+#   1 otherwise
+################################################################################
 bg::is_array() {
   local array_name="${1:-}"  
   local re="declare -a"
@@ -65,6 +91,20 @@ bg::is_array() {
   fi
 }
 
+################################################################################
+# Checks if the given value exists in the array with the given name 
+# Globals:
+#   None
+# Arguments:
+#   Value to look for
+#   Name of array to look through
+# Outputs:
+#   Writes error message to stderr if return code is not 0 or 1 
+# Returns:
+#   0 if the given value exists in the array with the given name
+#   1 if the given value does not exist in the array with the given name
+#   2 if there is no array in the environment with the given name
+################################################################################
 bg::in_array() {
   local value="${1:-}"
   local array_name="${2:-}"
@@ -85,6 +125,19 @@ bg::in_array() {
   return 1
 }
 
+################################################################################
+# Clears all options in the environment that can be set with both the 'set' and
+# the 'shopt' built-in commands 
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   Writes all the options that were set in the environment before clearing
+#     in a format that can be read by bg::restore_options (not yet implemented)
+# Returns:
+#   0 in all cases
+################################################################################
 bg::clear_options() {
   # Clear all options set with the 'set' built-in
   while read -r option_name option_status; do
