@@ -28,8 +28,10 @@ run_tests_in_bash_version() {
 
   BASH_VERSION="$bash_version" docker-compose \
     -f "$SCRIPT_DIR/docker-compose.yml" \
+    --project-name "${bash_version//./_}" \
     up \
-    --no-log-prefix --exit-code-from bash \
+    --no-log-prefix \
+    --exit-code-from bash \
     2>&1
 }
 

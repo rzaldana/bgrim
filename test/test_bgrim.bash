@@ -14,53 +14,114 @@ setup_suite() {
 }
 
 test_is_empty_returns_0_if_given_no_args() {
-  assert \
-    'bg::is_empty' \
-    "bg::is_empty should return 0 when the given var name is unset"
+  stdout_and_stderr="$(bg::is_empty 2>&1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_empty_returns_0_if_given_an_empty_string() {
-  assert \
-    'bg::is_empty ""' \
-    "bg::is_empty should return 0 when the given var name is unset"
+  stdout_and_stderr="$(bg::is_empty "" 2>&1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_empty_returns_1_if_given_a_non_empty_string() {
-  TEST_VAR="test_string"
-  assert_fail \
-    'bg::is_empty test_string' \
-    "bg::is_empty should return 0 when the given var name is unset"
+  local test_var
+  test_var="hello"
+  stdout_and_stderr="$(bg::is_empty "$test_var" 2>&1)"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when first arg is non-emtpy string"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_shell_bash_returns_0_if_running_in_bash() {
-  export FAKE_BASH_VERSION="x.x.x"
-  export _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-  assert \
-    'bg::is_shell_bash' \
-    "bg:is_shell_bash should return 0 when BASH_VERSION variable is set"
+  local FAKE_BASH_VERSION="x.x.x"
+  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
+  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when BASH_VERSION variable is set"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_shell_bash_returns_1_if_not_running_in_bash() {
-  export FAKE_BASH_VERSION
-  export _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-  assert_fail \
-    bg::is_shell_bash \
-    "bg:is_shell_bash returns 1 when BASH_VERSION variable is unset"
+  # shellcheck disable=SC2034
+  local FAKE_BASH_VERSION=
+  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
+  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 0 when BASH_VERSION variable is unset"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_in_array_returns_0_when_the_first_arg_matches_any_of_the_latter_args() {
-  local -a test_array=( "val1" "val2" "val3" ) 
-
-  assert \
-    'bg::in_array "val2" "${test_array[@]}"' \
-    "in_array should return 0 when first arg matches any of the latter args"
+test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
+  stdout_and_stderr="$(bg::is_valid_var_name "my_func" 2>&1)" 
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when given alphanumeric and underscore chars"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_in_array_returns_1_when_the_first_arg_is_not_found_in_any_latter_arg() {
+test_is_array_returns_0_if_there_is_an_array_with_the_given_name() {
+  local -a my_test_array
+  stdout_and_stderr="$(bg::is_array "my_test_array" 2>&1)" 
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when an array with that name exists"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
+  stdout_and_stderr="$(bg::is_array "my_test_array" 2>&1)" 
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when no variable with the given name is set" 
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array() {
+  # shellcheck disable=SC2034
+  local my_test_array="test_val"
+  stdout_and_stderr="$(bg::is_array "my_test_array" 2>&1)" 
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when variable with given name is not an array" 
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
+  stdout_and_stderr="$(bg::is_valid_var_name "my.func" 2>&1)" 
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
   local -a test_array=( "val1" "val2" "val3" ) 
-  assert_fail \
-    'bg:in_array "val4" "${test_array[@]"' \
-    "in_array should return 1 when 1st arg doesn't match any latter args"
+  stdout_and_stderr="$(bg::in_array "val2" "test_array" 2>&1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when value is present in array with given name"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_in_array_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_name() {
+  local -a test_array=( "val1" "val2" "val3" ) 
+  stdout_and_stderr="$(bg::in_array "val4" "test_array" 2>&1)"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when value is not present in array with given name"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_in_array_returns_2_and_prints_error_message_when_an_array_with_the_given_name_doesnt_exist() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  # shellcheck disable=SC2317
+  cleanup() {
+    rm -f "$stderr_file"
+  }
+  trap cleanup EXIT
+  stdout="$(bg::in_array "val4" "test_array" 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals "2" "$ret_code" "function call should return 2 when array with given name doesn't exist" 
+  assert_equals "" "$stdout" "stdout should be empty"
+  assert_equals "The array with name 'test_array' does not exist" "$(cat "$stderr_file")" "stderr should contain error message"
 }
 
 test_clear_options_clears_all_options_in_the_environment() {
@@ -69,8 +130,29 @@ test_clear_options_clears_all_options_in_the_environment() {
   set -o vi
   shopt -s extglob
 
+  local stderr_file
+  local stdout_file
+  stderr_file="$(mktemp)"
+  stdout_file="$(mktemp)"
+
+  # Cleanup stderr and stdout files on exit
+  # shellcheck disable=SC2317
+  cleanup() {
+    rm -f "$stderr_file"
+    rm -f "$stdout_file"
+  }
+  trap cleanup EXIT
+
   # Run function 
-  bg::clear_options
+  bg::clear_options >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+
+  # Stderr and stdout are empty
+  assert_equals "" "$(cat "$stderr_file")" "stderr should be empty"
+  assert_equals "" "$(cat "$stdout_file")" "stdout should be empty"
+
+  # Return code is 0
+  assert_equals "0" "$ret_code" "function code should return 0 if all options were unset"
 
   # All shell options are unset
   assert_equals "" "$-" '$- should expand to an empty string but it doesn'\''t'
@@ -78,3 +160,4 @@ test_clear_options_clears_all_options_in_the_environment() {
   # All bash-specific options are unset
   assert_equals "" "$(shopt -s)" 'There should be no set bash-specific options'
 }
+

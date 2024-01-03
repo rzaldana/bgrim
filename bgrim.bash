@@ -41,10 +41,46 @@ bg::is_shell_bash() {
   fi
 }
 
+bg::is_valid_var_name() {
+  local input_string="${1:-}"
+  local re="^[a-zA-Z0-9_]+$"
+  if [[ "$input_string" =~ $re ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+bg::is_array() {
+  local array_name="${1:-}"  
+  local re="declare -a"
+  local array_attributes
+  array_attributes="$(declare -p "$array_name" 2>/dev/null)" \
+    || return 1
+
+  if [[ "$array_attributes" =~ $re ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 bg::in_array() {
-  local elem
-  for elem in "${@:2}"; do
-    [[ "$elem" == "${1:-}" ]] && return 0
+  local value="${1:-}"
+  local array_name="${2:-}"
+
+  # Check if array exists
+  if ! bg::is_array "$array_name"; then
+    echo "The array with name '$array_name' does not exist" >&2
+    return 2
+  fi
+
+  # Store values of array into a temporary local array
+  local -a tmp_array
+  eval "tmp_array=( \"\${${array_name}[@]}\")"
+
+  for elem in "${tmp_array[@]}" ; do
+    [[ "$elem" == "$value" ]] && return 0
   done
   return 1
 }
