@@ -13,7 +13,6 @@ prefix() {
   prefix="${1:->}"
 
   # Read from stdin until we reach EOF
-  
   while read -r line; do
     echo "${prefix} ${line}"
   done <'/dev/stdin'

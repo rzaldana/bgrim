@@ -40,3 +40,23 @@ bg::is_shell_bash() {
     return 0
   fi
 }
+
+bg::in_array() {
+  local elem
+  for elem in "${@:2}"; do
+    [[ "$elem" == "${1:-}" ]] && return 0
+  done
+  return 1
+}
+
+bg::clear_options() {
+  # Clear all options set with the 'set' built-in
+  while read -r option_name option_status; do
+    set +o "${option_name}" >/dev/null 2>&1
+  done < <( set -o )
+
+  # Clear all options set with the 'shopt' built-in
+  while read -r option_name option_status; do
+    shopt -u "${option_name}" >/dev/null 2>&1
+  done < <( shopt )
+}
