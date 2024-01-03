@@ -1,0 +1,12 @@
+services:
+  bash:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BASH_VERSION: "${BASH_VERSION}"
+    volumes:
+      - ..:/tmp/lib
+    command: [ "/tmp/lib/test/bash_unit/bash_unit", "/tmp/lib/test/test_bgrim.bash"]
+    tty: true
+    

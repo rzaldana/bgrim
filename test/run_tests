@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+SUPPORTED_VERSIONS=(
+  '3.2.57'
+  '4.4.23'
+  '5.2.15'
+)
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+prefix() {
+  local prefix
+  prefix="${1:->}"
+
+  # Read from stdin until we reach EOF
+  
+  while read -r line; do
+    echo "${prefix} ${line}"
+  done <'/dev/stdin'
+}
+
+run_tests_in_bash_version() {
+  local bash_version 
+  bash_version="${1:-}"
+
+  # Check that first arg is set
+  [[ -z "$bash_version" ]] \
+    && { echo "arg1 ('bash_version') is empty"; return 1; }
+
+  BASH_VERSION="$bash_version" docker-compose \
+    -f "$SCRIPT_DIR/docker-compose.yml" \
+    up \
+    --no-log-prefix --exit-code-from bash \
+    2>&1
+}
+
+set -euo pipefail
+
+for VERSION in "${SUPPORTED_VERSIONS[@]}"; do
+  echo "Testing in bash version $VERSION" | prefix "++++++++"
+  run_tests_in_bash_version "$VERSION" | prefix ">>>>" \
+    || { echo "Tests failed for version '$VERSION'" | prefix "++++++++"
+         echo "Aborting tests for remaining versions" | prefix "++++++++"
+	 break; }
+done
