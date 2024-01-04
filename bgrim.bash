@@ -39,16 +39,14 @@
 
 
 ################################################################################
-# Checks if the first argument is an empty string 
-# Globals:
-#   None
+# Description: Checks if the first argument is an empty string 
+# Globals: null
 # Arguments:
-#   Sstring to check
-# Outputs:
-#   None
+#   1: string to check
+# Outputs: null
 # Returns:
-#   0 if the first argument is missing or an empty string 
-#   1 otherwise
+#   0: if the first argument is missing or an empty string 
+#   1: otherwise
 ################################################################################
 bg::is_empty() {
   [[ -z "${1:-}" ]] \
