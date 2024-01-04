@@ -162,6 +162,31 @@ bg::in_array() {
   return 1
 }
 
+
+################################################################################
+# Description: Checks if the given value exists in the array with the given name 
+# Globals:
+#   None
+# Arguments:
+#   - Value to look for
+#   - Name of array to look through
+# Outputs:
+#   - Writes error message to stderr if return code is not 0 or 1 
+# Returns:
+#   0: if the given value exists in the array with the given name
+#   1: if the given value does not exist in the array with the given name
+#   2: if there is no array in the environment with the given name
+################################################################################
+bg::is_function() {
+  local fn_name="${1:-}"
+
+  if declare -f "$fn_name" >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 ################################################################################
 # Clears all options in the environment that can be set with both the 'set' and
 # the 'shopt' built-in commands 

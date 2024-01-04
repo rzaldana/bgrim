@@ -124,6 +124,30 @@ test_in_array_returns_2_and_prints_error_message_when_an_array_with_the_given_na
   assert_equals "The array with name 'test_array' does not exist" "$(cat "$stderr_file")" "stderr should contain error message"
 }
 
+test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
+  local stdout_and_stderr
+
+  # shellcheck disable=SC2317
+  test_fn() {
+    echo "test" 
+  }
+
+  stdout_and_stderr="$(bg::is_function test_fn)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "is_function should return 0 when the given fn is defined"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_function_returns_0_when_the_given_name_does_not_refer_to_a_function() {
+  local stdout_and_stderr
+  local test_fn
+
+  stdout_and_stderr="$(bg::is_function test_fn)"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "is_function should return 1 when the given fn is not defined"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
 test_clear_options_clears_all_options_in_the_environment() {
   # Set a few specific options
   set -o pipefail
