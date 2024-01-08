@@ -197,7 +197,8 @@ bg::is_function() {
 # Arguments:
 #   1: name of function to execute
 # Outputs:
-#   - Writes error message to stderr if return code is not 0 or 1 
+#   stdout: the output of the given function for every line in stdin 
+#   stderr: any error messages
 # Returns:
 #   0: all function executions of the given function were successful
 #   1: an error occurred
