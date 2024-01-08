@@ -7,12 +7,7 @@
 #   unit test function in a separate subshell, so any execute trap declared 
 #   within a test will execute when the subshell exits, i.e., when the test
 #   is finished running. The command can only be used once for each test. 
-#   Subsequent calls will overwrite previous traps.
-# Globals: null
-# Arguments:
-#   @: file names
-# Outputs: null
-# Returns:
+#   Subsequent calls will overwrite previous traps.  # Globals: null # Arguments: #   @: file names # Outputs: null # Returns:
 #   0: if the first argument is missing or an empty string 
 #   1: otherwise
 ################################################################################
@@ -43,6 +38,10 @@ setup_suite() {
   # source library
   # shellcheck src=../bgrim.bash
   source "$LIBRARY_PATH"
+
+  # set unofficial strict mode
+  # (all functions should work in strict mode)
+  set -euo pipefail
 }
 
 test_is_empty_returns_0_if_given_no_args() {
