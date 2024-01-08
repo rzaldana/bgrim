@@ -231,7 +231,7 @@ found in the environment" >&2
             return 1
           }
   done
-    }
+}
 
 ################################################################################
 # Clears all options in the environment that can be set with both the 'set' and
