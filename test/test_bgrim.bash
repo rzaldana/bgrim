@@ -1,6 +1,38 @@
 #!/usr/bin/env bash
 
 ################################################################################
+# Description: |
+#   Creates a trap that will delete the given filenames when the 
+#   current shell exits. This only works here because bash_unit runs each
+#   unit test function in a separate subshell, so any execute trap declared 
+#   within a test will execute when the subshell exits, i.e., when the test
+#   is finished running. The command can only be used once for each test. 
+#   Subsequent calls will overwrite previous traps.
+# Globals: null
+# Arguments:
+#   @: file names
+# Outputs: null
+# Returns:
+#   0: if the first argument is missing or an empty string 
+#   1: otherwise
+################################################################################
+rm_on_exit() {
+  # Check that at least one arg was provided
+  [[ "$#" -gt 0 ]] || { echo "rm_on_exit: No file names were provided" >&2; return 1; }
+
+  # shellcheck disable=SC2317 
+  cleanup_fn() {
+  # Check that at least one arg was provided
+    [[ "$#" -gt 0 ]]  || { echo "No file names were provided" >&2; return 1; }
+
+    # Remove file
+    rm_output="$(rm "$@" 2>&1)" \
+      || { echo "Unable to remove temporary file. Output from 'rm':  $rm_output" >&2; return 1; }
+  }
+
+  # shellcheck disable=SC2064
+  trap "cleanup_fn $*" EXIT
+}
 
 setup_suite() {
   LIBRARY_NAME="bgrim.bash"
@@ -112,11 +144,7 @@ test_in_array_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_
 test_in_array_returns_2_and_prints_error_message_when_an_array_with_the_given_name_doesnt_exist() {
   local stderr_file
   stderr_file="$(mktemp)"
-  # shellcheck disable=SC2317
-  cleanup() {
-    rm -f "$stderr_file"
-  }
-  trap cleanup EXIT
+  rm_on_exit "$stderr_file"
   stdout="$(bg::in_array "val4" "test_array" 2>"$stderr_file")"
   ret_code="$?"
   assert_equals "2" "$ret_code" "function call should return 2 when array with given name doesn't exist" 
@@ -138,7 +166,7 @@ test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_function_returns_0_when_the_given_name_does_not_refer_to_a_function() {
+test_is_function_returns_1_when_the_given_name_does_not_refer_to_a_function() {
   local stdout_and_stderr
   local test_fn
 
@@ -146,6 +174,130 @@ test_is_function_returns_0_when_the_given_name_does_not_refer_to_a_function() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "is_function should return 1 when the given fn is not defined"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_map_runs_given_function_for_the_first_line_in_stdin() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  # shellcheck disable=SC2317
+  test_fn() {
+    local test_var
+    read -r test_var
+    echo "test_fn: $test_var"
+  }
+
+  stdout="$(echo "whooo" |  bg::map test_fn 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals \
+    "0" \
+    "$ret_code" \
+    "bg::map should return 0 when the function executes successfully for every line"
+  assert_equals "test_fn: whooo" "$stdout" "stdout should be test_fn: whooo"
+  assert_equals "" "$(<"$stderr_file")" "stderr should be empty"
+}
+
+
+test_map_runs_given_function_for_each_line_in_stdin() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  # shellcheck disable=SC2317
+  test_fn() {
+    local test_var
+    read -r test_var
+    echo "test_fn: $test_var"
+  }
+
+  stdout="$( {
+                echo "line1" 
+                echo "line2"
+                echo "line3"
+              } |  bg::map test_fn 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals \
+    "0" \
+    "$ret_code" \
+    "bg::map should return 0 when the function executes successfully for every line"
+  assert_equals \
+    'test_fn: line1
+test_fn: line2
+test_fn: line3' \
+    "$stdout" \
+    "stdout did not return the correct output" 
+  assert_equals "" "$(<"$stderr_file")" "stderr should be empty"
+}
+
+test_map_returns_1_when_first_arg_is_empty() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  # shellcheck disable=SC2317
+  test_fn() {
+    local test_var
+    read -r test_var
+    echo "test_fn: $test_var"
+  }
+
+  stdout="$( {
+                echo "line1" 
+                echo "line2"
+                echo "line3"
+              } | bg::map 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals \
+    "1" \
+    "$ret_code" \
+    "bg::map should return 1 when no args are provided"
+  assert_equals \
+    "" \
+    "$stdout" \
+    "stdout did not return the correct output" 
+  assert_equals \
+    "bg::map: no args were provided" \
+    "$(<"$stderr_file")" \
+    "stderr match expected error message"
+}
+
+test_map_returns_the_error_code_when_when_a_function_execution_fails() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  execution=0
+
+  # shellcheck disable=SC2317
+  test_fn() {
+    local test_var
+    read -r test_var
+    echo "test_fn: $test_var"
+    if (( execution++ > 0)); then
+      return 33
+    fi
+  }
+
+  stdout="$( {
+                echo "line1" 
+                echo "line2"
+                echo "line3"
+              } | bg::map test_fn 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals \
+    "1" \
+    "$ret_code" \
+    "bg::map should return 1 when a function execution fails"
+  assert_equals \
+    "test_fn: line1
+test_fn: line2" \
+    "$stdout" \
+    "stdout did not return the correct output" 
+  assert_equals \
+    "bg::map: execution of function 'test_fn' failed with status code '33' for input 'line2'" \
+    "$(<"$stderr_file")" \
+    "stderr match expected error message"
 }
 
 test_clear_options_clears_all_options_in_the_environment() {
@@ -160,12 +312,7 @@ test_clear_options_clears_all_options_in_the_environment() {
   stdout_file="$(mktemp)"
 
   # Cleanup stderr and stdout files on exit
-  # shellcheck disable=SC2317
-  cleanup() {
-    rm -f "$stderr_file"
-    rm -f "$stdout_file"
-  }
-  trap cleanup EXIT
+  rm_on_exit "$stderr_file" "$stdout_file"
 
   # Run function 
   bg::clear_options >"$stdout_file" 2>"$stderr_file"

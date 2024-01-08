@@ -185,6 +185,47 @@ bg::is_function() {
   fi
 }
 
+
+################################################################################
+# Description: |
+#   Runs the function with the given name once per line in the stdin.
+#   The passed in name must refer to a function in the environment and the
+#   referenced function must take its input from stdin. If any of the 
+#   passed in function's execution fails, the return code of the failed
+#   function will be returned in an error message. 
+# Globals: null
+# Arguments:
+#   1: name of function to execute
+# Outputs:
+#   - Writes error message to stderr if return code is not 0 or 1 
+# Returns:
+#   0: all function executions of the given function were successful
+#   1: an error occurred
+################################################################################
+bg::map() {
+  local fn_name="${1:-}"
+  
+  # Check if first arg is set
+  [[ -n "$fn_name" ]] \
+    || { echo "${FUNCNAME[0]}: no args were provided" >&2
+         return 1
+       }
+  local line
+  local ret_code
+
+  while IFS= read -r line; do
+    "${fn_name}" <<<"$line"
+    ret_code="$?" 
+    [[ "$ret_code" == "0" ]] \
+      || { echo \
+            "${FUNCNAME[0]}:\
+ execution of function '$fn_name' failed with status code\
+ '${ret_code}' for input '$line'" >&2
+            return 1
+          }
+  done
+    }
+
 ################################################################################
 # Clears all options in the environment that can be set with both the 'set' and
 # the 'shopt' built-in commands 
