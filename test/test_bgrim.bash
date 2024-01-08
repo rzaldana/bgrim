@@ -262,7 +262,7 @@ test_map_returns_1_when_first_arg_is_empty() {
     "stderr match expected error message"
 }
 
-test_map_returns_the_error_code_when_when_a_function_execution_fails() {
+test_map_returns_1_when_when_a_function_execution_fails() {
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
@@ -296,6 +296,32 @@ test_fn: line2" \
     "stdout did not return the correct output" 
   assert_equals \
     "bg::map: execution of function 'test_fn' failed with status code '33' for input 'line2'" \
+    "$(<"$stderr_file")" \
+    "stderr match expected error message"
+}
+
+
+test_map_returns_1_when_when_the_given_name_does_not_refer_to_a_fn() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  stdout="$( {
+                echo "line1" 
+                echo "line2"
+                echo "line3"
+              } | bg::map test_fn 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals \
+    "1" \
+    "$ret_code" \
+    "bg::map should return 1 when the passed in name is not a fn"
+  assert_equals \
+    "" \
+    "$stdout" \
+    "stdout did not return the correct output" 
+  assert_equals \
+    "bg::map: function with name 'test_fn' not found in the environment" \
     "$(<"$stderr_file")" \
     "stderr match expected error message"
 }

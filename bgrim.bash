@@ -204,11 +204,18 @@ bg::is_function() {
 ################################################################################
 bg::map() {
   local fn_name="${1:-}"
-  
+
   # Check if first arg is set
   [[ -n "$fn_name" ]] \
     || { echo "${FUNCNAME[0]}: no args were provided" >&2
          return 1
+       }
+
+  # Check if first arg is a function
+  bg::is_function "$fn_name" \
+    || { echo "${FUNCNAME[0]}: function with name '$fn_name' not \
+found in the environment" >&2
+          return 1
        }
   local line
   local ret_code
