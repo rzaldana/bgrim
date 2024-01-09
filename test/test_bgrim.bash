@@ -1,13 +1,31 @@
 #!/usr/bin/env bash
 
 ################################################################################
-# Description: |
-#   Creates a trap that will delete the given filenames when the 
+# description: |
+#   creates a trap that will delete the given filenames when the 
 #   current shell exits. This only works here because bash_unit runs each
 #   unit test function in a separate subshell, so any execute trap declared 
 #   within a test will execute when the subshell exits, i.e., when the test
 #   is finished running. The command can only be used once for each test. 
-#   Subsequent calls will overwrite previous traps.  # Globals: null # Arguments: #   @: file names # Outputs: null # Returns:
+#   Subsequent calls will overwrite previous traps.
+# inputs:
+#   stdin:
+#   args:
+#   vars:
+#   funcs:
+#   opts:
+#   shopts:
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#   vars:
+#   funcs:
+#   opts:
+#   shopts:
+# Arguments: 
+#   rest: file names 
+# Returns:
 #   0: if the first argument is missing or an empty string 
 #   1: otherwise
 ################################################################################
@@ -36,8 +54,9 @@ setup_suite() {
   LIBRARY_PATH="$(cd ..>/dev/null && pwd)/$LIBRARY_NAME"
 
   # source library
-  # shellcheck src=../bgrim.bash
-  source "$LIBRARY_PATH"
+  # shellcheck source=../bgrim.bash
+  source "$LIBRARY_PATH" \
+    || { echo "Unable to source library at $LIBRARY_PATH"; exit 1; }
 
   # set unofficial strict mode
   # (all functions should work in strict mode)
@@ -67,24 +86,24 @@ test_is_empty_returns_1_if_given_a_non_empty_string() {
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_shell_bash_returns_0_if_running_in_bash() {
-  local FAKE_BASH_VERSION="x.x.x"
-  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "function call should return 0 when BASH_VERSION variable is set"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
+#test_is_shell_bash_returns_0_if_running_in_bash() {
+#  local FAKE_BASH_VERSION="x.x.x"
+#  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
+#  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "function call should return 0 when BASH_VERSION variable is set"
+#  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+#}
 
-test_is_shell_bash_returns_1_if_not_running_in_bash() {
+#test_is_shell_bash_returns_1_if_not_running_in_bash() {
   # shellcheck disable=SC2034
-  local FAKE_BASH_VERSION=
-  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "function call should return 0 when BASH_VERSION variable is unset"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
+#  local FAKE_BASH_VERSION=
+#  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
+#  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "function call should return 0 when BASH_VERSION variable is unset"
+#  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+#}
 
 test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
   stdout_and_stderr="$(bg::is_valid_var_name "my_func" 2>&1)" 
@@ -175,30 +194,44 @@ test_is_function_returns_1_when_the_given_name_does_not_refer_to_a_function() {
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_map_runs_given_function_for_the_first_line_in_stdin() {
-  local stderr_file
-  stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
-
-  # shellcheck disable=SC2317
+test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
+  local stdout_and_stderr
   test_fn() {
-    local test_var
-    read -r test_var
-    echo "test_fn: $test_var"
+    # shellcheck disable=SC2317
+    return 0
   }
-
-  stdout="$(echo "whooo" |  bg::map test_fn 2>"$stderr_file")"
+  stdout_and_stderr="$(bg::is_valid_command test_fn arg1)"
   ret_code="$?"
-  assert_equals \
-    "0" \
-    "$ret_code" \
-    "bg::map should return 0 when the function executes successfully for every line"
-  assert_equals "test_fn: whooo" "$stdout" "stdout should be test_fn: whooo"
-  assert_equals "" "$(<"$stderr_file")" "stderr should be empty"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
 }
 
 
-test_map_runs_given_function_for_each_line_in_stdin() {
+test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
+  local stdout_and_stderr
+  stdout_and_stderr="$(bg::is_valid_command set arg1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
+  local stdout_and_stderr
+  stdout_and_stderr="$(bg::is_valid_command ls arg1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
+  local stdout_and_stderr
+  stdout_and_stderr="$(bg::is_valid_command "{" "ls;" "}")"
+  ret_code="$?"
+  assert_equals "" "$stdout_and_stderr"
+  assert_equals "1" "$ret_code"
+}
+
+test_map_runs_given_command_for_each_line_in_stdin() {
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
@@ -224,6 +257,38 @@ test_map_runs_given_function_for_each_line_in_stdin() {
     'test_fn: line1
 test_fn: line2
 test_fn: line3' \
+    "$stdout" \
+    "stdout did not return the correct output" 
+  assert_equals "" "$(<"$stderr_file")" "stderr should be empty"
+}
+
+test_map_runs_given_command_with_arguments_for_each_line_in_stdin() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  # shellcheck disable=SC2317
+  test_fn() {
+    local test_var
+    local first_arg="${1:-}"
+    read -r test_var
+    echo "test_fn: stdin: $test_var, arg1: $first_arg"
+  }
+
+  stdout="$( {
+                echo "line1" 
+                echo "line2"
+                echo "line3"
+              } |  bg::map test_fn hello 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals \
+    "0" \
+    "$ret_code" \
+    "bg::map should return 0 when the function executes successfully for every line"
+  assert_equals \
+    'test_fn: stdin: line1, arg1: hello
+test_fn: stdin: line2, arg1: hello
+test_fn: stdin: line3, arg1: hello' \
     "$stdout" \
     "stdout did not return the correct output" 
   assert_equals "" "$(<"$stderr_file")" "stderr should be empty"
@@ -261,7 +326,32 @@ test_map_returns_1_when_first_arg_is_empty() {
     "stderr match expected error message"
 }
 
-test_map_returns_1_when_when_a_function_execution_fails() {
+test_map_returns_1_when_when_the_first_arg_does_not_refer_to_a_valid_command() {
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  stdout="$( {
+                echo "line1" 
+                echo "line2"
+                echo "line3"
+              } | bg::map "{ ls; }" 2>"$stderr_file")"
+  ret_code="$?"
+  assert_equals \
+    "1" \
+    "$ret_code" \
+    "bg::map should return 1 when the passed in name is not a fn"
+  assert_equals \
+    "" \
+    "$stdout" \
+    "stdout did not return the correct output" 
+  assert_equals \
+    "bg::map: '{ ls; }' is not a valid function, shell built-in, or executable in the PATH" \
+    "$(<"$stderr_file")" \
+    "stderr match expected error message"
+}
+
+test_map_returns_1_when_when_a_command_execution_with_no_args_fails() {
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
@@ -294,35 +384,143 @@ test_fn: line2" \
     "$stdout" \
     "stdout did not return the correct output" 
   assert_equals \
-    "bg::map: execution of function 'test_fn' failed with status code '33' for input 'line2'" \
+    "bg::map: execution of command 'test_fn' failed with status code '33' for input 'line2'" \
     "$(<"$stderr_file")" \
     "stderr match expected error message"
 }
 
 
-test_map_returns_1_when_when_the_given_name_does_not_refer_to_a_fn() {
+test_map_returns_1_when_when_a_command_execution_with_args_fails() {
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
+
+  execution=0
+
+  # shellcheck disable=SC2317
+  test_fn() {
+    local test_var
+    read -r test_var
+    echo "test_fn: $test_var"
+    if (( execution++ > 0)); then
+      return 33
+    fi
+  }
 
   stdout="$( {
                 echo "line1" 
                 echo "line2"
                 echo "line3"
-              } | bg::map test_fn 2>"$stderr_file")"
+              } | bg::map test_fn arg1 "arg2 hello" 2>"$stderr_file")"
   ret_code="$?"
   assert_equals \
     "1" \
     "$ret_code" \
-    "bg::map should return 1 when the passed in name is not a fn"
+    "bg::map should return 1 when a function execution fails"
   assert_equals \
-    "" \
+    "test_fn: line1
+test_fn: line2" \
     "$stdout" \
     "stdout did not return the correct output" 
   assert_equals \
-    "bg::map: function with name 'test_fn' not found in the environment" \
+    "bg::map: execution of command 'test_fn' with args 'arg1' 'arg2 hello' failed with status code '33' for input 'line2'" \
     "$(<"$stderr_file")" \
     "stderr match expected error message"
+}
+
+test_filter_fails_when_its_first_arg_is_not_a_valid_command() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+  stdout="$( bg::filter non_valid_command 2>"$stderr_file" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout"
+  assert_equals \
+    "bg::filter: 'non_valid_command' is not a valid function, shell built-in, or executable in the PATH" \
+    "$(< "$stderr_file")"
+}
+
+
+
+#test_is_valid_long_option_returns_0_if_given_alphanumeric_string() {
+#  local test_string="longOpt"
+#  local stdout_and_stderr
+#  stdout_and_stderr="$( bg::is_valid_long_option "$test_string" )"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code"
+#  assert_equals "" "$stdout_and_stderr"
+#}
+
+test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
+  local test_opt="pipefail"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg::is_valid_shell_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+
+test_is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
+  local test_opt="pipefai"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg::is_valid_shell_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
+  local test_opt="cdspell"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg::is_valid_bash_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
+  local test_opt="dspell"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg::is_valid_bash_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_is_shell_opt_set_returns_0_if_the_given_option_is_set() {
+  local test_opt="pipefail"
+  local stdout_and_stderr
+  set -o "$test_opt" 
+  stdout_and_stderr="$( bg::is_shell_opt_set "$test_opt" )"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_is_shell_opt_set_returns_1_if_the_given_option_is_not_set() {
+  local test_opt="pipefail"
+  local stdout_and_stderr
+  set +o "$test_opt" 
+  stdout_and_stderr="$( bg::is_shell_opt_set "$test_opt" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_is_shell_opt_set_returns_1_if_the_given_option_is_not_valid() {
+  local test_opt="ipefail"
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+  stdout="$( bg::is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout"
+  assert_equals "'ipefail' is not a valid shell option" "$(< "$stderr_file")"
 }
 
 test_clear_options_clears_all_options_in_the_environment() {

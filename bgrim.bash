@@ -39,15 +39,42 @@
 
 
 ################################################################################
-# Description: Checks if the first argument is an empty string 
-# Globals: null
-# Arguments:
-#   1: string to check
-# Outputs: null
-# Returns:
-#   0: if the first argument is missing or an empty string 
-#   1: otherwise
+# EMPTY COMMENT TEMPLATE
 ################################################################################
+# description:
+# inputs:
+#   stdin:
+#   args:
+# #   1: "first command-line argument"
+# #   2: "second command-line argument"
+# #   rest: arguments 4 and above are interpreted the same way 
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "description of when the function returns status code 0"
+#     1: "description of when the function returns status code 1"
+# tags:
+#   - "syntax_sugar"
+################################################################################
+
+
+################################################################################
+# description: |
+#   Checks if the first argument is a string with length 0
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "if arg1 is a string of length 0 or is not provided"
+#     1: "if arg1 is a string of length more than 1"
+# tags:
+#   - "syntax_sugar"
+###############################################################################
 bg::is_empty() {
   [[ -z "${1:-}" ]] \
     && return 0
@@ -55,26 +82,27 @@ bg::is_empty() {
 }
 
 ################################################################################
-# Checks if currently running shell is bash 
-# Globals:
-#   _BG_BASH_VERSION_VAR_NAME: (test only) if set, makes the function check the 
-#     value of the variable whose name is specified in this variable
-# Arguments:
-#   None
-# Outputs:
-#   None
-# Returns:
-#   0 if the BASH_VERSION is set
-#   1 if the BASH_VERSION is unset
+# description: Checks if the shell program running this process is bash 
+# inputs:
+#   stdin:
+#   args:
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "if the BASH_VERSION variable is set
+#     1: "if the BASH_VERSION variable is unset"
+# tags:
+#   - "compatibility"
 ################################################################################
-bg::is_shell_bash() {
-  local bash_version_var_name="${_BG_BASH_VERSION_VAR_NAME:-BASH_VERSION}"
-  if bg::is_empty "${!bash_version_var_name}"; then
-    return 1
-  else
-    return 0
-  fi
-}
+#bg::is_shell_bash() {
+#  local bash_version_var_name="${_BG_BASH_VERSION_VAR_NAME:-BASH_VERSION}"
+#  if bg::is_empty "${!bash_version_var_name}"; then
+#    return 1
+#  else
+#    return 0
+#  fi
+#}
 
 ################################################################################
 # Checks if the given string is a valid variable name (i.e. it's made up 
@@ -185,54 +213,286 @@ bg::is_function() {
   fi
 }
 
+################################################################################
+# description: |
+#   returns 0 if the first argument refers to a function, shell built-in, or
+#   an executable in the PATH. Returns 1 otherwise.
+# inputs:
+#   stdin:
+#   args:
+#    1: "first command-line argument"
+#    rest: all other parameters are ignored 
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "if the first arg is a function, shell built-in or executable in PATH"
+#     1: "otherwise"
+# tags:
+#   - "syntax_sugar"
+################################################################################
+bg::is_valid_command() {
+  local command_name="${1:-}"
+
+  local command_type
+  command_type="$(type -t "$command_name" 2>/dev/null)"
+  local ret_code="$?"
+
+  [[ "$ret_code" != 0 ]] && return 1 
+  [[ "$command_type" = "keyword" ]] && return 1
+  return 0
+}
+
 
 ################################################################################
-# Description: |
-#   Runs the function with the given name once per line in the stdin.
-#   The passed in name must refer to a function in the environment and the
-#   referenced function must take its input from stdin. If any of the 
-#   passed in function's execution fails, the return code of the failed
-#   function will be returned in an error message. 
-# Globals: null
-# Arguments:
-#   1: name of function to execute
-# Outputs:
-#   stdout: the output of the given function for every line in stdin 
+# description: |
+#   Runs the given command once per line in the stdin. The first argument must 
+#   refer to a valid function, shell built-in, or executable in the path. The 
+#   rest of the args to this function will be provided as arguments to the 
+#   command specified in the first arg. The referenced command must take its 
+#   input from stdin. If any of the executions of the passed in command fails, 
+#   the return code of the failed function will be returned in an error message. 
+# inputs:
+#   stdin:
+#   args:
+#     1: command to execute
+#     rest: arguments to be passed in to the command in arg1
+# outputs:
+#   stdout: the output of the given command for every line in stdin 
 #   stderr: any error messages
-# Returns:
-#   0: all function executions of the given function were successful
-#   1: an error occurred
+#   return_code:
+#     0: all executions of the passed in command were successful
+#     1: an error occurred
 ################################################################################
 bg::map() {
-  local fn_name="${1:-}"
+  local command_name="${1:-}"
+  shift 1
 
   # Check if first arg is set
-  [[ -n "$fn_name" ]] \
+  [[ -n "$command_name" ]] \
     || { echo "${FUNCNAME[0]}: no args were provided" >&2
          return 1
        }
 
-  # Check if first arg is a function
-  bg::is_function "$fn_name" \
-    || { echo "${FUNCNAME[0]}: function with name '$fn_name' not \
-found in the environment" >&2
+  # Check if first arg is a valid command
+  bg::is_valid_command "$command_name" \
+    || { echo "${FUNCNAME[0]}: '$command_name' is not \
+a valid function, shell built-in, or executable in the PATH" >&2
           return 1
        }
   local line
   local ret_code
 
+  # Create string of args enclosed in single quotes
+  local error_formatted_args=" with args"
+  for arg in "$@"; do
+    error_formatted_args="${error_formatted_args} '$arg'"
+  done
+
   while IFS= read -r line; do
-    "${fn_name}" <<<"$line"
+    "${command_name}" "$@" <<<"$line"
     ret_code="$?" 
     [[ "$ret_code" == "0" ]] \
       || { echo \
             "${FUNCNAME[0]}:\
- execution of function '$fn_name' failed with status code\
+ execution of command '$command_name'${*:+$error_formatted_args} failed with status code\
  '${ret_code}' for input '$line'" >&2
             return 1
           }
   done
 }
+
+################################################################################
+# description: |
+#   Runs the given command once per line in the stdin. All lines for which the
+#   command returns 0 will be forwarded to stdout. All other lines will be
+#   filtered out of the output. The first argument must refer to a valid 
+#   function, shell built-in, or executable in the PATH. The rest of the args to 
+#   this function will be provided as arguments to the command specified in the 
+#   first arg. The referenced command must take its input from stdin.
+# inputs:
+#   stdin:
+#   args:
+#     1: command to execute
+#     rest: arguments to be passed in to the command in arg1
+# outputs:
+#   stdout: lines for which the command returns 0
+#   stderr: any error messages
+#   return_code:
+#     0: filtering was successful 
+#     1: an error occurred
+################################################################################
+bg::filter() {
+  local command_name="${1:-}"
+  shift 1
+
+  # Check if first arg is set
+  #[[ -n "$command_name" ]] \
+  #  || { echo "${FUNCNAME[0]}: no args were provided" >&2
+  #       return 1
+  #     }
+
+  # Check if first arg is a valid command
+  bg::is_valid_command "$command_name" \
+    || { echo "${FUNCNAME[0]}: '$command_name' is not \
+a valid function, shell built-in, or executable in the PATH" >&2
+          return 1
+       }
+  #local line
+  #local ret_code
+
+  # Create string of args enclosed in single quotes
+  #local error_formatted_args=" with args"
+  #for arg in "$@"; do
+  #  error_formatted_args="${error_formatted_args} '$arg'"
+  #done
+
+  #while IFS= read -r line; do
+  #  "${command_name}" "$@" <<<"$line"
+  #  ret_code="$?" 
+  #  [[ "$ret_code" == "0" ]] \
+  #    || { echo \
+  #          "${FUNCNAME[0]}:\
+ #execution of command '$command_name'${*:+$error_formatted_args} failed with status code\
+ #'${ret_code}' for input '$line'" >&2
+ #           return 1
+ #         }
+ # done
+}
+
+################################################################################
+# description: |
+#   returns 0 if the given string is a valid long option name, i.e.
+#   if it matches the following POSIX ERE regex: [[:alnum:]-]+
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "when the string matches the regex"
+#     1: "when the string does not match the regex"
+# tags:
+#   - "cli parsing"
+################################################################################
+#bg::is_valid_long_option() {
+  # turn off case insensitive regex matching
+#  shopt -u nocasematch
+#  local string
+#  string="${1:-}"
+#  local regex
+#  regex='[[:alnum:]+'
+#  [[ "$string" =~ $regex ]]
+#
+#
+#}
+
+#################################################################################
+# description: |
+#   returns 0 if the given string is a valid option name that can be set with the
+#   'set -o [option name]' command. This command ony works with long option names
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "when the string is a valid shell option in the current bash"
+#     1: "when the string is not a valid shell option in the current bash"
+# tags:
+#   - "option decorators"
+################################################################################
+bg::is_valid_shell_opt() {
+  local opt_name
+  local opt_name_iterator
+  local opt_value
+
+  opt_name="${1:-}"
+
+  # shellcheck disable=SC2034
+  while IFS=$' \t\n' read -r opt_name_iterator opt_value; do
+    [[ "$opt_name" == "$opt_name_iterator" ]] \
+      && return 0
+  done < <(set -o 2>/dev/null)
+  return 1
+}
+
+#################################################################################
+# description: |
+#   returns 0 if the given string is a valid option name that can be set with the
+#   'shopt -s [option name]' command.
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "when the string is a valid bash option in the current bash"
+#     1: "when the string is not a valid bash option in the current bash"
+# tags:
+#   - "option decorators"
+################################################################################
+bg::is_valid_bash_opt() {
+  local opt_name
+  local opt_name_iterator
+  local opt_value
+
+  opt_name="${1:-}"
+
+  # shellcheck disable=SC2034
+  while IFS=$' \t\n' read -r opt_name_iterator opt_value; do
+    [[ "$opt_name" == "$opt_name_iterator" ]] \
+      && return 0
+  done < <(shopt 2>/dev/null)
+  return 1
+}
+
+#################################################################################
+# description: |
+#   returns 0 if the given string is the name of the a shell option that is 
+#   currently turned on through the 'set -o [option name]' command. This command
+#   only works with long option names.
+# inputs:
+#   stdin:
+#   args:
+#     1: "option to evaluate"
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "when the string is a valid shell option in the current bash"
+#     1: "when the string is not a valid shell option in the current bash"
+# tags:
+#   - "option decorators"
+################################################################################
+bg::is_shell_opt_set() {
+  local opt_name
+  local opt_name_iterator
+  local opt_value
+  local is_valid_opt=""
+
+  opt_name="${1:-}"
+
+  while IFS=$' \t\n' read -r opt_name_iterator opt_value; do
+    if [[ "$opt_name" == "$opt_name_iterator" ]]; then
+      is_valid_opt="true"
+      if [[ "$opt_value" == "on" ]]; then
+        return 0
+      fi
+    fi
+  done < <(set -o 2>/dev/null)
+
+  # Print error message to stdout if given option is not valid
+  [[ -z "$is_valid_opt" ]] && echo "'$opt_name' is not a valid shell option" >&2
+  return 1
+}
+
 
 ################################################################################
 # Clears all options in the environment that can be set with both the 'set' and
@@ -258,3 +518,5 @@ bg::clear_options() {
     shopt -u "${option_name}" >/dev/null 2>&1
   done < <( shopt )
 }
+
+
