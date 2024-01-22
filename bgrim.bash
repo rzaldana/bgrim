@@ -61,6 +61,119 @@
 
 ################################################################################
 # description: |
+#   Clears all options in the environment that can be set with both the 'set' 
+#   and the 'shopt' built-in commands 
+# inputs:
+#   stdin:
+#   args:
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "always"
+# tags:
+#   - "changes env"
+################################################################################
+bg::clear_shell_opts() {
+  # Clear all options set with the 'set' built-in
+  while read -r option_name option_status; do
+    set +o "${option_name}" >/dev/null 2>&1
+  done < <( set -o )
+
+  # Clear all options set with the 'shopt' built-in
+  while read -r option_name option_status; do
+    shopt -u "${option_name}" >/dev/null 2>&1
+  done < <( shopt )
+}
+
+
+################################################################################
+# description: |
+#   Clears all traps in the environment
+# inputs:
+#   stdin:
+#   args:
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "always"
+# tags:
+#   - "changes env"
+################################################################################
+bg::clear_traps() {
+  # Clear pseudo-signal traps
+  trap - RETURN
+  trap - DEBUG
+  trap - EXIT
+  trap - ERR
+
+  # read all signal names available in the system
+  # into an array 
+  local -a signals_array
+  local IFS
+  IFS=' '$'\t'
+  while IFS= read -r line; do
+    shift 1
+    # shellcheck disable=SC2086
+    set -- $line
+    for token in "${@}"; do
+      [[ "$token" =~ [0-9]{1,3}\) ]] || signals_array+=("$token")
+    done
+  done < <(trap -lp)
+
+  # iterate through the array of available signals
+  # to clear all traps
+  for sig in "${signals_array[@]}"; do
+    trap - "$sig"
+  done
+}
+
+################################################################################
+# description: |
+#   Clears all variables in the environment that start with the given prefix.
+#   Will unset global shell variables, as well as local and environment 
+#   variables. Will return an error if the provided prefix is not a valid
+#   function name (i.e. it's empty or not composed entirely of alphanumeric
+#   characters and underscores)
+# inputs:
+#   stdin:
+#   args:
+#     1: "prefix"
+# outputs:
+#   stdout:
+#   stderr: "Error message if prefix is not valid"
+#   return_code:
+#     0: "All variables with the given prefix were unset from the environment"
+#     1: "The provided prefix was invalid"
+# tags:
+#   - "changes env"
+################################################################################
+bg::clear_vars_with_prefix() {
+  local prefix="${1:-}"
+
+  # Check that prefix is not empty
+  [[ -z "$prefix" ]] \
+    && printf '%s\n' "ERROR: arg1 (prefix) is empty but is required" \
+    && return 1
+
+  # Check that prefix is a valid variable name
+  if ! bg::is_valid_var_name "$prefix"; then \
+    printf '%s\n' "ERROR: '$prefix' is not a valid variable prefix"
+    return 1
+  fi
+
+  eval 'local -a vars_with_prefix=( ${!'"$prefix"'@} )'
+  # shellcheck disable=SC2156
+  for var in "${vars_with_prefix[@]}"; do
+    unset "$var"
+  done
+}
+
+
+
+################################################################################
+# description: |
 #   Checks if the first argument is a string with length 0
 # inputs:
 #   stdin:
@@ -119,7 +232,7 @@ bg::is_empty() {
 ################################################################################
 bg::is_valid_var_name() {
   local input_string="${1:-}"
-  local re="^[a-zA-Z0-9_]+$"
+  local re="^[a-zA-Z_][a-zA-Z0-9_]+$"
   if [[ "$input_string" =~ $re ]]; then
     return 0
   else
@@ -323,14 +436,16 @@ a valid function, shell built-in, or executable in the PATH" >&2
 #     1: an error occurred
 ################################################################################
 bg::filter() {
+  # Check if first arg is set
+  [[ "$#" -gt 0 ]] \
+    || { echo "${FUNCNAME[0]}: no args were provided" >&2
+         return 1
+       }
+
+  # Store first arg in variable and shift the rest of the args
   local command_name="${1:-}"
   shift 1
 
-  # Check if first arg is set
-  #[[ -n "$command_name" ]] \
-  #  || { echo "${FUNCNAME[0]}: no args were provided" >&2
-  #       return 1
-  #     }
 
   # Check if first arg is a valid command
   bg::is_valid_command "$command_name" \
@@ -338,26 +453,23 @@ bg::filter() {
 a valid function, shell built-in, or executable in the PATH" >&2
           return 1
        }
-  #local line
-  #local ret_code
 
-  # Create string of args enclosed in single quotes
-  #local error_formatted_args=" with args"
-  #for arg in "$@"; do
-  #  error_formatted_args="${error_formatted_args} '$arg'"
-  #done
+  # shellcheck disable=SC2317
+  __bg::filter_func() {
+    local ret_code
+    local line
+    local command_name
+    command_name="${1:-}"
+    shift 1
+    IFS= read -r line
+    "${command_name}" "$@" 2>/dev/null <<<"$line" \
+       && { printf '%s\n' "$line"; return 0; }
+    return 0
+  }
 
-  #while IFS= read -r line; do
-  #  "${command_name}" "$@" <<<"$line"
-  #  ret_code="$?" 
-  #  [[ "$ret_code" == "0" ]] \
-  #    || { echo \
-  #          "${FUNCNAME[0]}:\
- #execution of command '$command_name'${*:+$error_formatted_args} failed with status code\
- #'${ret_code}' for input '$line'" >&2
- #           return 1
- #         }
- # done
+  bg::map __bg::filter_func "$command_name" "$@"
+
+  unset -f _filter_func
 }
 
 ################################################################################
@@ -494,29 +606,5 @@ bg::is_shell_opt_set() {
 }
 
 
-################################################################################
-# Clears all options in the environment that can be set with both the 'set' and
-# the 'shopt' built-in commands 
-# Globals:
-#   None
-# Arguments:
-#   None
-# Outputs:
-#   Writes all the options that were set in the environment before clearing
-#     in a format that can be read by bg::restore_options (not yet implemented)
-# Returns:
-#   0 in all cases
-################################################################################
-bg::clear_options() {
-  # Clear all options set with the 'set' built-in
-  while read -r option_name option_status; do
-    set +o "${option_name}" >/dev/null 2>&1
-  done < <( set -o )
-
-  # Clear all options set with the 'shopt' built-in
-  while read -r option_name option_status; do
-    shopt -u "${option_name}" >/dev/null 2>&1
-  done < <( shopt )
-}
 
 

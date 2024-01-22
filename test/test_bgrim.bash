@@ -11,20 +11,10 @@
 # inputs:
 #   stdin:
 #   args:
-#   vars:
-#   funcs:
-#   opts:
-#   shopts:
 # outputs:
 #   stdout:
 #   stderr:
 #   return_code:
-#   vars:
-#   funcs:
-#   opts:
-#   shopts:
-# Arguments: 
-#   rest: file names 
 # Returns:
 #   0: if the first argument is missing or an empty string 
 #   1: otherwise
@@ -63,13 +53,154 @@ setup_suite() {
   set -euo pipefail
 }
 
+test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environment() {
+  # Set a few specific options
+  set -o pipefail
+  set -o vi
+  shopt -s extglob
+
+  local stderr_file
+  local stdout_file
+  stderr_file="$(mktemp)"
+  stdout_file="$(mktemp)"
+
+  # Cleanup stderr and stdout files on exit
+  rm_on_exit "$stderr_file" "$stdout_file"
+
+  # Run function 
+  bg::clear_shell_opts >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+
+  # Stderr and stdout are empty
+  assert_equals "" "$(cat "$stderr_file")" "stderr should be empty"
+  assert_equals "" "$(cat "$stdout_file")" "stdout should be empty"
+
+  # Return code is 0
+  assert_equals "0" "$ret_code" "function code should return 0 if all options were unset"
+
+  # All shell options are unset
+  assert_equals "" "$-" '$- should expand to an empty string but it doesn'\''t'
+
+  # All bash-specific options are unset
+  assert_equals "" "$(shopt -s)" 'There should be no set bash-specific options'
+}
+
+test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
+  stderr_file="$(mktemp)"
+  func_stdout_file="$(mktemp)"
+  total_stdout_file="$(mktemp)"
+  ret_code_file="$(mktemp)"
+
+  # Cleanup stderr and stdout files on exit
+  rm_on_exit "$stderr_file" "$func_stdout_file" "$ret_code_file" "$total_stdout_file"
+
+  # set -o functrace so return traps are inherited by subshell
+  set -o functrace
+
+  # set -o errtrace so ERR traps are inherited by subshell
+  set -o errtrace
+
+  trap 'true' RETURN
+  trap 'true' ERR
+  
+  # Run function in subshell
+  (
+    # Define traps
+    trap 'true' EXIT >/dev/null 2>&1
+    trap 'true' SIGINT >/dev/null 2>&1
+
+    bg::clear_traps >"$func_stdout_file"
+    echo "$?" > "$ret_code_file"
+
+    # After clearing
+    trap >/dev/null
+  ) >"$total_stdout_file"
+
+  assert_matches "trap -- 'true' RETURN" "$(trap)"
+  assert_matches "trap -- 'true' ERR" "$(trap)"
+  assert_matches "trap -- '.+' EXIT" "$(trap)"
+  
+  # Return code is 0
+  assert_equals "0" "$(< "$ret_code_file")" "return code should be 0"
+  
+  # stderr is empty
+  assert_equals "" "$(> "$ret_code_file")" "stderr should be empty"
+ 
+  # total stdout is empty 
+  assert_equals "" "$(< "$total_stdout_file")" "stdout from test run does not match expected value"
+
+  # func stdout is empty
+  assert_equals "" "$( < "$func_stdout_file")" "stdout from function is not empty"
+  
+}
+
+test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
+  stderr_file="$(mktemp)"
+  stdout_file="$(mktemp)"
+  rm_on_exit "$stderr_file" "$stdout_file"
+
+  # declare some variables
+  PREFIX_MY_VAR="my value"
+  export PREFIX_ENV_VAR="env value"
+  local PREFIX_LOCAL_VAR="local value"
+  bg::clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
+  exit_code="$?"
+
+  assert_equals "0" "$exit_code"
+  assert_equals "" "$(< "$stderr_file")"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
+  assert_equals "" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
+  assert_equals "" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
+}
+
+test_clear_vars_with_prefix_returns_error_if_first_param_is_empty() {
+  stderr_file="$(mktemp)"
+  stdout_file="$(mktemp)"
+  rm_on_exit "$stderr_file" "$stdout_file"
+
+  # declare some variables
+  PREFIX_MY_VAR="my value"
+  export PREFIX_ENV_VAR="env value"
+  local PREFIX_LOCAL_VAR="local value"
+  bg::clear_vars_with_prefix 2>"$stderr_file" >"$stdout_file"
+  exit_code="$?"
+
+  assert_equals "1" "$exit_code"
+  assert_equals "" "$(< "$stderr_file")"
+  assert_equals "ERROR: arg1 (prefix) is empty but is required" "$(< "$stdout_file")"
+  assert_equals "my value" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
+  assert_equals "env value" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
+  assert_equals "local value" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
+
+}
+
+test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
+  stderr_file="$(mktemp)"
+  stdout_file="$(mktemp)"
+  rm_on_exit "$stderr_file" "$stdout_file"
+
+  # declare some variables
+  PREFIX_MY_VAR='my value'
+  export PREFIX_ENV_VAR="env value"
+  local PREFIX_LOCAL_VAR="local value"
+  bg::clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
+    || exit_code="$?"
+  assert_equals "1" "$exit_code"
+  assert_equals "" "$(< "$stderr_file")"
+  assert_equals "ERROR: '*' is not a valid variable prefix" "$(< "$stdout_file")"
+  assert_equals "my value" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
+  assert_equals "env value" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
+  assert_equals "local value" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
+
+}
+
 test_is_empty_returns_0_if_given_no_args() {
   stdout_and_stderr="$(bg::is_empty 2>&1)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
-
 test_is_empty_returns_0_if_given_an_empty_string() {
   stdout_and_stderr="$(bg::is_empty "" 2>&1)"
   ret_code="$?"
@@ -112,6 +243,20 @@ test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeri
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
+test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
+  stdout_and_stderr="$(bg::is_valid_var_name "my.func" 2>&1)" 
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
+  stdout_and_stderr="$(bg::is_valid_var_name "1my_func" 2>&1)" 
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
 test_is_array_returns_0_if_there_is_an_array_with_the_given_name() {
   local -a my_test_array
   stdout_and_stderr="$(bg::is_array "my_test_array" 2>&1)" 
@@ -136,12 +281,6 @@ test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array(
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
-  stdout_and_stderr="$(bg::is_valid_var_name "my.func" 2>&1)" 
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
 
 test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
   local -a test_array=( "val1" "val2" "val3" ) 
@@ -406,7 +545,7 @@ test_map_returns_1_when_when_a_command_execution_with_args_fails() {
       return 33
     fi
   }
-
+  
   stdout="$( {
                 echo "line1" 
                 echo "line2"
@@ -428,6 +567,21 @@ test_fn: line2" \
     "stderr match expected error message"
 }
 
+
+test_filter_fails_when_no_args_are_provided() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+  stdout="$( bg::filter 2>"$stderr_file" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout"
+  assert_equals \
+    "bg::filter: no args were provided" \
+    "$(< "$stderr_file")"
+}
+
 test_filter_fails_when_its_first_arg_is_not_a_valid_command() {
   local stdout
   local stderr_file
@@ -440,6 +594,37 @@ test_filter_fails_when_its_first_arg_is_not_a_valid_command() {
   assert_equals \
     "bg::filter: 'non_valid_command' is not a valid function, shell built-in, or executable in the PATH" \
     "$(< "$stderr_file")"
+}
+
+test_filter_filters_out_lines_for_which_command_returns_0() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+  # shellcheck disable=SC2317
+  test_fn() {
+    read -r line
+    [[ "$line" == "skip" ]] && return 1 
+    return 0
+  }
+
+  generate_output() {
+    echo "print"
+    echo "skip"
+    echo "hello"
+    echo "skip"
+    echo "skip"
+    echo "yes"
+    echo "go" 
+  }
+
+  local ret_code
+  stdout="$( generate_output | bg::filter test_fn 2>"$stderr_file" )"
+  ret_code="$?"
+  want_stdout="$(printf '%s\n%s\n%s\n%s\n' 'print' 'hello' 'yes' 'go')"
+  #assert_equals "0" "$ret_code"
+  assert_equals "$want_stdout" "$stdout"
+  assert_equals "" "$(< "$stderr_file")"
 }
 
 
@@ -523,35 +708,4 @@ test_is_shell_opt_set_returns_1_if_the_given_option_is_not_valid() {
   assert_equals "'ipefail' is not a valid shell option" "$(< "$stderr_file")"
 }
 
-test_clear_options_clears_all_options_in_the_environment() {
-  # Set a few specific options
-  set -o pipefail
-  set -o vi
-  shopt -s extglob
-
-  local stderr_file
-  local stdout_file
-  stderr_file="$(mktemp)"
-  stdout_file="$(mktemp)"
-
-  # Cleanup stderr and stdout files on exit
-  rm_on_exit "$stderr_file" "$stdout_file"
-
-  # Run function 
-  bg::clear_options >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-
-  # Stderr and stdout are empty
-  assert_equals "" "$(cat "$stderr_file")" "stderr should be empty"
-  assert_equals "" "$(cat "$stdout_file")" "stdout should be empty"
-
-  # Return code is 0
-  assert_equals "0" "$ret_code" "function code should return 0 if all options were unset"
-
-  # All shell options are unset
-  assert_equals "" "$-" '$- should expand to an empty string but it doesn'\''t'
-
-  # All bash-specific options are unset
-  assert_equals "" "$(shopt -s)" 'There should be no set bash-specific options'
-}
 
