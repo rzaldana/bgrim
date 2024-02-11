@@ -154,12 +154,12 @@ bg::clear_vars_with_prefix() {
 
   # Check that prefix is not empty
   [[ -z "$prefix" ]] \
-    && printf '%s\n' "ERROR: arg1 (prefix) is empty but is required" \
+    && printf '%s\n' "ERROR: arg1 (prefix) is empty but is required" >&2 \
     && return 1
 
   # Check that prefix is a valid variable name
   if ! bg::is_valid_var_name "$prefix"; then \
-    printf '%s\n' "ERROR: '$prefix' is not a valid variable prefix"
+    printf '%s\n' "ERROR: '$prefix' is not a valid variable prefix" >&2
     return 1
   fi
 
@@ -601,10 +601,96 @@ bg::is_shell_opt_set() {
   done < <(set -o 2>/dev/null)
 
   # Print error message to stdout if given option is not valid
-  [[ -z "$is_valid_opt" ]] && echo "'$opt_name' is not a valid shell option" >&2
+  [[ -z "$is_valid_opt" ]] \
+    && echo "'$opt_name' is not a valid shell option" >&2 \
+    && return 2
   return 1
 }
 
+#################################################################################
+# description: |
+#   returns 0 if the current system is running the Darwin OS (MacOS)
+#   returns 1 otherwise
+# inputs:
+#   stdin:
+#   args:
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "when the current system is running the Darwin OS"
+#     1: "when the current system is not running Darwin"
+# dependencies:
+#   - uname
+# tags:
+#   - "syntax_sugar" 
+################################################################################
+bg::is_darwin() {
+  local os
+  os="$(uname -s)"
+  if ! [[ "$os" == "Darwin" ]]; then
+    return 1
+  fi
+}
 
 
+#################################################################################
+# description: |
+#   returns 0 if the current system is a POSIX-compliant Linux distribution
+#   returns 1 otherwise
+# inputs:
+#   stdin:
+#   args:
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "when the current system is running Linux"
+#     1: "when the current system is not running Linux"
+# dependencies:
+#   - uname
+# tags:
+#   - "syntax_sugar" 
+################################################################################
+bg::is_linux() {
+  local os
+  os="$(uname -s)"
+  if ! [[ "$os" == "Linux" ]]; then
+    return 1
+  fi
+}
+
+# description: |
+#   Returns the command that has been specified to run when the given signal is caught
+#   Returns nothing if the given signal does not have a trap set
+# inputs:
+#   stdin:
+#   args:
+#     1: signal spec
+# outputs:
+#   stdout: command that has been specified to run when the signal spec is caught
+#   stderr:
+#   return_code:
+#     0: "always"
+# dependencies:
+# tags:
+#   - "error_handling" 
+bg::get_trap_command() {
+  local sig
+  sig="$1"
+
+  local trap_list_output
+  trap_list_output="$( trap -p "$sig" )"
+
+  # Remove leading 'trap --' string
+  trap_list_output="${trap_list_output#'trap -- '}"
+
+  # Remove trailing signal spec
+  trap_list_output="${trap_list_output%" $sig"}"
+
+  # Remove single quotes, if any
+  trap_list_output="${trap_list_output//\'/}"
+
+  echo "$trap_list_output"
+}
 

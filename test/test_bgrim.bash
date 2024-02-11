@@ -25,11 +25,13 @@ rm_on_exit() {
 
   # shellcheck disable=SC2317 
   cleanup_fn() {
-  # Check that at least one arg was provided
-    [[ "$#" -gt 0 ]]  || { echo "No file names were provided" >&2; return 1; }
+    # Change permissions
+    for file in "$@"; do
+      chmod 0500 "$file"
+    done
 
     # Remove file
-    rm_output="$(rm "$@" 2>&1)" \
+    rm_output="$(rm -rf "$@" 2>&1)" \
       || { echo "Unable to remove temporary file. Output from 'rm':  $rm_output" >&2; return 1; }
   }
 
@@ -167,8 +169,8 @@ test_clear_vars_with_prefix_returns_error_if_first_param_is_empty() {
   exit_code="$?"
 
   assert_equals "1" "$exit_code"
-  assert_equals "" "$(< "$stderr_file")"
-  assert_equals "ERROR: arg1 (prefix) is empty but is required" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "ERROR: arg1 (prefix) is empty but is required" "$(< "$stderr_file")"
   assert_equals "my value" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
   assert_equals "env value" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
   assert_equals "local value" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
@@ -187,8 +189,8 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
   bg::clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
     || exit_code="$?"
   assert_equals "1" "$exit_code"
-  assert_equals "" "$(< "$stderr_file")"
-  assert_equals "ERROR: '*' is not a valid variable prefix" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "ERROR: '*' is not a valid variable prefix" "$(< "$stderr_file")"
   assert_equals "my value" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
   assert_equals "env value" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
   assert_equals "local value" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
@@ -695,7 +697,7 @@ test_is_shell_opt_set_returns_1_if_the_given_option_is_not_set() {
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_shell_opt_set_returns_1_if_the_given_option_is_not_valid() {
+test_is_shell_opt_set_returns_2_if_the_given_option_is_not_valid() {
   local test_opt="ipefail"
   local stdout
   local stderr_file
@@ -703,9 +705,120 @@ test_is_shell_opt_set_returns_1_if_the_given_option_is_not_valid() {
   rm_on_exit "$stderr_file"
   stdout="$( bg::is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
   ret_code="$?"
-  assert_equals "1" "$ret_code"
+  assert_equals "2" "$ret_code"
   assert_equals "" "$stdout"
   assert_equals "'ipefail' is not a valid shell option" "$(< "$stderr_file")"
 }
+
+
+test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_trap() {
+  local stdout_and_stderr
+  stdout_and_stderr="$( 
+  # Clear SIGINT trap
+  trap - SIGINT 
+
+  # Call function
+  bg::get_trap_command 'SIGINT' 2>&1 
+  )"
+
+  ret_code="$?"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+  assert_equals "0" "$ret_code" "should return 0 when trap is not set"
+}
+
+test_get_trap_command_returns_trap_command_if_given_a_signal_that_does_have_a_trap() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+  stdout="$( 
+  # Set SIGINT trap
+  trap "$(cat <<HERE
+echo hello
+echo bye
+HERE
+)" SIGINT 
+
+  # Call function
+  bg::get_trap_command 'SIGINT' 2>"$stderr_file"
+  )"
+
+  ret_code="$?"
+  assert_equals $'echo hello\necho bye' "$stdout" "stdout should return trap command"
+  assert_equals "" "$(< "$stderr_file")" "stdout and stderr should be empty"
+  assert_equals "0" "$ret_code" "should return 0 when trap is not set"
+}
+
+
+# Linux specific tests
+if [[ "$(uname -s)" == "Linux" ]]; then
+  test_is_darwin_returns_false_if_running_in_linux() {
+    local stdout_file
+    stdout_file="$(mktemp)"
+    local stderr_file
+    stderr_file="$(mktemp)"
+    rm_on_exit "$stdout_file" "$stderr_file"
+    exit_code="0"
+
+    # Run function
+    bg::is_darwin || exit_code="$?"
+
+    assert_equals "1" "$exit_code"
+    assert_equals "" "$(< "$stdout_file")"
+    assert_equals "" "$(< "$stderr_file")"
+  }
+
+  test_is_linux_returns_true_if_running_in_linux() {
+    local stdout_file
+    stdout_file="$(mktemp)"
+    local stderr_file
+    stderr_file="$(mktemp)"
+    rm_on_exit "$stdout_file" "$stderr_file"
+    exit_code="0"
+
+    # Run function
+    bg::is_linux || exit_code="$?"
+
+    assert_equals "0" "$exit_code"
+    assert_equals "" "$(< "$stdout_file")"
+    assert_equals "" "$(< "$stderr_file")"
+  }
+fi
+
+# MacOS specific tests
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  test_is_darwin_returns_true_if_running_in_macos() {
+    local stdout_file
+    stdout_file="$(mktemp)"
+    local stderr_file
+    stderr_file="$(mktemp)"
+    rm_on_exit "$stdout_file" "$stderr_file"
+    exit_code="0"
+
+    # Run function
+    bg::is_darwin || exit_code="$?"
+
+    assert_equals "0" "$exit_code"
+    assert_equals "" "$(< "$stdout_file")"
+    assert_equals "" "$(< "$stderr_file")"
+  }
+
+
+  test_is_linux_returns_false_if_running_in_linux() {
+    local stdout_file
+    stdout_file="$(mktemp)"
+    local stderr_file
+    stderr_file="$(mktemp)"
+    rm_on_exit "$stdout_file" "$stderr_file"
+    exit_code="0"
+
+    # Run function
+    bg::is_linux || exit_code="$?"
+
+    assert_equals "1" "$exit_code"
+    assert_equals "" "$(< "$stdout_file")"
+    assert_equals "" "$(< "$stderr_file")"
+  }
+fi
 
 

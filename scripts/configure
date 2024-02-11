@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+git submodule init
+git submodule update
+
+# Check dependencies
+dependencies=( "docker-compose" "docker" )
+
+for dep in "${dependencies[@]}"; do
+  if ! type "$dep" 1>/dev/null 2>&1; then
+    echo "'$dep' not found in PATH but is required to run tests"
+  fi
+done
