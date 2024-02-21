@@ -726,12 +726,26 @@ test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_tra
   assert_equals "0" "$ret_code" "should return 0 when trap is not set"
 }
 
-test_get_trap_command_returns_trap_command_if_given_a_signal_that_does_have_a_trap() {
+test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
+  local stdout_and_stderr
+  stdout_and_stderr="$( 
+  # Clear SIGINT trap
+  trap '' SIGINT 
+
+  # Call function
+  bg::get_trap_command 'SIGINT' 2>&1 
+  )"
+
+  ret_code="$?"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+  assert_equals "0" "$ret_code" "should return 0 when trap is not set"
+}
+
+test_get_trap_command_returns_trap_command_if_given_a_signal_that_has_a_trap() {
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
-  stdout="$( 
   # Set SIGINT trap
   trap "$(cat <<HERE
 echo hello
@@ -739,86 +753,195 @@ echo bye
 HERE
 )" SIGINT 
 
-  # Call function
-  bg::get_trap_command 'SIGINT' 2>"$stderr_file"
+  stdout="$( 
+    # Call function
+    bg::get_trap_command 'SIGINT' 2>"$stderr_file"
   )"
 
   ret_code="$?"
   assert_equals $'echo hello\necho bye' "$stdout" "stdout should return trap command"
-  assert_equals "" "$(< "$stderr_file")" "stdout and stderr should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
   assert_equals "0" "$ret_code" "should return 0 when trap is not set"
 }
 
+test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_trap() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
 
-# Linux specific tests
-if [[ "$(uname -s)" == "Linux" ]]; then
-  test_is_darwin_returns_false_if_running_in_linux() {
-    local stdout_file
-    stdout_file="$(mktemp)"
-    local stderr_file
-    stderr_file="$(mktemp)"
-    rm_on_exit "$stdout_file" "$stderr_file"
-    exit_code="0"
-
-    # Run function
-    bg::is_darwin || exit_code="$?"
-
-    assert_equals "1" "$exit_code"
-    assert_equals "" "$(< "$stdout_file")"
-    assert_equals "" "$(< "$stderr_file")"
+  # shellcheck disable=SC2317
+  fake_trap() {
+    echo "An Error occurred!" >&2
+    return 1
   }
 
-  test_is_linux_returns_true_if_running_in_linux() {
-    local stdout_file
-    stdout_file="$(mktemp)"
-    local stderr_file
-    stderr_file="$(mktemp)"
-    rm_on_exit "$stdout_file" "$stderr_file"
-    exit_code="0"
+  fake trap fake_trap
 
-    # Run function
-    bg::is_linux || exit_code="$?"
+  stdout="$( 
+    # Call function
+    bg::get_trap_command 'MYSIG' 2>"$stderr_file"
+  )"
 
-    assert_equals "0" "$exit_code"
-    assert_equals "" "$(< "$stdout_file")"
-    assert_equals "" "$(< "$stderr_file")"
+  ret_code="$?"
+  assert_equals "" "$stdout" "stdout should be empty"
+  assert_equals 'Error retrieving trap for signal '\''MYSIG'\''. Error message: '\''An Error occurred!'\''' "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
+}
+
+test_get_trap_command_returns_1_and_error_code_if_no_args_are_provided() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  stdout="$( 
+    # Call function
+    bg::get_trap_command 2>"$stderr_file"
+  )"
+
+  ret_code="$?"
+  assert_equals "" "$stdout" "stdout should be empty"
+  assert_equals 'arg1 (signal_spec) not provided but required' "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
+}
+
+test_trap_returns_1_and_error_code_if_no_args_are_provided() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  stdout="$( 
+    # Call function
+    bg::trap 2>"$stderr_file"
+  )"
+
+  ret_code="$?"
+  assert_equals "" "$stdout" "stdout should be empty"
+  assert_equals 'arg1 (trap_command) not provided but required' "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
+}
+
+
+test_trap_returns_1_and_error_code_if_only_one_arg_is_provided() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  stdout="$( 
+    # Call function
+    bg::trap 'command' 2>"$stderr_file"
+  )"
+
+  ret_code="$?"
+  assert_equals "" "$stdout" "stdout should be empty"
+  assert_equals 'arg2 (signal_spec) not provided but required' "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
+}
+
+test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
+  local stdout_file
+  local stderr_file
+  local traps_file
+  stdout_file="$(mktemp)"
+  stderr_file="$(mktemp)"
+  traps_file="$(mktemp)"
+  rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
+
+  # Ignore trap
+  trap '' SIGINT
+ 
+  # Use function to set trap 
+  bg::trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  
+  # Get list of traps for SIGINT
+  trap -p SIGINT >"$traps_file"
+
+  assert_equals "0" "$ret_code" "return code should be 0 if the trap was added"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  assert_equals "trap -- 'echo hello' SIGINT" "$(< "$traps_file")" "SIGINT trap should contain 'echo hello'"
+}
+
+
+test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
+  local stdout_file
+  local stderr_file
+  local traps_file
+  stdout_file="$(mktemp)"
+  stderr_file="$(mktemp)"
+  traps_file="$(mktemp)"
+  rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
+
+  # Clear trap
+  trap '-' SIGINT
+ 
+  # Use function to set trap 
+  bg::trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  
+  # Get list of traps for SIGINT
+  trap -p SIGINT >"$traps_file"
+
+  assert_equals "0" "$ret_code" "return code should be 0 if the trap was added"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  assert_equals "trap -- 'echo hello' SIGINT" "$(< "$traps_file")" "SIGINT trap should contain 'echo hello'"
+}
+
+test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_already_has_a_trap() {
+  local stdout_file
+  local stderr_file
+  local traps_file
+  stdout_file="$(mktemp)"
+  stderr_file="$(mktemp)"
+  traps_file="$(mktemp)"
+  rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
+
+  # Clear trap
+  trap - SIGINT
+
+  # Set initial trap
+  trap "echo hello" SIGINT
+ 
+  # Use function to set second trap 
+  bg::trap "echo goodbye" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  
+  # Get list of traps for SIGINT
+  traps="$(trap -p SIGINT)"
+
+  assert_equals "0" "$ret_code" "return code should be 0 if the trap was added"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  assert_equals 'trap -- '\'$'echo hello\necho goodbye'\'' SIGINT' "$traps" "SIGINT trap should contain both commands"
+}
+
+test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_trap() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  # shellcheck disable=SC2317
+  fake_get_trap_command() {
+    echo "An Error occurred!" >&2
+    return 1
   }
-fi
 
-# MacOS specific tests
-if [[ "$(uname -s)" == "Darwin" ]]; then
-  test_is_darwin_returns_true_if_running_in_macos() {
-    local stdout_file
-    stdout_file="$(mktemp)"
-    local stderr_file
-    stderr_file="$(mktemp)"
-    rm_on_exit "$stdout_file" "$stderr_file"
-    exit_code="0"
+  fake bg::get_trap_command fake_get_trap_command
 
-    # Run function
-    bg::is_darwin || exit_code="$?"
+  stdout="$( 
+    # Call function
+    bg::trap 'command' 'MYSIG' 2>"$stderr_file"
+  )"
 
-    assert_equals "0" "$exit_code"
-    assert_equals "" "$(< "$stdout_file")"
-    assert_equals "" "$(< "$stderr_file")"
-  }
-
-
-  test_is_linux_returns_false_if_running_in_linux() {
-    local stdout_file
-    stdout_file="$(mktemp)"
-    local stderr_file
-    stderr_file="$(mktemp)"
-    rm_on_exit "$stdout_file" "$stderr_file"
-    exit_code="0"
-
-    # Run function
-    bg::is_linux || exit_code="$?"
-
-    assert_equals "1" "$exit_code"
-    assert_equals "" "$(< "$stdout_file")"
-    assert_equals "" "$(< "$stderr_file")"
-  }
-fi
-
+  ret_code="$?"
+  assert_equals "" "$stdout" "stdout should be empty"
+  assert_equals 'Error retrieving existing trap for signal '\''MYSIG'\''. Error message: '\''An Error occurred!'\''' "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
+}
 

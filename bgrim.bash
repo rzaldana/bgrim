@@ -607,59 +607,6 @@ bg::is_shell_opt_set() {
   return 1
 }
 
-#################################################################################
-# description: |
-#   returns 0 if the current system is running the Darwin OS (MacOS)
-#   returns 1 otherwise
-# inputs:
-#   stdin:
-#   args:
-# outputs:
-#   stdout:
-#   stderr:
-#   return_code:
-#     0: "when the current system is running the Darwin OS"
-#     1: "when the current system is not running Darwin"
-# dependencies:
-#   - uname
-# tags:
-#   - "syntax_sugar" 
-################################################################################
-bg::is_darwin() {
-  local os
-  os="$(uname -s)"
-  if ! [[ "$os" == "Darwin" ]]; then
-    return 1
-  fi
-}
-
-
-#################################################################################
-# description: |
-#   returns 0 if the current system is a POSIX-compliant Linux distribution
-#   returns 1 otherwise
-# inputs:
-#   stdin:
-#   args:
-# outputs:
-#   stdout:
-#   stderr:
-#   return_code:
-#     0: "when the current system is running Linux"
-#     1: "when the current system is not running Linux"
-# dependencies:
-#   - uname
-# tags:
-#   - "syntax_sugar" 
-################################################################################
-bg::is_linux() {
-  local os
-  os="$(uname -s)"
-  if ! [[ "$os" == "Linux" ]]; then
-    return 1
-  fi
-}
-
 # description: |
 #   Returns the command that has been specified to run when the given signal is caught
 #   Returns nothing if the given signal does not have a trap set
@@ -671,26 +618,85 @@ bg::is_linux() {
 #   stdout: command that has been specified to run when the signal spec is caught
 #   stderr:
 #   return_code:
-#     0: "always"
+#     0: "if the trap command was successfully retrieved"
+#     1: "if there was an error while retrieving the trap command"
 # dependencies:
 # tags:
 #   - "error_handling" 
 bg::get_trap_command() {
-  local sig
-  sig="$1"
+
+  # Validate arguments
+  [[ -z "${1:-}" ]] \
+    && { echo "arg1 (signal_spec) not provided but required" >&2; return 1; }
+
+  local signal_spec="$1"
 
   local trap_list_output
-  trap_list_output="$( trap -p "$sig" )"
+  trap_list_output="$( trap -p "$signal_spec" 2>&1 )" \
+    || { 
+      printf "Error retrieving trap for signal '%s'. " "$signal_spec" >&2
+      printf "Error message: '%s'" "$trap_list_output" >&2
+      return 1
+    }
 
   # Remove leading 'trap --' string
   trap_list_output="${trap_list_output#'trap -- '}"
 
   # Remove trailing signal spec
-  trap_list_output="${trap_list_output%" $sig"}"
+  trap_list_output="${trap_list_output%" $signal_spec"}"
 
   # Remove single quotes, if any
   trap_list_output="${trap_list_output//\'/}"
 
   echo "$trap_list_output"
 }
+
+################################################################################
+# description: |
+#   If the signal provided does not have a signal set or the signal is ignored,
+#   this function will set the given command as the signal trap. If the signal 
+#   already has a trap set, the function will add a newline after the previous
+#   signal trap command and append the given command to the existing trap 
+#   command
+# inputs:
+#   stdin:
+#   args:
+#     1: trap command
+#     2: signal spec
+# outputs:
+#   stderr:
+#   return_code:
+#     0: "if the trap was successfully set"
+#     1: "if there was an error while setting the trap command"
+# dependencies:
+# tags:
+#   - "error_handling" 
+bg::trap() {
+  
+  # Verify arguments
+  [[ -z "${1:-}" ]] \
+    && { echo "arg1 (trap_command) not provided but required" >&2; return 1; }
+  [[ -z "${2:-}" ]] \
+    && { echo "arg2 (signal_spec) not provided but required" >&2; return 1; }
+
+  local command="$1"
+  local signal_spec
+
+  signal_spec="${2:-}"
+
+  # Get previous trap command, if any
+  previous_trap_cmd="$( bg::get_trap_command "$signal_spec" 2>&1 )" \
+    || { printf "Error retrieving existing trap for signal '%s'. " "$signal_spec"
+         printf "Error message: '%s'" "$previous_trap_cmd"
+         return 1
+        } >&2
+
+  if [[ -n "$previous_trap_cmd" ]]; then
+    command="$(printf "%s\n%s" "$previous_trap_cmd" "$command")"
+  fi
+  
+  trap "$command" "$signal_spec"
+}
+
+
 
