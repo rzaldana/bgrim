@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+SUPPORTED_VERSIONS=(
+  '4.4.23'
+  '5.2.15'
+)
+
+error_exit() {
+  printf '%s\n' "${1:-}" >&2
+  exit 1
+}
+
+prefix() {
+  local prefix
+  prefix="${1:->}"
+
+  # Read from stdin until we reach EOF
+  while read -r line; do
+    echo "${prefix} ${line}"
+  done <'/dev/stdin'
+}
+
+get_git_repo_root() {
+  local root_path
+  if ! root_path="$(git rev-parse --show-toplevel)"; then
+    error_exit "${FUNCNAME[0]}: Unable to get root directory of current git repository" 
+  else
+    printf "%s\n" "$root_path"
+  fi
+}
+
+
+run_tests_in_bash_version() {
+  local bash_version 
+  bash_version="${1:-}"
+
+
+  # Check that first arg is set
+  [[ -z "$bash_version" ]] \
+    && { echo "arg1 ('bash_version') is empty"; return 1; }
+
+  export BASH_VERSION="$bash_version" 
+  MOUNT_DIR="$(get_git_repo_root)" 
+  export MOUNT_DIR
+  docker-compose \
+    -f "$SCRIPT_DIR/docker-compose.yml"\
+    run bash \
+    './submodules/bash_unit/bash_unit' './test/test_bgrim.bash'
+}
+
+main() {
+  set -euo pipefail
+  
+  # Get absolute path of current directory 
+  SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+  # Set defaults
+  TEST_DOCKER_COMPOSE_PATH="${TEST_DOCKER_COMPOSE_PATH:-$SCRIPT_DIR/docker-compose.yml}"
+  TEST_DOCKERFILE_PATH="${TEST_DOCKERFILE_PATH:-$SCRIPT_DIR/Dockerfile}"
+
+  echo "Running tests in Linux" | prefix "++++++++++"
+  for VERSION in "${SUPPORTED_VERSIONS[@]}"; do
+    echo "Testing in bash version $VERSION" | prefix "++++++++"
+    run_tests_in_bash_version "$VERSION" \
+      || { echo "Tests failed for version '$VERSION'" | prefix "++++++++"
+           echo "Aborting tests for remaining versions" | prefix "++++++++"
+     break; }
+  done
+}
+
+main "$@"
+

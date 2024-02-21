@@ -6,7 +6,6 @@ services:
       args:
         BASH_VERSION: "${BASH_VERSION}"
     volumes:
-      - ..:/tmp/lib
-    command: [ "/tmp/lib/test/bash_unit/bash_unit", "/tmp/lib/test/test_bgrim.bash"]
+      - "${MOUNT_DIR}:/tmp/lib"
+    working_dir: "/tmp/lib"
     tty: true
-    

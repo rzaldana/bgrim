@@ -1,3 +1,0 @@
-[submodule "test/bash_unit"]
-	path = test/bash_unit
-	url = https://github.com/pgrange/bash_unit.git
