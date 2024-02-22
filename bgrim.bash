@@ -74,7 +74,7 @@
 # tags:
 #   - "changes env"
 ################################################################################
-bg::clear_shell_opts() {
+bg.clear_shell_opts() {
   # Clear all options set with the 'set' built-in
   while read -r option_name option_status; do
     set +o "${option_name}" >/dev/null 2>&1

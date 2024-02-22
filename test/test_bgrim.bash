@@ -70,7 +70,7 @@ test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environm
   rm_on_exit "$stderr_file" "$stdout_file"
 
   # Run function 
-  bg::clear_shell_opts >"$stdout_file" 2>"$stderr_file"
+  bg.clear_shell_opts >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
 
   # Stderr and stdout are empty
