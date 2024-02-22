@@ -101,7 +101,7 @@ bg.clear_shell_opts() {
 # tags:
 #   - "changes env"
 ################################################################################
-bg::clear_traps() {
+bg.clear_traps() {
   # Clear pseudo-signal traps
   trap - RETURN
   trap - DEBUG
@@ -149,7 +149,7 @@ bg::clear_traps() {
 # tags:
 #   - "changes env"
 ################################################################################
-bg::clear_vars_with_prefix() {
+bg.clear_vars_with_prefix() {
   local prefix="${1:-}"
 
   # Check that prefix is not empty
@@ -158,7 +158,7 @@ bg::clear_vars_with_prefix() {
     && return 1
 
   # Check that prefix is a valid variable name
-  if ! bg::is_valid_var_name "$prefix"; then \
+  if ! bg.is_valid_var_name "$prefix"; then \
     printf '%s\n' "ERROR: '$prefix' is not a valid variable prefix" >&2
     return 1
   fi
@@ -188,7 +188,7 @@ bg::clear_vars_with_prefix() {
 # tags:
 #   - "syntax_sugar"
 ###############################################################################
-bg::is_empty() {
+bg.is_empty() {
   [[ -z "${1:-}" ]] \
     && return 0
   return 1 
@@ -208,9 +208,9 @@ bg::is_empty() {
 # tags:
 #   - "compatibility"
 ################################################################################
-#bg::is_shell_bash() {
+#bg.is_shell_bash() {
 #  local bash_version_var_name="${_BG_BASH_VERSION_VAR_NAME:-BASH_VERSION}"
-#  if bg::is_empty "${!bash_version_var_name}"; then
+#  if bg.is_empty "${!bash_version_var_name}"; then
 #    return 1
 #  else
 #    return 0
@@ -230,7 +230,7 @@ bg::is_empty() {
 #   0 if the given string is a valid variable name 
 #   1 otherwise
 ################################################################################
-bg::is_valid_var_name() {
+bg.is_valid_var_name() {
   local input_string="${1:-}"
   local re="^[a-zA-Z_][a-zA-Z0-9_]+$"
   if [[ "$input_string" =~ $re ]]; then
@@ -253,7 +253,7 @@ bg::is_valid_var_name() {
 #   0 if the given name refers to an existing array variable
 #   1 otherwise
 ################################################################################
-bg::is_array() {
+bg.is_array() {
   local array_name="${1:-}"  
   local re="declare -a"
   local array_attributes
@@ -281,12 +281,12 @@ bg::is_array() {
 #   1 if the given value does not exist in the array with the given name
 #   2 if there is no array in the environment with the given name
 ################################################################################
-bg::in_array() {
+bg.in_array() {
   local value="${1:-}"
   local array_name="${2:-}"
 
   # Check if array exists
-  if ! bg::is_array "$array_name"; then
+  if ! bg.is_array "$array_name"; then
     echo "The array with name '$array_name' does not exist" >&2
     return 2
   fi
@@ -316,7 +316,7 @@ bg::in_array() {
 #   1: if the given value does not exist in the array with the given name
 #   2: if there is no array in the environment with the given name
 ################################################################################
-bg::is_function() {
+bg.is_function() {
   local fn_name="${1:-}"
 
   if declare -f "$fn_name" >/dev/null 2>&1; then
@@ -344,7 +344,7 @@ bg::is_function() {
 # tags:
 #   - "syntax_sugar"
 ################################################################################
-bg::is_valid_command() {
+bg.is_valid_command() {
   local command_name="${1:-}"
 
   local command_type
@@ -377,7 +377,7 @@ bg::is_valid_command() {
 #     0: all executions of the passed in command were successful
 #     1: an error occurred
 ################################################################################
-bg::map() {
+bg.map() {
   local command_name="${1:-}"
   shift 1
 
@@ -388,7 +388,7 @@ bg::map() {
        }
 
   # Check if first arg is a valid command
-  bg::is_valid_command "$command_name" \
+  bg.is_valid_command "$command_name" \
     || { echo "${FUNCNAME[0]}: '$command_name' is not \
 a valid function, shell built-in, or executable in the PATH" >&2
           return 1
@@ -435,7 +435,7 @@ a valid function, shell built-in, or executable in the PATH" >&2
 #     0: filtering was successful 
 #     1: an error occurred
 ################################################################################
-bg::filter() {
+bg.filter() {
   # Check if first arg is set
   [[ "$#" -gt 0 ]] \
     || { echo "${FUNCNAME[0]}: no args were provided" >&2
@@ -448,14 +448,14 @@ bg::filter() {
 
 
   # Check if first arg is a valid command
-  bg::is_valid_command "$command_name" \
+  bg.is_valid_command "$command_name" \
     || { echo "${FUNCNAME[0]}: '$command_name' is not \
 a valid function, shell built-in, or executable in the PATH" >&2
           return 1
        }
 
   # shellcheck disable=SC2317
-  __bg::filter_func() {
+  __bg.filter_func() {
     local ret_code
     local line
     local command_name
@@ -467,7 +467,7 @@ a valid function, shell built-in, or executable in the PATH" >&2
     return 0
   }
 
-  bg::map __bg::filter_func "$command_name" "$@"
+  bg.map __bg.filter_func "$command_name" "$@"
 
   unset -f _filter_func
 }
@@ -489,7 +489,7 @@ a valid function, shell built-in, or executable in the PATH" >&2
 # tags:
 #   - "cli parsing"
 ################################################################################
-#bg::is_valid_long_option() {
+#bg.is_valid_long_option() {
   # turn off case insensitive regex matching
 #  shopt -u nocasematch
 #  local string
@@ -518,7 +518,7 @@ a valid function, shell built-in, or executable in the PATH" >&2
 # tags:
 #   - "option decorators"
 ################################################################################
-bg::is_valid_shell_opt() {
+bg.is_valid_shell_opt() {
   local opt_name
   local opt_name_iterator
   local opt_value
@@ -550,7 +550,7 @@ bg::is_valid_shell_opt() {
 # tags:
 #   - "option decorators"
 ################################################################################
-bg::is_valid_bash_opt() {
+bg.is_valid_bash_opt() {
   local opt_name
   local opt_name_iterator
   local opt_value
@@ -583,7 +583,7 @@ bg::is_valid_bash_opt() {
 # tags:
 #   - "option decorators"
 ################################################################################
-bg::is_shell_opt_set() {
+bg.is_shell_opt_set() {
   local opt_name
   local opt_name_iterator
   local opt_value
@@ -623,7 +623,7 @@ bg::is_shell_opt_set() {
 # dependencies:
 # tags:
 #   - "error_handling" 
-bg::get_trap_command() {
+bg.get_trap_command() {
 
   # Validate arguments
   [[ -z "${1:-}" ]] \
@@ -671,7 +671,7 @@ bg::get_trap_command() {
 # dependencies:
 # tags:
 #   - "error_handling" 
-bg::trap() {
+bg.trap() {
   
   # Verify arguments
   [[ -z "${1:-}" ]] \
@@ -686,7 +686,7 @@ bg::trap() {
   signal_spec="${2:-}"
 
   # Get previous trap command, if any
-  previous_trap_cmd="$(bg::get_trap_command "$signal_spec" 2>/dev/null)" \
+  previous_trap_cmd="$(bg.get_trap_command "$signal_spec" 2>/dev/null)" \
     || { printf "Error retrieving existing trap for signal '%s'" "$signal_spec"
          return 1
         } >&2

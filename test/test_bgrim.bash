@@ -111,7 +111,7 @@ test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
     trap 'true' EXIT >/dev/null 2>&1
     trap 'true' SIGINT >/dev/null 2>&1
 
-    bg::clear_traps >"$func_stdout_file"
+    bg.clear_traps >"$func_stdout_file"
     echo "$?" > "$ret_code_file"
 
     # After clearing
@@ -145,7 +145,7 @@ test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
   PREFIX_MY_VAR="my value"
   export PREFIX_ENV_VAR="env value"
   local PREFIX_LOCAL_VAR="local value"
-  bg::clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
+  bg.clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
   exit_code="$?"
 
   assert_equals "0" "$exit_code"
@@ -165,7 +165,7 @@ test_clear_vars_with_prefix_returns_error_if_first_param_is_empty() {
   PREFIX_MY_VAR="my value"
   export PREFIX_ENV_VAR="env value"
   local PREFIX_LOCAL_VAR="local value"
-  bg::clear_vars_with_prefix 2>"$stderr_file" >"$stdout_file"
+  bg.clear_vars_with_prefix 2>"$stderr_file" >"$stdout_file"
   exit_code="$?"
 
   assert_equals "1" "$exit_code"
@@ -186,7 +186,7 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
   PREFIX_MY_VAR='my value'
   export PREFIX_ENV_VAR="env value"
   local PREFIX_LOCAL_VAR="local value"
-  bg::clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
+  bg.clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
     || exit_code="$?"
   assert_equals "1" "$exit_code"
   assert_equals "" "$(< "$stdout_file")"
@@ -198,13 +198,13 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 }
 
 test_is_empty_returns_0_if_given_no_args() {
-  stdout_and_stderr="$(bg::is_empty 2>&1)"
+  stdout_and_stderr="$(bg.is_empty 2>&1)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 test_is_empty_returns_0_if_given_an_empty_string() {
-  stdout_and_stderr="$(bg::is_empty "" 2>&1)"
+  stdout_and_stderr="$(bg.is_empty "" 2>&1)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -213,7 +213,7 @@ test_is_empty_returns_0_if_given_an_empty_string() {
 test_is_empty_returns_1_if_given_a_non_empty_string() {
   local test_var
   test_var="hello"
-  stdout_and_stderr="$(bg::is_empty "$test_var" 2>&1)"
+  stdout_and_stderr="$(bg.is_empty "$test_var" 2>&1)"
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when first arg is non-emtpy string"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -222,7 +222,7 @@ test_is_empty_returns_1_if_given_a_non_empty_string() {
 #test_is_shell_bash_returns_0_if_running_in_bash() {
 #  local FAKE_BASH_VERSION="x.x.x"
 #  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-#  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
+#  stdout_and_stderr="$(bg.is_shell_bash 2>&1)"
 #  ret_code="$?"
 #  assert_equals "0" "$ret_code" "function call should return 0 when BASH_VERSION variable is set"
 #  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -232,28 +232,28 @@ test_is_empty_returns_1_if_given_a_non_empty_string() {
   # shellcheck disable=SC2034
 #  local FAKE_BASH_VERSION=
 #  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-#  stdout_and_stderr="$(bg::is_shell_bash 2>&1)"
+#  stdout_and_stderr="$(bg.is_shell_bash 2>&1)"
 #  ret_code="$?"
 #  assert_equals "1" "$ret_code" "function call should return 0 when BASH_VERSION variable is unset"
 #  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 #}
 
 test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
-  stdout_and_stderr="$(bg::is_valid_var_name "my_func" 2>&1)" 
+  stdout_and_stderr="$(bg.is_valid_var_name "my_func" 2>&1)" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when given alphanumeric and underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
-  stdout_and_stderr="$(bg::is_valid_var_name "my.func" 2>&1)" 
+  stdout_and_stderr="$(bg.is_valid_var_name "my.func" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
-  stdout_and_stderr="$(bg::is_valid_var_name "1my_func" 2>&1)" 
+  stdout_and_stderr="$(bg.is_valid_var_name "1my_func" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -261,14 +261,14 @@ test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
 
 test_is_array_returns_0_if_there_is_an_array_with_the_given_name() {
   local -a my_test_array
-  stdout_and_stderr="$(bg::is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(bg.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when an array with that name exists"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
-  stdout_and_stderr="$(bg::is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(bg.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when no variable with the given name is set" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -277,7 +277,7 @@ test_is_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
 test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array() {
   # shellcheck disable=SC2034
   local my_test_array="test_val"
-  stdout_and_stderr="$(bg::is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(bg.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when variable with given name is not an array" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -286,7 +286,7 @@ test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array(
 
 test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
   local -a test_array=( "val1" "val2" "val3" ) 
-  stdout_and_stderr="$(bg::in_array "val2" "test_array" 2>&1)"
+  stdout_and_stderr="$(bg.in_array "val2" "test_array" 2>&1)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when value is present in array with given name"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -294,7 +294,7 @@ test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name
 
 test_in_array_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_name() {
   local -a test_array=( "val1" "val2" "val3" ) 
-  stdout_and_stderr="$(bg::in_array "val4" "test_array" 2>&1)"
+  stdout_and_stderr="$(bg.in_array "val4" "test_array" 2>&1)"
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when value is not present in array with given name"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -304,7 +304,7 @@ test_in_array_returns_2_and_prints_error_message_when_an_array_with_the_given_na
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
-  stdout="$(bg::in_array "val4" "test_array" 2>"$stderr_file")"
+  stdout="$(bg.in_array "val4" "test_array" 2>"$stderr_file")"
   ret_code="$?"
   assert_equals "2" "$ret_code" "function call should return 2 when array with given name doesn't exist" 
   assert_equals "" "$stdout" "stdout should be empty"
@@ -319,7 +319,7 @@ test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
     echo "test" 
   }
 
-  stdout_and_stderr="$(bg::is_function test_fn)"
+  stdout_and_stderr="$(bg.is_function test_fn)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "is_function should return 0 when the given fn is defined"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -329,7 +329,7 @@ test_is_function_returns_1_when_the_given_name_does_not_refer_to_a_function() {
   local stdout_and_stderr
   local test_fn
 
-  stdout_and_stderr="$(bg::is_function test_fn)"
+  stdout_and_stderr="$(bg.is_function test_fn)"
   ret_code="$?"
   assert_equals "1" "$ret_code" "is_function should return 1 when the given fn is not defined"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -341,7 +341,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
     # shellcheck disable=SC2317
     return 0
   }
-  stdout_and_stderr="$(bg::is_valid_command test_fn arg1)"
+  stdout_and_stderr="$(bg.is_valid_command test_fn arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -350,7 +350,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
 
 test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
   local stdout_and_stderr
-  stdout_and_stderr="$(bg::is_valid_command set arg1)"
+  stdout_and_stderr="$(bg.is_valid_command set arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -358,7 +358,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
 
 test_is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
   local stdout_and_stderr
-  stdout_and_stderr="$(bg::is_valid_command ls arg1)"
+  stdout_and_stderr="$(bg.is_valid_command ls arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -366,7 +366,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() 
 
 test_is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
   local stdout_and_stderr
-  stdout_and_stderr="$(bg::is_valid_command "{" "ls;" "}")"
+  stdout_and_stderr="$(bg.is_valid_command "{" "ls;" "}")"
   ret_code="$?"
   assert_equals "" "$stdout_and_stderr"
   assert_equals "1" "$ret_code"
@@ -388,12 +388,12 @@ test_map_runs_given_command_for_each_line_in_stdin() {
                 echo "line1" 
                 echo "line2"
                 echo "line3"
-              } |  bg::map test_fn 2>"$stderr_file")"
+              } |  bg.map test_fn 2>"$stderr_file")"
   ret_code="$?"
   assert_equals \
     "0" \
     "$ret_code" \
-    "bg::map should return 0 when the function executes successfully for every line"
+    "bg.map should return 0 when the function executes successfully for every line"
   assert_equals \
     'test_fn: line1
 test_fn: line2
@@ -420,12 +420,12 @@ test_map_runs_given_command_with_arguments_for_each_line_in_stdin() {
                 echo "line1" 
                 echo "line2"
                 echo "line3"
-              } |  bg::map test_fn hello 2>"$stderr_file")"
+              } |  bg.map test_fn hello 2>"$stderr_file")"
   ret_code="$?"
   assert_equals \
     "0" \
     "$ret_code" \
-    "bg::map should return 0 when the function executes successfully for every line"
+    "bg.map should return 0 when the function executes successfully for every line"
   assert_equals \
     'test_fn: stdin: line1, arg1: hello
 test_fn: stdin: line2, arg1: hello
@@ -451,18 +451,18 @@ test_map_returns_1_when_first_arg_is_empty() {
                 echo "line1" 
                 echo "line2"
                 echo "line3"
-              } | bg::map 2>"$stderr_file")"
+              } | bg.map 2>"$stderr_file")"
   ret_code="$?"
   assert_equals \
     "1" \
     "$ret_code" \
-    "bg::map should return 1 when no args are provided"
+    "bg.map should return 1 when no args are provided"
   assert_equals \
     "" \
     "$stdout" \
     "stdout did not return the correct output" 
   assert_equals \
-    "bg::map: no args were provided" \
+    "bg.map: no args were provided" \
     "$(<"$stderr_file")" \
     "stderr match expected error message"
 }
@@ -476,18 +476,18 @@ test_map_returns_1_when_when_the_first_arg_does_not_refer_to_a_valid_command() {
                 echo "line1" 
                 echo "line2"
                 echo "line3"
-              } | bg::map "{ ls; }" 2>"$stderr_file")"
+              } | bg.map "{ ls; }" 2>"$stderr_file")"
   ret_code="$?"
   assert_equals \
     "1" \
     "$ret_code" \
-    "bg::map should return 1 when the passed in name is not a fn"
+    "bg.map should return 1 when the passed in name is not a fn"
   assert_equals \
     "" \
     "$stdout" \
     "stdout did not return the correct output" 
   assert_equals \
-    "bg::map: '{ ls; }' is not a valid function, shell built-in, or executable in the PATH" \
+    "bg.map: '{ ls; }' is not a valid function, shell built-in, or executable in the PATH" \
     "$(<"$stderr_file")" \
     "stderr match expected error message"
 }
@@ -513,19 +513,19 @@ test_map_returns_1_when_when_a_command_execution_with_no_args_fails() {
                 echo "line1" 
                 echo "line2"
                 echo "line3"
-              } | bg::map test_fn 2>"$stderr_file")"
+              } | bg.map test_fn 2>"$stderr_file")"
   ret_code="$?"
   assert_equals \
     "1" \
     "$ret_code" \
-    "bg::map should return 1 when a function execution fails"
+    "bg.map should return 1 when a function execution fails"
   assert_equals \
     "test_fn: line1
 test_fn: line2" \
     "$stdout" \
     "stdout did not return the correct output" 
   assert_equals \
-    "bg::map: execution of command 'test_fn' failed with status code '33' for input 'line2'" \
+    "bg.map: execution of command 'test_fn' failed with status code '33' for input 'line2'" \
     "$(<"$stderr_file")" \
     "stderr match expected error message"
 }
@@ -552,19 +552,19 @@ test_map_returns_1_when_when_a_command_execution_with_args_fails() {
                 echo "line1" 
                 echo "line2"
                 echo "line3"
-              } | bg::map test_fn arg1 "arg2 hello" 2>"$stderr_file")"
+              } | bg.map test_fn arg1 "arg2 hello" 2>"$stderr_file")"
   ret_code="$?"
   assert_equals \
     "1" \
     "$ret_code" \
-    "bg::map should return 1 when a function execution fails"
+    "bg.map should return 1 when a function execution fails"
   assert_equals \
     "test_fn: line1
 test_fn: line2" \
     "$stdout" \
     "stdout did not return the correct output" 
   assert_equals \
-    "bg::map: execution of command 'test_fn' with args 'arg1' 'arg2 hello' failed with status code '33' for input 'line2'" \
+    "bg.map: execution of command 'test_fn' with args 'arg1' 'arg2 hello' failed with status code '33' for input 'line2'" \
     "$(<"$stderr_file")" \
     "stderr match expected error message"
 }
@@ -575,12 +575,12 @@ test_filter_fails_when_no_args_are_provided() {
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
-  stdout="$( bg::filter 2>"$stderr_file" )"
+  stdout="$( bg.filter 2>"$stderr_file" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout"
   assert_equals \
-    "bg::filter: no args were provided" \
+    "bg.filter: no args were provided" \
     "$(< "$stderr_file")"
 }
 
@@ -589,12 +589,12 @@ test_filter_fails_when_its_first_arg_is_not_a_valid_command() {
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
-  stdout="$( bg::filter non_valid_command 2>"$stderr_file" )"
+  stdout="$( bg.filter non_valid_command 2>"$stderr_file" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout"
   assert_equals \
-    "bg::filter: 'non_valid_command' is not a valid function, shell built-in, or executable in the PATH" \
+    "bg.filter: 'non_valid_command' is not a valid function, shell built-in, or executable in the PATH" \
     "$(< "$stderr_file")"
 }
 
@@ -621,7 +621,7 @@ test_filter_filters_out_lines_for_which_command_returns_0() {
   }
 
   local ret_code
-  stdout="$( generate_output | bg::filter test_fn 2>"$stderr_file" )"
+  stdout="$( generate_output | bg.filter test_fn 2>"$stderr_file" )"
   ret_code="$?"
   want_stdout="$(printf '%s\n%s\n%s\n%s\n' 'print' 'hello' 'yes' 'go')"
   #assert_equals "0" "$ret_code"
@@ -634,7 +634,7 @@ test_filter_filters_out_lines_for_which_command_returns_0() {
 #test_is_valid_long_option_returns_0_if_given_alphanumeric_string() {
 #  local test_string="longOpt"
 #  local stdout_and_stderr
-#  stdout_and_stderr="$( bg::is_valid_long_option "$test_string" )"
+#  stdout_and_stderr="$( bg.is_valid_long_option "$test_string" )"
 #  ret_code="$?"
 #  assert_equals "0" "$ret_code"
 #  assert_equals "" "$stdout_and_stderr"
@@ -643,7 +643,7 @@ test_filter_filters_out_lines_for_which_command_returns_0() {
 test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
   local test_opt="pipefail"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg::is_valid_shell_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.is_valid_shell_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -653,7 +653,7 @@ test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
 test_is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
   local test_opt="pipefai"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg::is_valid_shell_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.is_valid_shell_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -662,7 +662,7 @@ test_is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
 test_is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
   local test_opt="cdspell"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg::is_valid_bash_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.is_valid_bash_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -671,7 +671,7 @@ test_is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
 test_is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
   local test_opt="dspell"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg::is_valid_bash_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.is_valid_bash_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -681,7 +681,7 @@ test_is_shell_opt_set_returns_0_if_the_given_option_is_set() {
   local test_opt="pipefail"
   local stdout_and_stderr
   set -o "$test_opt" 
-  stdout_and_stderr="$( bg::is_shell_opt_set "$test_opt" )"
+  stdout_and_stderr="$( bg.is_shell_opt_set "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -691,7 +691,7 @@ test_is_shell_opt_set_returns_1_if_the_given_option_is_not_set() {
   local test_opt="pipefail"
   local stdout_and_stderr
   set +o "$test_opt" 
-  stdout_and_stderr="$( bg::is_shell_opt_set "$test_opt" )"
+  stdout_and_stderr="$( bg.is_shell_opt_set "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -703,7 +703,7 @@ test_is_shell_opt_set_returns_2_if_the_given_option_is_not_valid() {
   local stderr_file
   stderr_file="$(mktemp)"
   rm_on_exit "$stderr_file"
-  stdout="$( bg::is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
+  stdout="$( bg.is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
   ret_code="$?"
   assert_equals "2" "$ret_code"
   assert_equals "" "$stdout"
@@ -718,7 +718,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_tra
   trap - SIGINT 
 
   # Call function
-  bg::get_trap_command 'SIGINT' 2>&1 
+  bg.get_trap_command 'SIGINT' 2>&1 
   )"
 
   ret_code="$?"
@@ -733,7 +733,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
   trap '' SIGINT 
 
   # Call function
-  bg::get_trap_command 'SIGINT' 2>&1 
+  bg.get_trap_command 'SIGINT' 2>&1 
   )"
 
   ret_code="$?"
@@ -755,7 +755,7 @@ HERE
 
   stdout="$( 
     # Call function
-    bg::get_trap_command 'SIGINT' 2>"$stderr_file"
+    bg.get_trap_command 'SIGINT' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -780,7 +780,7 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
 
   stdout="$( 
     # Call function
-    bg::get_trap_command 'MYSIG' 2>"$stderr_file"
+    bg.get_trap_command 'MYSIG' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -797,7 +797,7 @@ test_get_trap_command_returns_1_and_error_code_if_no_args_are_provided() {
 
   stdout="$( 
     # Call function
-    bg::get_trap_command 2>"$stderr_file"
+    bg.get_trap_command 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -814,7 +814,7 @@ test_trap_returns_1_and_error_code_if_no_args_are_provided() {
 
   stdout="$( 
     # Call function
-    bg::trap 2>"$stderr_file"
+    bg.trap 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -832,7 +832,7 @@ test_trap_returns_1_and_error_code_if_only_one_arg_is_provided() {
 
   stdout="$( 
     # Call function
-    bg::trap 'command' 2>"$stderr_file"
+    bg.trap 'command' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -854,7 +854,7 @@ test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
   trap '' SIGINT
  
   # Use function to set trap 
-  bg::trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  bg.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -880,7 +880,7 @@ test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
   trap '-' SIGINT
  
   # Use function to set trap 
-  bg::trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  bg.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -908,7 +908,7 @@ test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_alread
   trap "echo hello" SIGINT
  
   # Use function to set second trap 
-  bg::trap "echo goodbye" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  bg.trap "echo goodbye" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -932,11 +932,11 @@ test_trap_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_exi
     return 1
   }
 
-  fake bg::get_trap_command fake_get_trap_command
+  fake bg.get_trap_command fake_get_trap_command
 
   stdout="$( 
     # Call function
-    bg::trap 'command' 'MYSIG' 2>"$stderr_file"
+    bg.trap 'command' 'MYSIG' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -963,7 +963,7 @@ test_trap_returns_1_and_error_code_if_there_is_an_error_while_setting_the_new_tr
 
   stdout="$( 
     # Call function
-    bg::trap 'command' 'SIGINT' 2>"$stderr_file"
+    bg.trap 'command' 'SIGINT' 2>"$stderr_file"
   )"
 
   ret_code="$?"
