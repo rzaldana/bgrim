@@ -469,7 +469,7 @@ a valid function, shell built-in, or executable in the PATH" >&2
 
   bg.map __bg.filter_func "$command_name" "$@"
 
-  unset -f _filter_func
+  unset -f __bg.filter_func
 }
 
 ################################################################################
