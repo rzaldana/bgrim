@@ -681,21 +681,24 @@ bg::trap() {
 
   local command="$1"
   local signal_spec
+  local previous_trap_cmd
 
   signal_spec="${2:-}"
 
   # Get previous trap command, if any
-  previous_trap_cmd="$( bg::get_trap_command "$signal_spec" 2>&1 )" \
-    || { printf "Error retrieving existing trap for signal '%s'. " "$signal_spec"
-         printf "Error message: '%s'" "$previous_trap_cmd"
+  previous_trap_cmd="$(bg::get_trap_command "$signal_spec" 2>/dev/null)" \
+    || { printf "Error retrieving existing trap for signal '%s'" "$signal_spec"
          return 1
         } >&2
 
   if [[ -n "$previous_trap_cmd" ]]; then
     command="$(printf "%s\n%s" "$previous_trap_cmd" "$command")"
   fi
-  
-  trap "$command" "$signal_spec"
+ 
+  trap "$command" "$signal_spec" 2>/dev/null \
+    || { printf "Error setting new trap for signal '%s'" "$signal_spec"
+         return 1
+       } >&2
 }
 
 

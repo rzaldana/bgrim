@@ -920,7 +920,7 @@ test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_alread
   assert_equals 'trap -- '\'$'echo hello\necho goodbye'\'' SIGINT' "$traps" "SIGINT trap should contain both commands"
 }
 
-test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_trap() {
+test_trap_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_existing_trap() {
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
@@ -941,7 +941,34 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
 
   ret_code="$?"
   assert_equals "" "$stdout" "stdout should be empty"
-  assert_equals 'Error retrieving existing trap for signal '\''MYSIG'\''. Error message: '\''An Error occurred!'\''' "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "Error retrieving existing trap for signal 'MYSIG'" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
+}
+
+
+test_trap_returns_1_and_error_code_if_there_is_an_error_while_setting_the_new_trap() {
+  local stdout
+  local stderr_file
+  stderr_file="$(mktemp)"
+  rm_on_exit "$stderr_file"
+
+  # shellcheck disable=SC2317
+  fake_trap() {
+    [[ "${FAKE_PARAMS[0]:-}" != "-p" ]]  \
+      && { echo "An Error occurred!" >&2; return 1; }
+    echo 'fake_trap_command'
+  }
+
+  fake trap fake_trap 
+
+  stdout="$( 
+    # Call function
+    bg::trap 'command' 'SIGINT' 2>"$stderr_file"
+  )"
+
+  ret_code="$?"
+  assert_equals "" "$stdout" "stdout should be empty"
+  assert_equals "Error setting new trap for signal 'SIGINT'" "$(< "$stderr_file")"
   assert_equals "1" "$ret_code" "should return 1 when trap is not set"
 }
 
