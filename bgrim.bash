@@ -650,8 +650,13 @@ bg.get_trap_command() {
   # Remove trailing signal spec
   trap_list_output="${trap_list_output%" $signal_spec"}"
 
-  # Remove single quotes, if any
-  trap_list_output="${trap_list_output//\'/}"
+  # Remove outer single quotes, if any
+  trap_list_output="${trap_list_output#\'}"
+  trap_list_output="${trap_list_output%\'}"
+
+  # Remove escape sequences
+  trap_list_output="${trap_list_output//\'\\\'/}"
+
 
   echo "$trap_list_output"
 }
