@@ -61,7 +61,7 @@
 ################################################################################
 # CONSTANTS
 ################################################################################
-declare -r __BG_MKTEMP="mktemp"
+export __BG_MKTEMP="mktemp"
 
 
 ################################################################################
@@ -706,11 +706,30 @@ bg.trap() {
 }
 
 bg.tmpfile() {
-  local tmpfile
-  tmpfile="$("$__BG_MKTEMP")" \
+  # Verify arguments
+  [[ -z "${1:-}" ]] \
+    && { echo "ERROR: arg1 (filename_var) not provided but required" >&2; return 1; }
+
+
+
+  local filename_var
+  filename_var="$1"
+
+  # Validate that filename_var is a valid variable name
+  if ! bg.is_valid_var_name "$filename_var"; then
+    echo "ERROR: '$filename_var' is not a valid variable name" >&2
+    return 1
+  fi
+
+  local tmpfile_name
+  tmpfile_name="$("$__BG_MKTEMP")" \
     || { echo "ERROR: Unable to create temporary file" >&2; return 1; }
-  bg.trap "rm -f '$tmpfile'" 'EXIT' \
-    || { echo "ERROR: Unable to set exit trap to delete file '$tmpfile'" >&2; return 1; }
-  echo "$tmpfile"
+  bg.trap "rm -f '$tmpfile_name'" 'EXIT' \
+    || { echo "ERROR: Unable to set exit trap to delete file '$tmpfile_name'" >&2; return 1; }
+
+
+  # Assign name of tmpfile to variable whose name is contained in
+  # filename_var
+  eval "$filename_var=$tmpfile_name"
 }
 

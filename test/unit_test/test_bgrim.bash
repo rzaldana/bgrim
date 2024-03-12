@@ -43,7 +43,7 @@ setup_suite() {
   LIBRARY_NAME="bgrim.bash"
 
   # Get the absolute path of the library under test
-  LIBRARY_PATH="$(cd ..>/dev/null && pwd)/$LIBRARY_NAME"
+  LIBRARY_PATH="$(cd ../..>/dev/null && pwd)/$LIBRARY_NAME"
 
   # source library
   # shellcheck source=../bgrim.bash
@@ -972,8 +972,69 @@ test_trap_returns_1_and_error_message_if_there_is_an_error_while_setting_the_new
   assert_equals "1" "$ret_code" "should return 1 when trap is not set"
 }
 
+test_tmpfile_returns_1_when_no_args_provided() {
+  local stdout_file
+  local stderr_file
+  stdout_file="$(mktemp)"
+  stderr_file="$(mktemp)"
+  bg.tmpfile >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "return code should be 1 when no args are provided"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: arg1 (filename_var) not provided but required" "$(< "$stderr_file")"
+}
+
+
+test_tmpfile_fails_when_filename_var_is_not_a_valid_var_name() {
+  local stdout_file
+  local stderr_file
+  stdout_file="$(mktemp)"
+  stderr_file="$(mktemp)"
+  bg.tmpfile '$myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "return code should be 1 filename_var is not a valid var name"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '\$myvar' is not a valid variable name" "$(< "$stderr_file")"
+}
+
 
 test_tmpfile_invokes_mktemp_and_trap_function() {
+  local stdout_file
+  local stderr_file
+  local tmpfile_name_file
+  local trap_output_file
+  local filename
+  stdout_file="$(mktemp)"
+  stderr_file="$(mktemp)"
+  trap_output_file="$(mktemp)"
+  tmpfile_name_file="$(mktemp)"
+  rm_on_exit "$stdout_file" "$stderr_file" "$tmpfile_name_file" "$trap_output_file"
+
+  fake_mktemp() {
+    echo "test_file" >"$tmpfile_name_file"
+    cat "$tmpfile_name_file"
+  }
+
+  bg.trap() {
+    echo "1:$1" >"$trap_output_file"
+    echo "2:$2" >>"$trap_output_file"
+  }
+
+  __BG_MKTEMP="fake_mktemp"
+
+  bg.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals \
+    "$(printf "%s\n%s" "1:rm -f '$(< "$tmpfile_name_file")'" "2:EXIT")" \
+    "$(< "$trap_output_file")"
+  assert_equals "$(< "$tmpfile_name_file")" "$filename" "'filename' var should contain name of temp file"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  assert_equals "0" "$ret_code" "should return 0"
+}
+
+
+test_tmpfile_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand() {
   local stdout_file
   local stderr_file
   local tmpfile_name_file
@@ -996,12 +1057,13 @@ test_tmpfile_invokes_mktemp_and_trap_function() {
 
   __BG_MKTEMP="fake_mktemp"
 
-  bg.tmpfile >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile 'myfilename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals \
     "$(printf "%s\n%s" "1:rm -f '$(< "$tmpfile_name_file")'" "2:EXIT")" \
     "$(< "$trap_output_file")"
-  assert_equals "$(< "$tmpfile_name_file")" "$(< "$stdout_file")" "stdout should contain name of temp file"
+  assert_equals "$(< "$tmpfile_name_file")" "$myfilename" "'myfilename' var should contain name of temp file"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
   assert_equals "0" "$ret_code" "should return 0"
 }
@@ -1010,6 +1072,7 @@ test_tmpfile_invokes_mktemp_and_trap_function() {
 test_tmpfile_returns_1_if_mktemp_fails() {
   local stdout_file
   local stderr_file
+  local filename
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
   rm_on_exit "$stdout_file" "$stderr_file"
@@ -1026,9 +1089,10 @@ test_tmpfile_returns_1_if_mktemp_fails() {
 
   __BG_MKTEMP="fake_mktemp"
 
-  bg.tmpfile >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "${filename:-}" "'filename' var should be empty"
   assert_equals "$(printf "%s\n%s" "ERROR!" "ERROR: Unable to create temporary file")" "$(< "$stderr_file")" "stderr should contain error message"
   assert_equals "1" "$ret_code" "should return 1"
 }
@@ -1037,6 +1101,7 @@ test_tmpfile_returns_1_if_mktemp_fails() {
 test_tmpfile_returns_1_if_trap_fails() {
   local stdout_file
   local stderr_file
+  local filename
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
   rm_on_exit "$stdout_file" "$stderr_file"
@@ -1052,9 +1117,10 @@ test_tmpfile_returns_1_if_trap_fails() {
 
   __BG_MKTEMP="fake_mktemp"
 
-  bg.tmpfile >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "${filename:-}" "'filename' var should be empty"
   assert_equals "$(printf "%s\n%s" "ERROR!" "ERROR: Unable to set exit trap to delete file 'test_file'")" "$(< "$stderr_file")" "stderr should contain error message"
   assert_equals "1" "$ret_code" "should return 1"
 }
