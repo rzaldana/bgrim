@@ -58,6 +58,11 @@
 #   - "syntax_sugar"
 ################################################################################
 
+################################################################################
+# CONSTANTS
+################################################################################
+declare -r __BG_MKTEMP="mktemp"
+
 
 ################################################################################
 # description: |
@@ -651,7 +656,6 @@ bg.get_trap_command() {
   echo "$trap_list_output"
 }
 
-################################################################################
 # description: |
 #   If the signal provided does not have a signal set or the signal is ignored,
 #   this function will set the given command as the signal trap. If the signal 
@@ -701,5 +705,12 @@ bg.trap() {
        } >&2
 }
 
-
+bg.tmpfile() {
+  local tmpfile
+  tmpfile="$("$__BG_MKTEMP")" \
+    || { echo "ERROR: Unable to create temporary file" >&2; return 1; }
+  bg.trap "rm -f '$tmpfile'" 'EXIT' \
+    || { echo "ERROR: Unable to set exit trap to delete file '$tmpfile'" >&2; return 1; }
+  echo "$tmpfile"
+}
 
