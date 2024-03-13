@@ -728,3 +728,73 @@ bg.to_array() {
     eval "${array_name}+=('${line}')"
   done
 }
+
+# description: |
+#   reads an argparse spec on stdin and prints the spec to stdout
+#   with a new line detailing the configuration of the new flag
+#   defined through the command-line parameters
+# inputs:
+#   stdin: an argparse spec 
+#   args:
+#     1: "flag short form"
+#     2: "flag long form"
+#     3: "environment variable where value of flag will be stored"
+# outputs:
+#   stdout:
+#   stderr: |
+#     error message if validation of arguments fails
+#   return_code:
+#     0: "when new line was successfully added to spec"
+#     1: "when an error ocurred"
+# tags:
+#   - "cli parsing"
+bg.add_flag() {
+  # Verify arguments
+  if bg.is_empty "${1:-}"; then
+    echo "ERROR: arg1 (short_form) not provided but required" >&2
+    return 1
+  fi
+
+  if bg.is_empty "${2:-}"; then
+    echo "ERROR: arg2 (long_form) not provided but required" >&2
+    return 1
+  fi
+
+  if bg.is_empty "${3:-}"; then
+    echo "ERROR: arg3 (env_var) not provided but required" >&2
+    return 1
+  fi
+
+  local short_form="$1"
+  local long_form="$2"
+  local env_var="$3"
+
+  # Validate arguments
+  if ! [[ "$short_form" =~ ^[a-z]$ ]]; then
+    echo "ERROR: short form '$short_form' should be a single lowercase letter" >&2
+    return 1
+  fi
+
+  if ! bg.is_valid_long_opt "--$long_form"; then
+    echo "ERROR: long form '$long_form' is not a valid long option" >&2
+    return 1
+  fi
+
+  if ! bg.is_valid_var_name "$env_var"; then
+    echo "ERROR: '$env_var' is not a valid variable name" >&2
+    return 1
+  fi
+
+  if bg.is_var_readonly "$env_var"; then
+    echo "ERROR: '$env_var' is a readonly variable" >&2
+    return 1
+  fi
+ 
+  # Print all lines from stdin to stdout 
+  while IFS= read -r line; do
+    printf "%s\n" "$line"
+  done
+
+  # Print new flag spec line
+  printf "%s|%s|%s|%s" 'flag' "$short_form" "$long_form" "$env_var"
+}

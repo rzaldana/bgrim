@@ -971,14 +971,6 @@ test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_das
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-test_init_argparse_prints_the_string_init_to_stdout() {
-  create_buffer_files
-  bg.init_argparse >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "init" "$(< "$stdout_file" )" "stdout should contain the string 'init'"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-}
 
 
 
@@ -1106,4 +1098,140 @@ test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
   assert_equals "${myarray[1]}" ' line 2' "element 1 should contain string ' line 2'"
 }
 
+test_init_argparse_prints_the_string_init_to_stdout() {
+  create_buffer_files
+  bg.init_argparse >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "init" "$(< "$stdout_file" )" "stdout should contain the string 'init'"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_add_flag_returns_1_if_no_args_are_passed() {
+  create_buffer_files
+  bg.add_flag >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg1 (short_form) not provided but required" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_only_one_arg_is_passed() {
+  create_buffer_files
+  bg.add_flag 'f' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg2 (long_form) not provided but required" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_only_two_args_are_passed() {
+  create_buffer_files
+  bg.add_flag 'f' 'flag' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg3 (env_var) not provided but required" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_first_arg_is_a_number() {
+  create_buffer_files
+  bg.add_flag '2' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: short form '2' should be a single lowercase letter" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_first_arg_is_more_than_one_character() {
+  create_buffer_files
+  bg.add_flag 'fl' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: short form 'fl' should be a single lowercase letter" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_long_form_is_not_a_valid_long_option() {
+  create_buffer_files
+  bg.is_valid_long_opt() {
+    return 1
+  }
+
+  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: long form 'flag' is not a valid long option" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_env_var_is_not_a_valid_var_name() {
+  create_buffer_files
+  bg.is_valid_var_name() {
+    return 1
+  }
+
+  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'FLAG' is not a valid variable name" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_env_var_is_a_readonly_variable() {
+  create_buffer_files
+  bg.is_var_readonly() {
+    return 0
+  }
+
+  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'FLAG' is a readonly variable" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() {
+  shopt -s lastpipe
+  create_buffer_files
+  {
+    echo "line 1" 
+    echo " line 2" 
+  } | bg.add_flag 'd' 'directory' 'DIR' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals \
+    "$(printf \
+      "%s\n %s\n%s" \
+        "line 1" \
+        "line 2" \
+        "flag|d|directory|DIR"\
+    )" \
+    "$(< "$stdout_file" )" \
+    "stdout should contain lines from stdin and new flag spec line"
+}
 
