@@ -67,13 +67,7 @@ test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environm
   set -o vi
   shopt -s extglob
 
-  local stderr_file
-  local stdout_file
-  stderr_file="$(mktemp)"
-  stdout_file="$(mktemp)"
-
-  # Cleanup stderr and stdout files on exit
-  rm_on_exit "$stderr_file" "$stdout_file"
+  create_buffer_files
 
   # Run function 
   bg.clear_shell_opts >"$stdout_file" 2>"$stderr_file"
@@ -143,9 +137,7 @@ test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
 }
 
 test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
-  stderr_file="$(mktemp)"
-  stdout_file="$(mktemp)"
-  rm_on_exit "$stderr_file" "$stdout_file"
+  create_buffer_files
 
   # declare some variables
   PREFIX_MY_VAR="my value"
@@ -163,9 +155,7 @@ test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
 }
 
 test_clear_vars_with_prefix_returns_error_if_first_param_is_empty() {
-  stderr_file="$(mktemp)"
-  stdout_file="$(mktemp)"
-  rm_on_exit "$stderr_file" "$stdout_file"
+  create_buffer_files
 
   # declare some variables
   PREFIX_MY_VAR="my value"
@@ -184,9 +174,7 @@ test_clear_vars_with_prefix_returns_error_if_first_param_is_empty() {
 }
 
 test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
-  stderr_file="$(mktemp)"
-  stdout_file="$(mktemp)"
-  rm_on_exit "$stderr_file" "$stdout_file"
+  create_buffer_files
 
   # declare some variables
   PREFIX_MY_VAR='my value'
@@ -1231,7 +1219,6 @@ test_is_valid_long_opt_returns_1_if_string_is_just_two_dashes() {
 }
 
 
-
 test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_dash_after_the_initial_double_dashes() {
   create_buffer_files
   bg.is_valid_long_opt "--string--flag" >"$stdout_file" 2>"$stderr_file"
@@ -1240,3 +1227,140 @@ test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_das
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
+
+test_init_argparse_prints_the_string_init_to_stdout() {
+  create_buffer_files
+  bg.init_argparse >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "init" "$(< "$stdout_file" )" "stdout should contain the string 'init'"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+
+
+test_is_var_readonly_returns_1_if_no_args_are_provided() {
+  create_buffer_files
+  bg.is_var_readonly >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg1 (var_name) not provided but required" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_is_var_readonly_returns_1_if_variable_is_unset() {
+  create_buffer_files
+  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_readonly_returns_1_if_variable_is_set_but_not_readonly() {
+  create_buffer_files
+  declare myvar
+  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_readonly_returns_0_if_variable_is_readonly() {
+  create_buffer_files
+  declare -r myvar
+  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes() {
+  create_buffer_files
+  declare -ra myvar
+  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_to_array_returns_1_if_given_no_args() {
+  create_buffer_files
+  bg.to_array >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg1 (array_name) not provided but required" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_to_array_returns_1_if_given_string_is_not_a_valid_var_name() {
+  create_buffer_files
+
+  bg.is_valid_var_name() {
+    return 1 
+  }
+  
+  bg.to_array 'string' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'string' is not a valid variable name" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_to_array_returns_1_if_given_variable_is_readonly() {
+  create_buffer_files
+
+  declare -r myarray
+  
+  bg.to_array 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'myarray' is a readonly variable" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
+  create_buffer_files
+  bg.to_array myarray >"$stdout_file" 2>"$stderr_file" <<<'just a line'
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+
+  # myarray should have exactly one element
+  assert_equals "1" "${#myarray[@]}" "myarray should have 1 element"
+  assert_equals "${myarray[0]}" "just a line" "element 0 should contain string 'just a line'"
+}
+
+
+test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
+  create_buffer_files
+  bg.to_array myarray >"$stdout_file" 2>"$stderr_file" \
+    <<<"$(printf "%s\n %s" "line 1" "line 2")"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+
+  # myarray should have exactly one element
+  assert_equals "2" "${#myarray[@]}" "myarray should have 2 elements"
+  assert_equals "${myarray[0]}" 'line 1' "element 0 should contain string 'line 1'"
+  assert_equals "${myarray[1]}" ' line 2' "element 1 should contain string ' line 2'"
+}
+
+

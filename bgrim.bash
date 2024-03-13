@@ -224,7 +224,8 @@ bg.is_empty() {
 
 ################################################################################
 # Checks if the given string is a valid variable name (i.e. it's made up 
-# exclusively of alphanumeric characters and underscores
+# exclusively of alphanumeric characters and underscores and it does not start
+# with a number
 # Globals:
 #   None
 # Arguments:
@@ -738,10 +739,11 @@ bg.tmpfile() {
 #     1: "string to evaluate"
 # outputs:
 #   stdout:
-#   stderr:
+#   stderr: error message when string was not provided
 #   return_code:
-#     0: "when the string matches the regex"
-#     1: "when the string does not match the regex"
+#     0: "when the string is a valid long option"
+#     1: "when the string is not a valid long option"
+#     2: "when no string was provided"
 # tags:
 #   - "cli parsing"
 bg.is_valid_long_opt() {
@@ -762,4 +764,84 @@ bg.is_valid_long_opt() {
   # [[:alnum:]]+$     match one or more alphanumeric chars at the end of the
   #                   line 
   [[ "$string" =~ $regex ]]
+}
+
+# description: |
+#   returns 0 if the given string is a readonly variable
+#   returns 1 if the variable is not readonly or is unset
+# inputs:
+#   stdin:
+#   args:
+#     1: "variable name"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the variable is readonly"
+#     1: "when the variable is not readonly or unset"
+# tags:
+#   - "cli parsing"
+bg.is_var_readonly() {
+  # Verify arguments
+  [[ -z "${1:-}" ]] \
+    && { echo "ERROR: arg1 (var_name) not provided but required" >&2; return 1; }
+
+  local var_name="$1"
+  local re="^declare -[a-z]*r[a-z]* "
+  local var_attributes
+  var_attributes="$(declare -p "$var_name" 2>/dev/null)" \
+    || return 1
+
+  if [[ "$var_attributes" =~ $re ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+bg.init_argparse() {
+  printf "%s\n" 'init'
+}
+
+# description: |
+#   reads lines from stdin and stores each line as an element
+#   of the array whose name is provided in the first arg.
+#   Lines are assumed to be separated by newlines
+# inputs:
+#   stdin: elements to store in array
+#   args:
+#     1: "array name"
+# outputs:
+#   stdout:
+#   stderr: |
+#     error message when array name is missing or array is readonly 
+#   return_code:
+#     0: "when lines were successfully stored in array"
+#     1: "when an error ocurred"
+# tags:
+#   - "cli parsing"
+bg.to_array() {
+  # Verify arguments
+  [[ -z "${1:-}" ]] \
+    && { echo "ERROR: arg1 (array_name) not provided but required" >&2; return 1; }
+  local array_name="${1}" 
+  
+  # Validate args
+  if ! bg.is_valid_var_name "$array_name"; then
+    echo "ERROR: '$array_name' is not a valid variable name" >&2
+    return 1
+  fi
+
+  if bg.is_var_readonly "$array_name"; then
+    echo "ERROR: '$array_name' is a readonly variable" >&2
+    return 1
+  fi
+
+  # Empty array
+  eval "${array_name}=()"
+
+  # Read lines from stdin
+  while IFS= read -r line; do
+    eval "${array_name}+=('${line}')"
+  done
 }
