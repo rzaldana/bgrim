@@ -176,7 +176,6 @@ bg.clear_vars_with_prefix() {
 }
 
 
-
 ################################################################################
 # description: |
 #   Checks if the first argument is a string with length 0
@@ -360,122 +359,6 @@ bg.is_valid_command() {
   [[ "$ret_code" != 0 ]] && return 1 
   [[ "$command_type" = "keyword" ]] && return 1
   return 0
-}
-
-
-################################################################################
-# description: |
-#   Runs the given command once per line in the stdin. The first argument must 
-#   refer to a valid function, shell built-in, or executable in the path. The 
-#   rest of the args to this function will be provided as arguments to the 
-#   command specified in the first arg. The referenced command must take its 
-#   input from stdin. If any of the executions of the passed in command fails, 
-#   the return code of the failed function will be returned in an error message. 
-# inputs:
-#   stdin:
-#   args:
-#     1: command to execute
-#     rest: arguments to be passed in to the command in arg1
-# outputs:
-#   stdout: the output of the given command for every line in stdin 
-#   stderr: any error messages
-#   return_code:
-#     0: all executions of the passed in command were successful
-#     1: an error occurred
-################################################################################
-bg.map() {
-  local command_name="${1:-}"
-  shift 1
-
-  # Check if first arg is set
-  [[ -n "$command_name" ]] \
-    || { echo "${FUNCNAME[0]}: no args were provided" >&2
-         return 1
-       }
-
-  # Check if first arg is a valid command
-  bg.is_valid_command "$command_name" \
-    || { echo "${FUNCNAME[0]}: '$command_name' is not \
-a valid function, shell built-in, or executable in the PATH" >&2
-          return 1
-       }
-  local line
-  local ret_code
-
-  # Create string of args enclosed in single quotes
-  local error_formatted_args=" with args"
-  for arg in "$@"; do
-    error_formatted_args="${error_formatted_args} '$arg'"
-  done
-
-  while IFS= read -r line; do
-    "${command_name}" "$@" <<<"$line"
-    ret_code="$?" 
-    [[ "$ret_code" == "0" ]] \
-      || { echo \
-            "${FUNCNAME[0]}:\
- execution of command '$command_name'${*:+$error_formatted_args} failed with status code\
- '${ret_code}' for input '$line'" >&2
-            return 1
-          }
-  done
-}
-
-################################################################################
-# description: |
-#   Runs the given command once per line in the stdin. All lines for which the
-#   command returns 0 will be forwarded to stdout. All other lines will be
-#   filtered out of the output. The first argument must refer to a valid 
-#   function, shell built-in, or executable in the PATH. The rest of the args to 
-#   this function will be provided as arguments to the command specified in the 
-#   first arg. The referenced command must take its input from stdin.
-# inputs:
-#   stdin:
-#   args:
-#     1: command to execute
-#     rest: arguments to be passed in to the command in arg1
-# outputs:
-#   stdout: lines for which the command returns 0
-#   stderr: any error messages
-#   return_code:
-#     0: filtering was successful 
-#     1: an error occurred
-################################################################################
-bg.filter() {
-  # Check if first arg is set
-  [[ "$#" -gt 0 ]] \
-    || { echo "${FUNCNAME[0]}: no args were provided" >&2
-         return 1
-       }
-
-  # Store first arg in variable and shift the rest of the args
-  local command_name="${1:-}"
-  shift 1
-
-
-  # Check if first arg is a valid command
-  bg.is_valid_command "$command_name" \
-    || { echo "${FUNCNAME[0]}: '$command_name' is not \
-a valid function, shell built-in, or executable in the PATH" >&2
-          return 1
-       }
-
-  # shellcheck disable=SC2317
-  __bg.filter_func() {
-    local ret_code
-    local line
-    local command_name
-    command_name="${1:-}"
-    shift 1
-    IFS= read -r line
-    "${command_name}" "$@" 2>/dev/null <<<"$line" \
-       && { printf '%s\n' "$line"; return 0; }
-    return 0
-  }
-
-  bg.map __bg.filter_func "$command_name" "$@"
-
-  unset -f __bg.filter_func
 }
 
 #################################################################################
