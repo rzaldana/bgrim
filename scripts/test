@@ -43,15 +43,18 @@ run_tests_in_bash_version() {
   MOUNT_DIR="$(get_git_repo_root)" 
   export MOUNT_DIR
   echo "Unit Tests for bash version $VERSION" | prefix "++++++++++++++++"
-  docker-compose \
+  { 
+    docker-compose \
     -f "$SCRIPT_DIR/docker-compose.yml"\
     run bash \
     './submodules/bash_unit/bash_unit' './test/unit_test/test_bgrim.bash'
-  echo "Integration Tests for bash version $VERSION" | prefix "++++++++++++++++"
+    echo "Integration Tests for bash version $VERSION" | prefix "++++++++++++++++"
+  } && {
   docker-compose \
     -f "$SCRIPT_DIR/docker-compose.yml"\
     run bash \
     './submodules/bash_unit/bash_unit' './test/integration_test/master.bash'
+  }
 }
 
 main() {

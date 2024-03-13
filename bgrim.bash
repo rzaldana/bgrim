@@ -477,35 +477,6 @@ a valid function, shell built-in, or executable in the PATH" >&2
   unset -f __bg.filter_func
 }
 
-################################################################################
-# description: |
-#   returns 0 if the given string is a valid long option name, i.e.
-#   if it matches the following POSIX ERE regex: [[:alnum:]-]+
-# inputs:
-#   stdin:
-#   args:
-#     1: "string to evaluate"
-# outputs:
-#   stdout:
-#   stderr:
-#   return_code:
-#     0: "when the string matches the regex"
-#     1: "when the string does not match the regex"
-# tags:
-#   - "cli parsing"
-################################################################################
-#bg.is_valid_long_option() {
-  # turn off case insensitive regex matching
-#  shopt -u nocasematch
-#  local string
-#  string="${1:-}"
-#  local regex
-#  regex='[[:alnum:]+'
-#  [[ "$string" =~ $regex ]]
-#
-#
-#}
-
 #################################################################################
 # description: |
 #   returns 0 if the given string is a valid option name that can be set with the
@@ -752,3 +723,43 @@ bg.tmpfile() {
   eval "$filename_var=$tmpfile_name"
 }
 
+# description: |
+#   returns 0 if the given string is a valid long option name and 1 otherwise
+#   A valid long option string complies with the following rules:
+#   - starts with double dashes ("--")
+#   - contains only dashes and alphanumeric characters
+#   - ends with an alphanumeric characters
+#   - has at least one alphanumeric character after the initial double dashes 
+#   - any dash after the initial double dashes is surrounded by alphanumeric
+#     characters on both sides
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "when the string matches the regex"
+#     1: "when the string does not match the regex"
+# tags:
+#   - "cli parsing"
+bg.is_valid_long_opt() {
+  # Verify arguments
+  [[ -z "${1:-}" ]] \
+    && { echo "ERROR: arg1 (string) not provided but required" >&2; return 2; }
+
+  local string="$1"
+  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+$"
+
+  # Regex is composed of the following expressions:
+  # ^--[[:alnum:]]+   match double dashes '--' at the beginning of the line, 
+  #                   followed by one or more alphanumeric chars
+  # (-[[:alnum:]]+)*  match 0 or more instances (*) of the expression between
+  #                   parentheses. The expr between parentheses will match
+  #                   any string that starts with a dash '-' followed by one
+  #                   or more (+) alphanumeric chars
+  # [[:alnum:]]+$     match one or more alphanumeric chars at the end of the
+  #                   line 
+  [[ "$string" =~ $regex ]]
+}

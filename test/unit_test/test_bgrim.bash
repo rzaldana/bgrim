@@ -39,6 +39,12 @@ rm_on_exit() {
   trap "cleanup_fn $*" EXIT
 }
 
+create_buffer_files() {
+  stderr_file="$(mktemp)"  
+  stdout_file="$(mktemp)"
+  rm_on_exit "$stdout_file" "$stderr_file"
+}
+
 setup_suite() {
   LIBRARY_NAME="bgrim.bash"
 
@@ -629,17 +635,6 @@ test_filter_filters_out_lines_for_which_command_returns_0() {
   assert_equals "" "$(< "$stderr_file")"
 }
 
-
-
-#test_is_valid_long_option_returns_0_if_given_alphanumeric_string() {
-#  local test_string="longOpt"
-#  local stdout_and_stderr
-#  stdout_and_stderr="$( bg.is_valid_long_option "$test_string" )"
-#  ret_code="$?"
-#  assert_equals "0" "$ret_code"
-#  assert_equals "" "$stdout_and_stderr"
-#}
-
 test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
   local test_opt="pipefail"
   local stdout_and_stderr
@@ -1123,4 +1118,125 @@ test_tmpfile_returns_1_if_trap_fails() {
   assert_equals "" "${filename:-}" "'filename' var should be empty"
   assert_equals "$(printf "%s\n%s" "ERROR!" "ERROR: Unable to set exit trap to delete file 'test_file'")" "$(< "$stderr_file")" "stderr should contain error message"
   assert_equals "1" "$ret_code" "should return 1"
+}
+
+test_is_valid_long_opt_returns_error_if_no_args_are_provided() {
+  create_buffer_files
+
+  bg.is_valid_long_opt >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "2" "$ret_code" "should return exit code 2"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg1 (string) not provided but required" \
+    "$(< "$stderr_file" )" \
+    "stderr should contain error message"
+}
+
+test_is_valid_long_opt_returns_1_if_string_does_not_start_with_double_dashes() {
+  create_buffer_files
+  bg.is_valid_long_opt "string" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_long_opt_returns_1_if_string_does_not_contain_only_alphanumeric_chars_and_dashes() {
+  create_buffer_files
+  bg.is_valid_long_opt "--my_string" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_long_opt_returns_1_if_string_ends_with_a_dash() {
+  create_buffer_files
+  bg.is_valid_long_opt "--mystring-" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_only_letters() {
+  create_buffer_files
+  bg.is_valid_long_opt "--string" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+
+}
+
+
+test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_and_numbers() {
+  create_buffer_files
+  bg.is_valid_long_opt "--strin4g" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+
+}
+
+
+test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_numbers_and_dashes() {
+  create_buffer_files
+  bg.is_valid_long_opt "--string-flag2" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+
+}
+
+test_is_valid_long_opt_returns_1_if_string_starts_with_double_dashes_and_contains_a_single_letter() {
+  create_buffer_files
+  bg.is_valid_long_opt "--s" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+
+}
+
+test_is_valid_long_opt_returns_1_if_string_starts_with_a_single_dash() {
+  create_buffer_files
+  bg.is_valid_long_opt "-string" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+
+}
+
+test_is_valid_long_opt_returns_1_if_string_starts_with_more_than_two_dashes() {
+  create_buffer_files
+  bg.is_valid_long_opt "---string-flag" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_long_opt_returns_1_if_string_is_just_two_dashes() {
+  create_buffer_files
+  bg.is_valid_long_opt "--" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+
+
+test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_dash_after_the_initial_double_dashes() {
+  create_buffer_files
+  bg.is_valid_long_opt "--string--flag" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
