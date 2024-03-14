@@ -804,8 +804,13 @@ bg.add_flag() {
     fi
   fi
 
+  # Escape any backslashes (\) in help message
+  #help_message="${help_message//|/\\\\\\}"
+  help_message="${help_message//\\/\\\\}"
+
   # Escape any pipe (|) characters in help message
-  help_message="${help_message//|/$|}"
+  help_message="${help_message//\|/\\\|}"
+
  
   # Print all lines from stdin to stdout 
   while IFS= read -r line; do
@@ -819,4 +824,69 @@ bg.add_flag() {
     printf '%s|%s|%s|%s|%s|%s\n' 'flag' "$short_form" "$long_form" "$env_var" "$help_message" "$opt_arg"
   fi
 
+}
+
+bg.canonicalize_args() {
+  # Verify arguments
+  if bg.is_empty "${1:-}"; then
+    echo "ERROR: arg1 (args_array) not provided but required" >&2
+    return 1
+  fi
+
+  local array_name="$1"
+
+  shift 1
+
+  if [[ "${#}" == '0' ]]; then
+    echo "ERROR: canonicalize_args requires at least one arg after 'args_array' to canonicalize" >&2
+    return 1
+  fi
+
+  # Validate args
+  if ! bg.is_valid_var_name "$array_name"; then
+    echo "ERROR: '$array_name' is not a valid variable name" >&2
+    return 1
+  fi
+
+  if bg.is_var_readonly "$array_name"; then
+    echo "ERROR: '$array_name' is a readonly array" >&2
+    return 1
+  fi
+
+  # Empty array
+  eval "${array_name}=()"
+
+  for arg in "${@}"; do
+    eval "${array_name}+=('${arg}')"
+  done
+}
+
+bg.parse() {
+  if [[ "${#}" == "0" ]]; then
+    echo "ERROR: parse requires at least one argument to parse" >&2
+    return 1
+  fi
+
+  local -a spec_array
+  bg.to_array 'spec_array'
+
+  # Check that spec is not empty
+  if [[ "${#spec_array[@]}" == '0' ]]; then
+    echo "ERROR: argparse spec is empty" >&2
+    return 1
+  fi
+
+  local line
+
+  for line_no in "${!spec_array[@]}"; do
+    line="${spec_array[$line_no]}"
+
+    # Validate init command
+    if [[ "$line_no" == "0" ]]; then
+      if [[ "$line" != 'init' ]]; then
+        echo "ERROR: Invalid argparse spec. Line $line_no: should be 'init' but was '$line'" >&2
+        return 1
+      fi
+    fi
+  done
 }

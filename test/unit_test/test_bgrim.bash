@@ -1282,10 +1282,32 @@ test_add_flag_escapes_any_pipe_characters_in_help_message() {
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals \
     "$(printf \
+      '%s\n %s\n%s' \
+        "line 1" \
+        "line 2" \
+        'flag|d|directory|DIR|Directory \|that will \| store data'\
+    )" \
+    "$(< "$stdout_file")" \
+    "stdout should contain lines from stdin and new flag spec line"
+}
+
+
+test_add_flag_escapes_any_backslash_in_help_message() {
+  shopt -s lastpipe
+  create_buffer_files
+  {
+    echo "line 1" 
+    echo " line 2" 
+  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory \that will \ store data' \
+    >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals \
+    "$(printf \
       "%s\n %s\n%s" \
         "line 1" \
         "line 2" \
-        'flag|d|directory|DIR|Directory $|that will $| store data'\
+        'flag|d|directory|DIR|Directory \\that will \\ store data'\
     )" \
     "$(< "$stdout_file" )" \
     "stdout should contain lines from stdin and new flag spec line"
@@ -1310,4 +1332,120 @@ test_add_flag_prints_extended_spec_line_if_fifth_arg_is_provided() {
     )" \
     "$(< "$stdout_file" )" \
     "stdout should contain lines from stdin and new flag spec line"
+}
+
+test_canonicalize_args_returns_1_when_no_args_are_provided() {
+  create_buffer_files 
+  bg.canonicalize_args >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg1 (args_array) not provided but required" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_canonicalize_args_returns_1_when_only_one_arg_is_provided() {
+  create_buffer_files 
+  bg.canonicalize_args 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: canonicalize_args requires at least one arg after 'args_array' to canonicalize" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_canonicalize_args_returns_1_when_args_array_is_not_a_valid_var_name() {
+  bg.is_valid_var_name() {
+    return 1
+  }
+  create_buffer_files 
+  bg.canonicalize_args 'myarray' '-f' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'myarray' is not a valid variable name" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_canonicalize_args_returns_1_when_args_array_is_readonly() {
+  declare -ar myarray
+  create_buffer_files 
+  bg.canonicalize_args 'myarray' '-f' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'myarray' is a readonly array" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_canonicalize_args_returns_argument_as_it_is_when_only_one_short_form_option_is_provided() {
+  create_buffer_files 
+  bg.canonicalize_args 'myarray' '-f' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+
+  assert_equals "1" "${#myarray[@]}" "myarray should have exactly one element"
+  assert_equals '-f' "${myarray[0]}" "first element in myarray should be '-f'"
+}
+
+
+test_parse_returns_1_when_no_args_are_provided() {
+  create_buffer_files 
+  bg.parse >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: parse requires at least one argument to parse" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_parse_returns_1_when_spec_is_empty() {
+  create_buffer_files
+  printf "" \
+    | bg.parse "" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: argparse spec is empty" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_parse_returns_1_when_first_line_of_spec_is_not_init_command() {
+  create_buffer_files
+  printf 'command\n' \
+    | bg.parse "" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: Invalid argparse spec. Line 0: should be 'init' but was 'command'" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_parse_returns_0_when_first_line_of_spec_is_not_init_command() {
+  create_buffer_files
+  printf 'command\n' \
+    | bg.parse "" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: Invalid argparse spec. Line 0: should be 'init' but was 'command'" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
 }
