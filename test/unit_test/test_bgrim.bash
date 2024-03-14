@@ -1143,9 +1143,22 @@ test_add_flag_returns_1_if_only_two_args_are_passed() {
     "stderr should contain error message"
 }
 
+test_add_flag_returns_1_if_only_three_args_are_passed() {
+  create_buffer_files
+  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: arg4 (help_message) not provided but required" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
 test_add_flag_returns_1_if_first_arg_is_a_number() {
   create_buffer_files
-  bg.add_flag '2' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  bg.add_flag '2' 'flag' 'FLAG' 'flag description' \
+    >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1157,7 +1170,8 @@ test_add_flag_returns_1_if_first_arg_is_a_number() {
 
 test_add_flag_returns_1_if_first_arg_is_more_than_one_character() {
   create_buffer_files
-  bg.add_flag 'fl' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  bg.add_flag 'fl' 'flag' 'FLAG' 'flag description'\
+    >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1173,7 +1187,8 @@ test_add_flag_returns_1_if_long_form_is_not_a_valid_long_option() {
     return 1
   }
 
-  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  bg.add_flag 'f' 'flag' 'FLAG' 'flag description'\
+    >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1189,7 +1204,8 @@ test_add_flag_returns_1_if_env_var_is_not_a_valid_var_name() {
     return 1
   }
 
-  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  bg.add_flag 'f' 'flag' 'FLAG' 'flag description'\
+    >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1205,12 +1221,30 @@ test_add_flag_returns_1_if_env_var_is_a_readonly_variable() {
     return 0
   }
 
-  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
+  bg.add_flag 'f' 'flag' 'FLAG' 'flag description'\
+    >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
     "ERROR: 'FLAG' is a readonly variable" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_add_flag_returns_1_if_fifth_arg_is_not_a_valid_var_name() {
+  create_buffer_files
+  bg.is_valid_var_name() {
+    [[ "$1" == 'FLAG' ]] || return 1
+  }
+
+  bg.add_flag 'f' 'flag' 'FLAG' 'flag description' '4dir'\
+    >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: option argument name '4dir' is not a valid variable name" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -1221,7 +1255,8 @@ test_add_flag_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() 
   {
     echo "line 1" 
     echo " line 2" 
-  } | bg.add_flag 'd' 'directory' 'DIR' >"$stdout_file" 2>"$stderr_file"
+  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory that will store data' \
+    >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals \
@@ -1229,9 +1264,50 @@ test_add_flag_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() 
       "%s\n %s\n%s" \
         "line 1" \
         "line 2" \
-        "flag|d|directory|DIR"\
+        "flag|d|directory|DIR|Directory that will store data"\
     )" \
     "$(< "$stdout_file" )" \
     "stdout should contain lines from stdin and new flag spec line"
 }
 
+test_add_flag_escapes_any_pipe_characters_in_help_message() {
+  shopt -s lastpipe
+  create_buffer_files
+  {
+    echo "line 1" 
+    echo " line 2" 
+  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory |that will | store data' \
+    >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals \
+    "$(printf \
+      "%s\n %s\n%s" \
+        "line 1" \
+        "line 2" \
+        'flag|d|directory|DIR|Directory $|that will $| store data'\
+    )" \
+    "$(< "$stdout_file" )" \
+    "stdout should contain lines from stdin and new flag spec line"
+}
+
+test_add_flag_prints_extended_spec_line_if_fifth_arg_is_provided() {
+  shopt -s lastpipe
+  create_buffer_files
+  {
+    echo "line 1" 
+    echo " line 2" 
+  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory that will store data' 'my_directory'\
+    >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals \
+    "$(printf \
+      "%s\n %s\n%s" \
+        "line 1" \
+        "line 2" \
+        'flag|d|directory|DIR|Directory that will store data|my_directory'\
+    )" \
+    "$(< "$stdout_file" )" \
+    "stdout should contain lines from stdin and new flag spec line"
+}

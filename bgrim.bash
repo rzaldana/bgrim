@@ -765,9 +765,16 @@ bg.add_flag() {
     return 1
   fi
 
+  if bg.is_empty "${4:-}"; then
+    echo "ERROR: arg4 (help_message) not provided but required" >&2
+    return 1
+  fi
+
   local short_form="$1"
   local long_form="$2"
   local env_var="$3"
+  local help_message="$4"
+  local opt_arg="${5:-}"
 
   # Validate arguments
   if ! [[ "$short_form" =~ ^[a-z]$ ]]; then
@@ -789,12 +796,27 @@ bg.add_flag() {
     echo "ERROR: '$env_var' is a readonly variable" >&2
     return 1
   fi
+
+  if ! bg.is_empty "$opt_arg"; then
+    if ! bg.is_valid_var_name "$opt_arg"; then
+      echo "ERROR: option argument name '$opt_arg' is not a valid variable name" >&2
+      return 1
+    fi
+  fi
+
+  # Escape any pipe (|) characters in help message
+  help_message="${help_message//|/$|}"
  
   # Print all lines from stdin to stdout 
   while IFS= read -r line; do
     printf "%s\n" "$line"
   done
 
-  # Print new flag spec line
-  printf "%s|%s|%s|%s" 'flag' "$short_form" "$long_form" "$env_var"
+  # Print new spec line
+  if bg.is_empty "$opt_arg"; then
+    printf '%s|%s|%s|%s|%s\n' 'flag' "$short_form" "$long_form" "$env_var" "$help_message"
+  else
+    printf '%s|%s|%s|%s|%s|%s\n' 'flag' "$short_form" "$long_form" "$env_var" "$help_message" "$opt_arg"
+  fi
+
 }
