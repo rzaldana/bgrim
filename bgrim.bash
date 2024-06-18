@@ -890,3 +890,47 @@ bg.parse() {
     fi
   done
 }
+
+bg.require_args() {
+
+  local calling_function
+  calling_function="${FUNCNAME[1]}"
+
+  # Fail if no args are provided
+  [[ -z "$*" ]] \
+    && echo "ERROR: $calling_function: require_args received no arguments" >&2 \
+    && return 1
+
+  # Put provided args into an array
+  local -a provided_args 
+  provided_args=()
+  if [[ -n "$1" ]]; then
+    readarray -d $' ' provided_args <<<"$1"
+  fi
+  shift 1
+
+  # Put required args into an array 
+  # and validate that they are valid variables names
+  local -a required_args
+  required_args=()
+  for arg in "${@}"; do
+    if ! bg.is_valid_var_name "$arg"; then
+      echo "ERROR: $calling_function: '$arg' is not a valid variable name" >&2
+      return 1
+    fi
+    required_args+=( "$arg" )
+  done
+
+  if [[ "${#provided_args[@]}" -lt "${#required_args[@]}" ]]; then
+    printf "ERROR: $calling_function: argument %s (%s) is required but was not provided" \
+      "$(( ${#provided_args[@]} + 1 ))" \
+      "${required_args[${#provided_args[@]}]}" \
+      >&2
+    return 1
+  else
+    for ((i=0; i < ${#required_args[@]}; i++)); do
+      eval "${required_args[$i]}=${provided_args[$i]}"
+    done
+  fi
+
+}
