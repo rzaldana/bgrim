@@ -1524,3 +1524,33 @@ test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
+
+test_is_var_set_returns_0_if_a_variable_is_set() {
+  create_buffer_files
+  local myvar
+  bg.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_set_returns_1_if_a_variable_is_unset() {
+  create_buffer_files
+  unset myvar
+  bg.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
+  create_buffer_files
+  unset myvar
+  bg.is_var_set >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "2" "$ret_code" "should return exit code 2"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
+}

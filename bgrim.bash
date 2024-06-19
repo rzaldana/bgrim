@@ -687,6 +687,29 @@ bg.init_argparse() {
 }
 
 # description: |
+#   returns 0 if the given variable name refers to a declared variable 
+#   returns 1 if the given variable name refers to an unset variable 
+# inputs:
+#   stdin:
+#   args:
+#     1: "variable name"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the variable is set"
+#     1: "when the variable is not set 
+# tags:
+# - "utility"
+bg.is_var_set() {
+  if ! bg.require_args "$*" "var_name"; then
+    return 2 
+  fi
+  declare -p "$var_name" 1>/dev/null 2>&1
+}
+
+
+# description: |
 #   reads lines from stdin and stores each line as an element
 #   of the array whose name is provided in the first arg.
 #   Lines are assumed to be separated by newlines
