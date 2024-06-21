@@ -63,6 +63,152 @@
 ################################################################################
 export __BG_MKTEMP="mktemp"
 
+# description: |
+#   This function is meant to ensure that a function receives all the arguments
+#   it expects. It takes all the command line arguments given to the function, as
+#   a single string ("$*"), as the first argument. All subsequent arguments should
+#   be variable names where each positional argument will be stored. If there are
+#   more expected positional arguments than arguments provided, the function will
+#   return with exit code 1. Otherwise, all expected positional argument values
+#   will be placed in the respective variable.
+# inputs:
+#   stdin:
+#   args:
+#    1: "a string containing the arguments to parse, separated by a space, $*"
+#    rest: "names of positional arguments to expect"
+# outputs:
+#   stdout:
+#   stderr: |
+#     an error message if an expected positional argument is not provided or
+#     if one of the variable names provided for expected arguments is not a 
+#     valid variable name
+#   return_code:
+#     0: "if all expected positional arguments are received"
+#     1: "if an expected positional argument is not provided or if a "
+# tags:
+#   - "core_utils"
+# examples:
+#   - script: |
+#
+#       #/usr/bin/env bash
+#
+#       source bgrim.bash
+#
+#       set +e # do not exit on error
+#
+#       myfunc() {
+#         local arg1
+#         local arg2
+#         if ! bg.require_args "$*" "arg1" "arg2"; then
+#           return 2
+#         fi
+#
+#         echo "arg1=$arg1"
+#         echo "arg2=$arg2"
+#       }
+#       
+#       echo "Function invocation with all required arguments:"
+#       echo "================================================"
+#       myfunc "value1" "value2"
+#       ret_code="$?"
+#       echo "return code: $ret_code"
+#       echo "Function invocation with required argument missing:"
+#       echo "================================================"
+#       myfunc "value1" 
+#       ret_code="$?"
+#       echo "return code: $ret_code"
+#     output: |
+#       Function invocation with all required arguments:
+#       ================================================
+#       arg1=value1
+#       arg2=value2
+#       return code: 0
+#       Function invocation with required argument missing:
+#       ================================================
+#       ERROR: myfunc: argument 2 (arg2) is required but was not provided
+#       return code: 2
+bg.require_args() {
+
+  local calling_function
+  calling_function="${FUNCNAME[1]}"
+
+  # Fail if no args are provided
+  [[ -z "$*" ]] \
+    && { echo "ERROR: $calling_function: require_args received no arguments"; return 1; } >&2 \
+
+  # Put provided args into an array
+  local -a provided_args_raw
+  provided_args_raw=()
+  if [[ -n "${1:-}" ]]; then
+    readarray -d $' ' -t provided_args_raw <<<"$1"
+  fi
+  shift 1
+
+  local -a provided_args
+  provided_args=()
+  # Remove all trailing newlines from provided_args
+  for arg in "${provided_args_raw[@]}"; do
+    provided_args+=( "${arg%%$'\n'}" )
+  done
+
+
+  # Put required args into an array 
+  # and validate that they are valid variables names
+  local -a required_args
+  required_args=()
+  local valid_var_name_re="^[a-zA-Z_][a-zA-Z0-9_]+$"
+  for arg in "${@}"; do
+    if ! [[ "$arg" =~ $valid_var_name_re ]]; then
+      echo "ERROR: $calling_function: '$arg' is not a valid variable name" >&2
+      return 1
+    fi
+    required_args+=( "$arg" )
+  done
+
+  if [[ "${#provided_args[@]}" -lt "${#required_args[@]}" ]]; then
+    printf "ERROR: $calling_function: argument %s (%s) is required but was not provided\n" \
+      "$(( ${#provided_args[@]} + 1 ))" \
+      "${required_args[${#provided_args[@]}]}" \
+      >&2
+    return 1
+  else
+    for ((i=0; i < ${#required_args[@]}; i++)); do
+      eval "${required_args[$i]}='${provided_args[$i]}'"
+    done
+  fi
+
+}
+
+
+################################################################################
+# Checks if the given string is a valid variable name (i.e. it's made up 
+# exclusively of alphanumeric characters and underscores and it does not start
+# with a number
+# Globals:
+#   None
+# Arguments:
+#   String to evaluate
+# Outputs:
+#   None
+# Returns:
+#   0 if the given string is a valid variable name 
+#   1 otherwise
+################################################################################
+bg.is_valid_var_name() {
+
+
+  local var_name
+  if ! bg.require_args "$*" "var_name"; then
+    return 2
+  fi
+
+  local re="^[a-zA-Z_][a-zA-Z0-9_]+$"
+  if [[ "$var_name" =~ $re ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
 
 ################################################################################
 # description: |
@@ -221,29 +367,6 @@ bg.is_empty() {
 #  fi
 #}
 
-################################################################################
-# Checks if the given string is a valid variable name (i.e. it's made up 
-# exclusively of alphanumeric characters and underscores and it does not start
-# with a number
-# Globals:
-#   None
-# Arguments:
-#   String to evaluate
-# Outputs:
-#   None
-# Returns:
-#   0 if the given string is a valid variable name 
-#   1 otherwise
-################################################################################
-bg.is_valid_var_name() {
-  local input_string="${1:-}"
-  local re="^[a-zA-Z_][a-zA-Z0-9_]+$"
-  if [[ "$input_string" =~ $re ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
 
 ################################################################################
 # Checks if an array with the given name exists in the current environment
@@ -752,6 +875,7 @@ bg.to_array() {
   done
 }
 
+
 # description: |
 #   reads an argparse spec on stdin and prints the spec to stdout
 #   with a new line detailing the configuration of the new flag
@@ -762,6 +886,7 @@ bg.to_array() {
 #     1: "flag short form"
 #     2: "flag long form"
 #     3: "environment variable where value of flag will be stored"
+#     4: "help message for flag"
 # outputs:
 #   stdout:
 #   stderr: |
@@ -772,25 +897,14 @@ bg.to_array() {
 # tags:
 #   - "cli parsing"
 bg.add_flag() {
-  # Verify arguments
-  if bg.is_empty "${1:-}"; then
-    echo "ERROR: arg1 (short_form) not provided but required" >&2
-    return 1
-  fi
-
-  if bg.is_empty "${2:-}"; then
-    echo "ERROR: arg2 (long_form) not provided but required" >&2
-    return 1
-  fi
-
-  if bg.is_empty "${3:-}"; then
-    echo "ERROR: arg3 (env_var) not provided but required" >&2
-    return 1
-  fi
-
-  if bg.is_empty "${4:-}"; then
-    echo "ERROR: arg4 (help_message) not provided but required" >&2
-    return 1
+  # Check number of arguments
+  if ! bg.require_args "$*" \
+    "short_form" \
+    "long_form" \
+    "env_var" \
+    "help_message" 
+  then
+    return 2 
   fi
 
   local short_form="$1"
@@ -914,46 +1028,3 @@ bg.parse() {
   done
 }
 
-bg.require_args() {
-
-  local calling_function
-  calling_function="${FUNCNAME[1]}"
-
-  # Fail if no args are provided
-  [[ -z "$*" ]] \
-    && echo "ERROR: $calling_function: require_args received no arguments" >&2 \
-    && return 1
-
-  # Put provided args into an array
-  local -a provided_args 
-  provided_args=()
-  if [[ -n "$1" ]]; then
-    readarray -d $' ' provided_args <<<"$1"
-  fi
-  shift 1
-
-  # Put required args into an array 
-  # and validate that they are valid variables names
-  local -a required_args
-  required_args=()
-  for arg in "${@}"; do
-    if ! bg.is_valid_var_name "$arg"; then
-      echo "ERROR: $calling_function: '$arg' is not a valid variable name" >&2
-      return 1
-    fi
-    required_args+=( "$arg" )
-  done
-
-  if [[ "${#provided_args[@]}" -lt "${#required_args[@]}" ]]; then
-    printf "ERROR: $calling_function: argument %s (%s) is required but was not provided" \
-      "$(( ${#provided_args[@]} + 1 ))" \
-      "${required_args[${#provided_args[@]}]}" \
-      >&2
-    return 1
-  else
-    for ((i=0; i < ${#required_args[@]}; i++)); do
-      eval "${required_args[$i]}=${provided_args[$i]}"
-    done
-  fi
-
-}
