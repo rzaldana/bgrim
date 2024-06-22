@@ -1491,6 +1491,16 @@ test_is_var_set_returns_0_if_a_variable_is_set() {
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
+test_is_var_set_returns_1_if_a_variable_is_unset_and_nounset_is_set() {
+  create_buffer_files
+  set -u
+  bg.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
 test_is_var_set_returns_1_if_a_variable_is_unset() {
   create_buffer_files
   unset myvar
