@@ -61,6 +61,39 @@ setup_suite() {
   set -euo pipefail
 }
 
+test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
+  stdout_and_stderr="$(bg.is_valid_var_name "my_func" 2>&1)" 
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when given alphanumeric and underscore chars"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
+  stdout_and_stderr="$(bg.is_valid_var_name "my.func" 2>&1)" 
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
+  stdout_and_stderr="$(bg.is_valid_var_name "1my_func" 2>&1)" 
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
+test_is_valid_var_name_returns_2_when_given_no_args() {
+  create_buffer_files
+  bg.is_valid_var_name >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "2" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout shouldb be empty"
+  assert_equals \
+    "ERROR: bg.is_valid_var_name: argument 1 (var_name) is required but was not provided" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
 test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environment() {
   # Set a few specific options
   set -o pipefail
@@ -232,26 +265,6 @@ test_is_empty_returns_1_if_given_a_non_empty_string() {
 #  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 #}
 
-test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
-  stdout_and_stderr="$(bg.is_valid_var_name "my_func" 2>&1)" 
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "function call should return 0 when given alphanumeric and underscore chars"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
-
-test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
-  stdout_and_stderr="$(bg.is_valid_var_name "my.func" 2>&1)" 
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
-
-test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
-  stdout_and_stderr="$(bg.is_valid_var_name "1my_func" 2>&1)" 
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
 
 test_is_array_returns_0_if_there_is_an_array_with_the_given_name() {
   local -a my_test_array
@@ -1107,54 +1120,6 @@ test_init_argparse_prints_the_string_init_to_stdout() {
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_add_flag_returns_1_if_no_args_are_passed() {
-  create_buffer_files
-  bg.add_flag >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg1 (short_form) not provided but required" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_add_flag_returns_1_if_only_one_arg_is_passed() {
-  create_buffer_files
-  bg.add_flag 'f' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg2 (long_form) not provided but required" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_add_flag_returns_1_if_only_two_args_are_passed() {
-  create_buffer_files
-  bg.add_flag 'f' 'flag' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg3 (env_var) not provided but required" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_add_flag_returns_1_if_only_three_args_are_passed() {
-  create_buffer_files
-  bg.add_flag 'f' 'flag' 'FLAG' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg4 (help_message) not provided but required" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
 test_add_flag_returns_1_if_first_arg_is_a_number() {
   create_buffer_files
   bg.add_flag '2' 'flag' 'FLAG' 'flag description' \
@@ -1200,27 +1165,21 @@ test_add_flag_returns_1_if_long_form_is_not_a_valid_long_option() {
 
 test_add_flag_returns_1_if_env_var_is_not_a_valid_var_name() {
   create_buffer_files
-  bg.is_valid_var_name() {
-    return 1
-  }
 
-  bg.add_flag 'f' 'flag' 'FLAG' 'flag description'\
+  bg.add_flag 'f' 'flag' '?' 'flag description'\
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: 'FLAG' is not a valid variable name" \
+    "ERROR: '?' is not a valid variable name" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
 
 test_add_flag_returns_1_if_env_var_is_a_readonly_variable() {
   create_buffer_files
-  bg.is_var_readonly() {
-    return 0
-  }
-
+  local -r FLAG
   bg.add_flag 'f' 'flag' 'FLAG' 'flag description'\
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -1234,9 +1193,6 @@ test_add_flag_returns_1_if_env_var_is_a_readonly_variable() {
 
 test_add_flag_returns_1_if_fifth_arg_is_not_a_valid_var_name() {
   create_buffer_files
-  bg.is_valid_var_name() {
-    [[ "$1" == 'FLAG' ]] || return 1
-  }
 
   bg.add_flag 'f' 'flag' 'FLAG' 'flag description' '4dir'\
     >"$stdout_file" 2>"$stderr_file"
