@@ -1406,21 +1406,35 @@ test_parse_returns_0_when_first_line_of_spec_is_not_init_command() {
     "stderr should contain error message"
 }
 
-test_require_args_returns_1_if_no_args_are_provided() {
+test_require_args_returns_2_if_required_args_array_is_not_set() {
   create_buffer_files
-  bg.require_args "" >"$stdout_file" 2>"$stderr_file"
+  bg.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: require_args received no arguments" \
+    "ERROR: require_args: 'required_args' array not found" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
+}
+
+test_require_args_returns_2_if_required_args_array_is_empty() {
+  create_buffer_files
+  local -a required_args=()
+  bg.require_args >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "2" "$ret_code" "should return exit code 2"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: require_args: 'required_args' array is empty" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
 
 test_require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() {
   create_buffer_files
-  bg.require_args "" "ARG" >"$stdout_file" 2>"$stderr_file"
+  local -a required_args=( "ARG" )
+  bg.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1432,7 +1446,8 @@ test_require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() 
 
 test_require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
   create_buffer_files
-  bg.require_args "myvalue" "ARG" >"$stdout_file" 2>"$stderr_file"
+  local -a required_args=( "ARG" )
+  bg.require_args "val1" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1440,12 +1455,13 @@ test_require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
     "" \
     "$(< "$stderr_file")" \
     "stderr should be emtpy"
-  assert_equals "$ARG" "myvalue" "variable 'ARG' should contain value of argument"
+  assert_equals "val1" "$ARG" "variable 'ARG' should contain value of argument"
 }
 
 test_require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() {
   create_buffer_files
-  bg.require_args "myvalue" "ARG1" "ARG2" >"$stdout_file" 2>"$stderr_file"
+  local -a required_args=( "ARG1" "ARG2" )
+  bg.require_args "myvalue" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1457,7 +1473,8 @@ test_require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() 
 
 test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided() {
   create_buffer_files
-  bg.require_args "myvalue1 myvalue2" "ARG1" "ARG2" >"$stdout_file" 2>"$stderr_file"
+  local -a required_args=( "ARG1" "ARG2" )
+  bg.require_args "myvalue1" "myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1471,7 +1488,8 @@ test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided()
 
 test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_name() {
   create_buffer_files
-  bg.require_args "myvalue1 myvalue2" "var()" "ARG2" >"$stdout_file" 2>"$stderr_file"
+  local -a required_args=( "var()" "ARG2" )
+  bg.require_args "myvalue1 myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1479,6 +1497,25 @@ test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_
     "ERROR: ${FUNCNAME[0]}: 'var()' is not a valid variable name" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
+}
+
+test_require_args_places_args_with_spaces_in_correct_variable() {
+  local var1
+  local var2
+  test_func(){
+    local -a required_args=( "var1" "var2" )
+    if ! bg.require_args "$@"; then
+      return 2
+    fi
+  }
+  create_buffer_files
+  test_func "a value" "second value" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "$var1" "a value"
+  assert_equals "$var2" "second value"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
 }
 
 test_is_var_set_returns_0_if_a_variable_is_set() {

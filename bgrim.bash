@@ -63,43 +63,70 @@
 ################################################################################
 export __BG_MKTEMP="mktemp"
 
+################################################################################
+# Checks if an array with the given name exists in the current environment
+# i.e. if a variable with the given name and the -a attribute exists
+# Globals:
+#   None
+# Arguments:
+#   Name of array to look for
+# Outputs:
+#   None
+# Returns:
+#   0 if the given name refers to an existing array variable
+#   1 otherwise
+################################################################################
+bg.is_array() {
+  local array_name="${1:-}"  
+  local re="declare -a"
+  local array_attributes
+  array_attributes="$(declare -p "$array_name" 2>/dev/null)" \
+    || return 1
+
+  if [[ "$array_attributes" =~ $re ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # description: |
 #   This function is meant to ensure that a function receives all the arguments
-#   it expects. It takes all the command line arguments given to the function, as
-#   a single string ("$*"), as the first argument. All subsequent arguments should
-#   be variable names where each positional argument will be stored. If there are
-#   more expected positional arguments than arguments provided, the function will
-#   return with exit code 1. Otherwise, all expected positional argument values
-#   will be placed in the respective variable.
+#   it expects. It expects an array called 'required_args' to be set in inputs
+#   environment and it takes all the arguments that a function receives as its
+#   cli arguments. It checks if there is a cli argument for every entry in the 
+#   'required_args' array and assigns the value of the cli argument to a variable
+#   with the name of the required arg
 # inputs:
 #   stdin:
 #   args:
-#    1: "a string containing the arguments to parse, separated by a space, $*"
-#    rest: "names of positional arguments to expect"
+#     rest: cli arguments to validate
+#   environment:
+#     required_args: an array with an entry for every required arg
 # outputs:
 #   stdout:
 #   stderr: |
-#     an error message if an expected positional argument is not provided or
-#     if one of the variable names provided for expected arguments is not a 
-#     valid variable name
+#     an error message if the required_args array is not set or is empty
+#     an error message if a required_arg is not provided in the cli arguments
 #   return_code:
 #     0: "if all expected positional arguments are received"
-#     1: "if an expected positional argument is not provided or if a "
+#     1: "if an expected positional argument is not provided"
+#     2: "the 'required_args' array is empty or not set"
 # tags:
 #   - "core_utils"
 # examples:
 #   - script: |
 #
-#       #/usr/bin/env bash
+#       #!/usr/bin/env bash
 #
 #       source bgrim.bash
 #
 #       set +e # do not exit on error
 #
 #       myfunc() {
-#         local arg1
-#         local arg2
-#         if ! bg.require_args "$*" "arg1" "arg2"; then
+#         local arg1 arg2
+#         required_args=( arg1 arg2 )
+#         if ! bg.require_args "$@" ; then
 #           return 2
 #         fi
 #
@@ -132,39 +159,31 @@ bg.require_args() {
   local calling_function
   calling_function="${FUNCNAME[1]}"
 
-  # Fail if no args are provided
-  [[ -z "$*" ]] \
-    && { echo "ERROR: $calling_function: require_args received no arguments"; return 1; } >&2 \
-
-  # Put provided args into an array
-  local -a provided_args_raw
-  provided_args_raw=()
-  if [[ -n "${1:-}" ]]; then
-    readarray -d $' ' -t provided_args_raw <<<"$1"
+  # Fail if required_args array is not set 
+  if ! bg.is_array 'required_args'; then
+    echo "ERROR: require_args: 'required_args' array not found" >&2
+    return 2
   fi
-  shift 1
 
-  local -a provided_args
-  provided_args=()
-  # Remove all trailing newlines from provided_args
-  for arg in "${provided_args_raw[@]}"; do
-    provided_args+=( "${arg%%$'\n'}" )
-  done
+  # Fail if required_args array has length 0
+  if [[ "${#required_args[@]}" == "0" ]]; then
+    echo "ERROR: require_args: 'required_args' array is empty" >&2
+    return 2
+  fi
 
 
-  # Put required args into an array 
-  # and validate that they are valid variables names
-  local -a required_args
-  required_args=()
+  local -a provided_args=( "$@" )
+
+  # Validate that required args are all valid variable names
   local valid_var_name_re="^[a-zA-Z_][a-zA-Z0-9_]+$"
-  for arg in "${@}"; do
+  for arg in "${required_args[@]}"; do
     if ! [[ "$arg" =~ $valid_var_name_re ]]; then
       echo "ERROR: $calling_function: '$arg' is not a valid variable name" >&2
       return 1
     fi
-    required_args+=( "$arg" )
   done
 
+  # Check that there is a cli argument for every required arg
   if [[ "${#provided_args[@]}" -lt "${#required_args[@]}" ]]; then
     printf "ERROR: $calling_function: argument %s (%s) is required but was not provided\n" \
       "$(( ${#provided_args[@]} + 1 ))" \
@@ -172,7 +191,8 @@ bg.require_args() {
       >&2
     return 1
   else
-    for ((i=0; i < ${#required_args[@]}; i++)); do
+    # assign the value of each cli argument to the corresponding required arg
+    for ((i=0; i < "${#required_args[@]}" ; i++)); do
       eval "${required_args[$i]}='${provided_args[$i]}'"
     done
   fi
@@ -195,10 +215,9 @@ bg.require_args() {
 #   1 otherwise
 ################################################################################
 bg.is_valid_var_name() {
-
-
   local var_name
-  if ! bg.require_args "$*" "var_name"; then
+  local -a required_args=( "var_name" )
+  if ! bg.require_args "$@"; then
     return 2
   fi
 
@@ -368,32 +387,6 @@ bg.is_empty() {
 #}
 
 
-################################################################################
-# Checks if an array with the given name exists in the current environment
-# i.e. if a variable with the given name and the -a attribute exists
-# Globals:
-#   None
-# Arguments:
-#   Name of array to look for
-# Outputs:
-#   None
-# Returns:
-#   0 if the given name refers to an existing array variable
-#   1 otherwise
-################################################################################
-bg.is_array() {
-  local array_name="${1:-}"  
-  local re="declare -a"
-  local array_attributes
-  array_attributes="$(declare -p "$array_name" 2>/dev/null)" \
-    || return 1
-
-  if [[ "$array_attributes" =~ $re ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
 
 ################################################################################
 # Checks if the given value exists in the array with the given name 
@@ -825,7 +818,8 @@ bg.init_argparse() {
 # tags:
 # - "utility"
 bg.is_var_set() {
-  if ! bg.require_args "$*" "var_name"; then
+  local -a required_args=( "var_name" )
+  if ! bg.require_args "$@"; then
     return 2 
   fi
   declare -p "$var_name" 1>/dev/null 2>&1
@@ -898,12 +892,8 @@ bg.to_array() {
 #   - "cli parsing"
 bg.add_flag() {
   # Check number of arguments
-  if ! bg.require_args "$*" \
-    "short_form" \
-    "long_form" \
-    "env_var" \
-    "help_message" 
-  then
+  local -a required_args=( "short_form" "long_form" "env_var" "help_message" )
+  if ! bg.require_args "$@"; then
     return 2 
   fi
 
