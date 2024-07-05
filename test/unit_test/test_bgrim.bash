@@ -179,31 +179,20 @@ test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
   bg.clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
   exit_code="$?"
 
+  local was_prefix_var_empty
+  if declare -p 'prefix' &>/dev/null; then
+    was_prefix_var_empty="false"
+  else
+    was_prefix_var_empty="true"
+  fi
+
+  assert_equals "true" "$was_prefix_var_empty" 
   assert_equals "0" "$exit_code"
   assert_equals "" "$(< "$stderr_file")"
   assert_equals "" "$(< "$stdout_file")"
   assert_equals "" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
   assert_equals "" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
   assert_equals "" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
-}
-
-test_clear_vars_with_prefix_returns_error_if_first_param_is_empty() {
-  create_buffer_files
-
-  # declare some variables
-  PREFIX_MY_VAR="my value"
-  export PREFIX_ENV_VAR="env value"
-  local PREFIX_LOCAL_VAR="local value"
-  bg.clear_vars_with_prefix 2>"$stderr_file" >"$stdout_file"
-  exit_code="$?"
-
-  assert_equals "1" "$exit_code"
-  assert_equals "" "$(< "$stdout_file")"
-  assert_equals "ERROR: arg1 (prefix) is empty but is required" "$(< "$stderr_file")"
-  assert_equals "my value" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
-  assert_equals "env value" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
-  assert_equals "local value" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
-
 }
 
 test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
@@ -224,12 +213,6 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 
 }
 
-test_is_empty_returns_0_if_given_no_args() {
-  stdout_and_stderr="$(bg.is_empty 2>&1)"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
 test_is_empty_returns_0_if_given_an_empty_string() {
   stdout_and_stderr="$(bg.is_empty "" 2>&1)"
   ret_code="$?"
@@ -503,6 +486,7 @@ HERE
   assert_equals "0" "$ret_code" "should return 0 when trap is not set"
 }
 
+
 test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_trap() {
   local stdout
   local stderr_file
@@ -525,58 +509,6 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
   ret_code="$?"
   assert_equals "" "$stdout" "stdout should be empty"
   assert_equals 'Error retrieving trap for signal '\''MYSIG'\''. Error message: '\''An Error occurred!'\''' "$(< "$stderr_file")" "stderr should contain an error message"
-  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
-}
-
-test_get_trap_command_returns_1_and_error_code_if_no_args_are_provided() {
-  local stdout
-  local stderr_file
-  stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
-
-  stdout="$( 
-    # Call function
-    bg.get_trap_command 2>"$stderr_file"
-  )"
-
-  ret_code="$?"
-  assert_equals "" "$stdout" "stdout should be empty"
-  assert_equals 'arg1 (signal_spec) not provided but required' "$(< "$stderr_file")" "stderr should contain an error message"
-  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
-}
-
-test_trap_returns_1_and_error_code_if_no_args_are_provided() {
-  local stdout
-  local stderr_file
-  stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
-
-  stdout="$( 
-    # Call function
-    bg.trap 2>"$stderr_file"
-  )"
-
-  ret_code="$?"
-  assert_equals "" "$stdout" "stdout should be empty"
-  assert_equals 'arg1 (trap_command) not provided but required' "$(< "$stderr_file")" "stderr should contain an error message"
-  assert_equals "1" "$ret_code" "should return 1 when trap is not set"
-}
-
-
-test_trap_returns_1_and_error_code_if_only_one_arg_is_provided() {
-  local stdout
-  local stderr_file
-  stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
-
-  stdout="$( 
-    # Call function
-    bg.trap 'command' 2>"$stderr_file"
-  )"
-
-  ret_code="$?"
-  assert_equals "" "$stdout" "stdout should be empty"
-  assert_equals 'arg2 (signal_spec) not provided but required' "$(< "$stderr_file")" "stderr should contain an error message"
   assert_equals "1" "$ret_code" "should return 1 when trap is not set"
 }
 
@@ -710,19 +642,6 @@ test_trap_returns_1_and_error_message_if_there_is_an_error_while_setting_the_new
   assert_equals "Error setting new trap for signal 'SIGINT'" "$(< "$stderr_file")"
   assert_equals "1" "$ret_code" "should return 1 when trap is not set"
 }
-
-test_tmpfile_returns_1_when_no_args_provided() {
-  local stdout_file
-  local stderr_file
-  stdout_file="$(mktemp)"
-  stderr_file="$(mktemp)"
-  bg.tmpfile >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "return code should be 1 when no args are provided"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: arg1 (filename_var) not provided but required" "$(< "$stderr_file")"
-}
-
 
 test_tmpfile_fails_when_filename_var_is_not_a_valid_var_name() {
   local stdout_file
@@ -864,19 +783,6 @@ test_tmpfile_returns_1_if_trap_fails() {
   assert_equals "1" "$ret_code" "should return 1"
 }
 
-test_is_valid_long_opt_returns_error_if_no_args_are_provided() {
-  create_buffer_files
-
-  bg.is_valid_long_opt >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "2" "$ret_code" "should return exit code 2"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg1 (string) not provided but required" \
-    "$(< "$stderr_file" )" \
-    "stderr should contain error message"
-}
-
 test_is_valid_long_opt_returns_1_if_string_does_not_start_with_double_dashes() {
   create_buffer_files
   bg.is_valid_long_opt "string" >"$stdout_file" 2>"$stderr_file"
@@ -913,7 +819,6 @@ test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contain
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 
 }
-
 
 test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_and_numbers() {
   create_buffer_files
@@ -984,19 +889,49 @@ test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_das
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-
-
-
-test_is_var_readonly_returns_1_if_no_args_are_provided() {
+test_is_valid_short_opt_returns_0_if_string_is_a_dash_followed_by_a_letter() {
   create_buffer_files
-  bg.is_var_readonly >"$stdout_file" 2>"$stderr_file"
+  bg.is_valid_short_opt "-d" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg1 (var_name) not provided but required" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_returns_1_if_string_is_just_a_dash() {
+  create_buffer_files
+  bg.is_valid_short_opt "-" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_a_number() {
+  create_buffer_files
+  bg.is_valid_short_opt "-1" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_two_letters() {
+  create_buffer_files
+  bg.is_valid_short_opt "-no" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_returns_1_if_string_is_a_long_option() {
+  create_buffer_files
+  bg.is_valid_short_opt "--n" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
 test_is_var_readonly_returns_1_if_variable_is_unset() {
@@ -1036,18 +971,6 @@ test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes(
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-}
-
-test_to_array_returns_1_if_given_no_args() {
-  create_buffer_files
-  bg.to_array >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg1 (array_name) not provided but required" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
 }
 
 test_to_array_returns_1_if_given_string_is_not_a_valid_var_name() {
@@ -1111,18 +1034,18 @@ test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
   assert_equals "${myarray[1]}" ' line 2' "element 1 should contain string ' line 2'"
 }
 
-test_init_argparse_prints_the_string_init_to_stdout() {
+test_cli_init_prints_the_string_init_to_stdout() {
   create_buffer_files
-  bg.init_argparse >"$stdout_file" 2>"$stderr_file"
+  bg.cli.init >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "init" "$(< "$stdout_file" )" "stdout should contain the string 'init'"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_add_flag_returns_1_if_first_arg_is_a_number() {
+test_cli_add_opt_returns_1_if_first_arg_is_a_number() {
   create_buffer_files
-  bg.add_flag '2' 'flag' 'FLAG' 'flag description' \
+  bg.cli.add_opt '2' 'flag' 'FLAG' 'flag description' \
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
@@ -1133,9 +1056,9 @@ test_add_flag_returns_1_if_first_arg_is_a_number() {
     "stderr should contain error message"
 }
 
-test_add_flag_returns_1_if_first_arg_is_more_than_one_character() {
+test_cli.add_opt_returns_1_if_first_arg_is_more_than_one_character() {
   create_buffer_files
-  bg.add_flag 'fl' 'flag' 'FLAG' 'flag description'\
+  bg.cli.add_opt 'fl' 'flag' 'FLAG' 'flag description'\
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
@@ -1146,13 +1069,13 @@ test_add_flag_returns_1_if_first_arg_is_more_than_one_character() {
     "stderr should contain error message"
 }
 
-test_add_flag_returns_1_if_long_form_is_not_a_valid_long_option() {
+test_cli_add_opt_flag_returns_1_if_long_form_is_not_a_valid_long_option() {
   create_buffer_files
   bg.is_valid_long_opt() {
     return 1
   }
 
-  bg.add_flag 'f' 'flag' 'FLAG' 'flag description'\
+  bg.cli.add_opt 'f' 'flag' 'FLAG' 'flag description'\
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
@@ -1163,10 +1086,10 @@ test_add_flag_returns_1_if_long_form_is_not_a_valid_long_option() {
     "stderr should contain error message"
 }
 
-test_add_flag_returns_1_if_env_var_is_not_a_valid_var_name() {
+test_cli_add_opt_returns_1_if_env_var_is_not_a_valid_var_name() {
   create_buffer_files
 
-  bg.add_flag 'f' 'flag' '?' 'flag description'\
+  bg.cli.add_opt 'f' 'flag' '?' 'flag description'\
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
@@ -1177,10 +1100,10 @@ test_add_flag_returns_1_if_env_var_is_not_a_valid_var_name() {
     "stderr should contain error message"
 }
 
-test_add_flag_returns_1_if_env_var_is_a_readonly_variable() {
+test_cli_add_opt_returns_1_if_env_var_is_a_readonly_variable() {
   create_buffer_files
   local -r FLAG
-  bg.add_flag 'f' 'flag' 'FLAG' 'flag description'\
+  bg.cli.add_opt 'f' 'flag' 'FLAG' 'flag description'\
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
@@ -1191,27 +1114,13 @@ test_add_flag_returns_1_if_env_var_is_a_readonly_variable() {
     "stderr should contain error message"
 }
 
-test_add_flag_returns_1_if_fifth_arg_is_not_a_valid_var_name() {
-  create_buffer_files
-
-  bg.add_flag 'f' 'flag' 'FLAG' 'flag description' '4dir'\
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: option argument name '4dir' is not a valid variable name" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_add_flag_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() {
+test_cli_add_opt_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() {
   shopt -s lastpipe
   create_buffer_files
   {
     echo "line 1" 
     echo " line 2" 
-  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory that will store data' \
+  } | bg.cli.add_opt 'd' 'directory' 'DIR' 'Directory that will store data' \
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -1226,13 +1135,13 @@ test_add_flag_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() 
     "stdout should contain lines from stdin and new flag spec line"
 }
 
-test_add_flag_escapes_any_pipe_characters_in_help_message() {
+test_cli_add_opt_escapes_any_pipe_characters_in_help_message() {
   shopt -s lastpipe
   create_buffer_files
   {
     echo "line 1" 
     echo " line 2" 
-  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory |that will | store data' \
+  } | bg.cli.add_opt 'd' 'directory' 'DIR' 'Directory |that will | store data' \
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -1248,13 +1157,13 @@ test_add_flag_escapes_any_pipe_characters_in_help_message() {
 }
 
 
-test_add_flag_escapes_any_backslash_in_help_message() {
+test_cli_add_opt_escapes_any_backslash_in_help_message() {
   shopt -s lastpipe
   create_buffer_files
   {
     echo "line 1" 
     echo " line 2" 
-  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory \that will \ store data' \
+  } | bg.cli.add_opt 'd' 'directory' 'DIR' 'Directory \that will \ store data' \
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -1264,27 +1173,6 @@ test_add_flag_escapes_any_backslash_in_help_message() {
         "line 1" \
         "line 2" \
         'flag|d|directory|DIR|Directory \\that will \\ store data'\
-    )" \
-    "$(< "$stdout_file" )" \
-    "stdout should contain lines from stdin and new flag spec line"
-}
-
-test_add_flag_prints_extended_spec_line_if_fifth_arg_is_provided() {
-  shopt -s lastpipe
-  create_buffer_files
-  {
-    echo "line 1" 
-    echo " line 2" 
-  } | bg.add_flag 'd' 'directory' 'DIR' 'Directory that will store data' 'my_directory'\
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals \
-    "$(printf \
-      "%s\n %s\n%s" \
-        "line 1" \
-        "line 2" \
-        'flag|d|directory|DIR|Directory that will store data|my_directory'\
     )" \
     "$(< "$stdout_file" )" \
     "stdout should contain lines from stdin and new flag spec line"
@@ -1354,23 +1242,10 @@ test_canonicalize_args_returns_argument_as_it_is_when_only_one_short_form_option
   assert_equals '-f' "${myarray[0]}" "first element in myarray should be '-f'"
 }
 
-
-test_parse_returns_1_when_no_args_are_provided() {
-  create_buffer_files 
-  bg.parse >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: parse requires at least one argument to parse" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_parse_returns_1_when_spec_is_empty() {
+test_cli_parse_returns_1_when_spec_is_empty() {
   create_buffer_files
   printf "" \
-    | bg.parse "" >"$stdout_file" 2>"$stderr_file"
+    | bg.cli.parse "" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1380,23 +1255,10 @@ test_parse_returns_1_when_spec_is_empty() {
     "stderr should contain error message"
 }
 
-test_parse_returns_1_when_first_line_of_spec_is_not_init_command() {
+test_cli_parse_returns_1_when_first_line_of_spec_is_not_init_command() {
   create_buffer_files
   printf 'command\n' \
-    | bg.parse "" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: Invalid argparse spec. Line 0: should be 'init' but was 'command'" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_parse_returns_0_when_first_line_of_spec_is_not_init_command() {
-  create_buffer_files
-  printf 'command\n' \
-    | bg.parse "" >"$stdout_file" 2>"$stderr_file"
+    | bg.cli.parse "" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1556,4 +1418,126 @@ test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
+}
+
+##########################################################################################
+# Parse with one opt
+##########################################################################################
+parse_with_one_opt() {
+  shopt -s lastpipe
+  set -o pipefail
+  bg.cli.init \
+   | bg.cli.add_opt "f" "flag" "myflag" "help message" \
+   | bg.cli.parse "$@"
+}
+
+test_cli_parse_with_one_opt_and_no_args() {
+  create_buffer_files
+  parse_with_one_opt >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_fail "bg.is_var_set 'myflag'" "var 'myflag' should not be set"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_cli_parse_with_one_opt_and_one_short_arg() {
+  create_buffer_files
+  parse_with_one_opt -f >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert "bg.is_var_set 'myflag'" "var 'myflag' should be set"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+
+test_cli_parse_with_one_opt_and_invalid_opt() {
+  create_buffer_files
+  parse_with_one_opt -g >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_fail "bg.is_var_set 'myflag'" "var 'myflag' should not be set"
+}
+
+test_cli_parse_with_one_opt_and_invalid_long_arg() {
+  create_buffer_files
+  parse_with_one_opt --invalid >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '--invalid' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_fail "bg.is_var_set 'myflag'" "var 'myflag' should not be set"
+}
+
+
+test_cli_parse_with_one_opt_and_valid_with_invalid_opt1() {
+  create_buffer_files
+  parse_with_one_opt -f -g >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+test_cli_parse_with_one_opt_and_valid_with_invalid_opt2() {
+  create_buffer_files
+  parse_with_one_opt -g -f >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+
+test_cli_parse_with_one_opt_and_valid_with_invalid_opt3() {
+  create_buffer_files
+  parse_with_one_opt -g --flag >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+test_cli_parse_with_one_opt_and_valid_with_invalid_opt4() {
+  create_buffer_files
+  parse_with_one_opt --invalid -f >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '--invalid' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+test_cli_parse_with_one_opt_and_one_arg_with_opt() {
+  create_buffer_files
+  parse_with_one_opt -f 'myarg' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  assert "bg.is_var_set 'myflag'" "var 'myflag' should be set"
+  assert_equals "" "$myflag" "'myflag' should contain an empty string"
+}
+
+test_cli_parse_with_one_opt_prints_help() {
+  create_buffer_files
+  parse_with_one_opt -h >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  help_message="$( cat <<EOF
+parse_with_one_opt
+
+Usage: parse_with_one_opt [options]
+
+-f, --flag  help message
+
+EOF
+)"
+  echo "$help_message" >/dev/tty
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  assert "bg.is_var_set 'myflag'" "var 'myflag' should be set"
+  assert_equals "" "$myflag" "'myflag' should contain an empty string"
 }
