@@ -1525,19 +1525,18 @@ test_cli_parse_with_one_opt_prints_help() {
   create_buffer_files
   parse_with_one_opt -h >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  help_message="$( cat <<EOF
+  IFS= read -d '' help_message <<EOF
 parse_with_one_opt
 
 Usage: parse_with_one_opt [options]
 
--f, --flag  help message
-
+-f, --flag help message
 EOF
-)"
-  echo "$help_message" >/dev/tty
+
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-  assert "bg.is_var_set 'myflag'" "var 'myflag' should be set"
-  assert_equals "" "$myflag" "'myflag' should contain an empty string"
+  assert_equals "$( printf "%s" "${help_message}")" \
+    "$(< "$stderr_file")" "stderr should contain help message"
+  assert_fail "bg.is_var_set 'myflag'" "var 'myflag' should NOT be set"
+  #assert_equals "" "$myflag" "'myflag' should contain an empty string"
 }

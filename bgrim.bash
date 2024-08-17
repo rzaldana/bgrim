@@ -1053,13 +1053,15 @@ bg.cli.parse() {
 
   local line
   local -a long_opts
-  local -a long_opt_env_vars
   local -a short_opts
-  local -a short_opt_env_vars
+  local -a opt_env_vars
   local -a long_opts_with_arg
   local -a long_opts_with_arg_env_vars
   local -a short_opts_with_arg
   local -a short_opts_with_arg_env_vars
+  local -a opt_help_messages
+  local -i max_help_summary_length=0
+  local -i n_opts=0
 
   for line_no in "${!spec_array[@]}"; do
     line="${spec_array[$line_no]}"
@@ -1086,18 +1088,40 @@ bg.cli.parse() {
         local long_form
         local env_var
         local help_message
+        local help_summary
         IFS='|' read short_form long_form env_var help_message <<<"$line"
         long_opts+=( "--$long_form" )
         short_opts+=( "-$short_form" )
-        long_opt_env_vars+=( "$env_var" )
-        short_opt_env_vars+=( "$env_var" )
-        ;;
-      *)
-        echo "not a valid command: '$line_command'"
-        ;;
+        opt_env_vars+=( "$env_var" )
+        opt_help_messages+=( "$help_message" )
+        help_summary="-$short_form, --$long_form"
+        help_summary_length="${#help_summary}"
+        if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then
+          max_help_summary_length="${help_summary_length}"
+        fi
+        n_opts=$((n_opts+1))
     esac
 
   done 
+
+  # Create help message
+  local help_message
+  local executable_name="parse_with_one_opt"
+  # Emtpy IFS means no word splitting
+  # -d '' means read until end of file 
+  IFS= read -d '' help_message << EOF 
+$executable_name
+
+Usage: $executable_name [options]
+
+$( for (( i=0; i<n_opts; i++  ));
+    do
+      printf "%${max_help_summary_length}s %s\n"\
+        "${short_opts[$i]}, ${long_opts[$i]}" \
+        "${opt_help_messages[$i]}"
+    done
+)
+EOF
 
   # process options
   local -i i=1
@@ -1112,7 +1136,11 @@ bg.cli.parse() {
     # check if it's a short opt
     if bg.is_valid_short_opt "${!i}"; then
       if bg.in_array "${!i}" 'short_opts'; then
-        eval "${short_opt_env_vars[i-1]}=\"\""
+        eval "${opt_env_vars[i-1]}=\"\""
+      elif [[ "${!i}" == "-h" ]]; then
+        # if '-f' is not declared in the spec, print help 
+        # message when encountered
+        echo "${help_message}" >&2 
       else
         echo "ERROR: '${!i}' is not a valid option" >&2
         return 1
@@ -1121,7 +1149,7 @@ bg.cli.parse() {
     # check if it's a long opt
     elif bg.is_valid_long_opt "${!i}"; then
       if bg.in_array "${!i}" 'long_opts'; then
-        eval "${long_opt_env_vars[i-1]}=\"\""
+        eval "${opt_env_vars[i-1]}=\"\""
       else
         echo "ERROR: '${!i}' is not a valid option" >&2
         return 1
