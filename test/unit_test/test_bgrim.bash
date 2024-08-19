@@ -1462,6 +1462,7 @@ test_cli_parse_with_one_opt_and_one_arg_with_opt() {
 }
 
 test_cli_parse_with_one_opt_prints_help() {
+  set -euo pipefail
   create_buffer_files
   parse_with_one_opt -h >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
