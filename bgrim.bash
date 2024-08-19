@@ -1109,7 +1109,6 @@ bg.cli.parse() {
   ## Emtpy IFS means no word splitting
   ## -d '' means read until end of file 
   local help_message
-  bg.is_shell_opt_set "errexit" && echo "errexit is set" >/dev/tty
   IFS= read -d '' help_message << EOF || true
 $routine_name
 

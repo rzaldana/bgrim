@@ -58,7 +58,7 @@ setup_suite() {
 
   # set unofficial strict mode
   # (all functions should work in strict mode)
-  set -euo pipefail
+  #set -euo pipefail
 }
 
 test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {

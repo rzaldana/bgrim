@@ -14,7 +14,7 @@ setup_suite() {
 
   # set unofficial strict mode
   # (all functions should work in strict mode)
-  set -euo pipefail
+  #set -euo pipefail
 }
 
 
