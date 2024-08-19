@@ -1006,41 +1006,6 @@ bg.cli.add_opt() {
   printf '%s|%s|%s|%s|%s\n' 'flag' "$short_form" "$long_form" "$env_var" "$help_message"
 }
 
-bg.canonicalize_args() {
-  # Verify arguments
-  if bg.is_empty "${1:-}"; then
-    echo "ERROR: arg1 (args_array) not provided but required" >&2
-    return 1
-  fi
-
-  local array_name="$1"
-
-  shift 1
-
-  if [[ "${#}" == '0' ]]; then
-    echo "ERROR: canonicalize_args requires at least one arg after 'args_array' to canonicalize" >&2
-    return 1
-  fi
-
-  # Validate args
-  if ! bg.is_valid_var_name "$array_name"; then
-    echo "ERROR: '$array_name' is not a valid variable name" >&2
-    return 1
-  fi
-
-  if bg.is_var_readonly "$array_name"; then
-    echo "ERROR: '$array_name' is a readonly array" >&2
-    return 1
-  fi
-
-  # Empty array
-  eval "${array_name}=()"
-
-  for arg in "${@}"; do
-    eval "${array_name}+=('${arg}')"
-  done
-}
-
 bg.cli.parse() {
   local -a spec_array
   bg.to_array 'spec_array'
@@ -1051,32 +1016,46 @@ bg.cli.parse() {
     return 1
   fi
 
-  local line
-  local -a long_opts
-  local -a short_opts
-  local -a opt_env_vars
-  local -a long_opts_with_arg
-  local -a long_opts_with_arg_env_vars
-  local -a short_opts_with_arg
-  local -a short_opts_with_arg_env_vars
-  local -a opt_help_messages
-  local -i max_help_summary_length=0
-  local -i n_opts=0
+  # Create spec table
+  # Spec table is just a collection of 
+  # arrays where the same index across
+  # all arrays contains the data for a
+  # record. Each record represents an
+  # option spec.
+  #local -a long_opts
+  #local -a short_opts
+  #local -a opt_env_vars
+  #local -a long_opts_with_arg
+  #local -a long_opts_with_arg_env_vars
+  #local -a short_opts_with_arg
+  #local -a short_opts_with_arg_env_vars
+  #local -a opt_help_messages
+  #local -i max_help_summary_length=0
+  #local -i n_opts=0
+
+  local -a opt_long_form
+  local -a opt_short_form
+  local -a opt_env_var
+  local -a opt_help_message
+  local -a opt_help_summary
+  local -a opt_has_arg
 
   for line_no in "${!spec_array[@]}"; do
+    local line
     line="${spec_array[$line_no]}"
-
-    # Read line command
-    read -d '|' line_command <<<"$line"
 
     # Check that first command is 'init'
     if [[ "$line_no" -eq 0 ]]; then
-      if [[ "$line_command" != "init" ]]; then
-      echo "ERROR: Invalid argparse spec. Line 0: should be 'init' but was 'command'" >&2
+      if [[ "$line" != "init" ]]; then
+      echo "ERROR: Invalid argparse spec. Line 0: should be 'init' but was '$line'" >&2
       return 1
       fi
       continue
     fi
+
+
+    # Read line command
+    read -d '|' line_command <<<"$line"
 
     # Remove line command from line
     line="${line#"${line_command}|"}"
@@ -1090,35 +1069,57 @@ bg.cli.parse() {
         local help_message
         local help_summary
         IFS='|' read short_form long_form env_var help_message <<<"$line"
-        long_opts+=( "--$long_form" )
-        short_opts+=( "-$short_form" )
-        opt_env_vars+=( "$env_var" )
-        opt_help_messages+=( "$help_message" )
-        help_summary="-$short_form, --$long_form"
-        help_summary_length="${#help_summary}"
-        if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then
-          max_help_summary_length="${help_summary_length}"
-        fi
-        n_opts=$((n_opts+1))
-    esac
+        opt_long_form+=( "--$long_form" )
+        opt_short_form+=( "-$short_form" )
+        opt_env_var+=( "$env_var" )
+        opt_help_message+=( "$help_message" )
+        opt_has_arg+=( "false" )
+        opt_help_summary+=( "-$short_form, --$long_form" )
+        #help_summary_length="${#help_summary}" # extract
 
+        #if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then # extract
+        #  max_help_summary_length="${help_summary_length}" # extract
+        #fi
+        #n_opts=$((n_opts+1))
+    esac
   done 
 
-  # Create help message
+
+  ################################################################################
+  # Generate cli help message
+  ################################################################################
+  # Get routine name to be displayed in help message
+  local routine_name="parse_with_one_opt"
+
+  # Find longest help summary so we can nicely align
+  # auto-generated help message
+  local -i max_help_summary_length=0
+  for help_summary in "${opt_help_summary[@]}"; do
+    help_summary_length="${#help_summary}"
+    if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then
+      max_help_summary_length="${help_summary_length}"
+    fi
+  done
+
+  # Get number of option specs so we can iterate over them
+  # when creating the help message
+  n_opt_specs="${#opt_short_form[@]}"
+
+  # Fill in help message template
+  ## Emtpy IFS means no word splitting
+  ## -d '' means read until end of file 
   local help_message
-  local executable_name="parse_with_one_opt"
-  # Emtpy IFS means no word splitting
-  # -d '' means read until end of file 
-  IFS= read -d '' help_message << EOF 
-$executable_name
+  bg.is_shell_opt_set "errexit" && echo "errexit is set" >/dev/tty
+  IFS= read -d '' help_message << EOF || true
+$routine_name
 
-Usage: $executable_name [options]
+Usage: $routine_name [options]
 
-$( for (( i=0; i<n_opts; i++  ));
+$( for (( i=0; i<n_opt_specs; i++  ));
     do
       printf "%${max_help_summary_length}s %s\n"\
-        "${short_opts[$i]}, ${long_opts[$i]}" \
-        "${opt_help_messages[$i]}"
+        "${opt_short_form[$i]}, ${opt_long_form[$i]}" \
+        "${opt_help_message[$i]}"
     done
 )
 EOF
@@ -1135,10 +1136,10 @@ EOF
 
     # check if it's a short opt
     if bg.is_valid_short_opt "${!i}"; then
-      if bg.in_array "${!i}" 'short_opts'; then
-        eval "${opt_env_vars[i-1]}=\"\""
+      if bg.in_array "${!i}" 'opt_short_form'; then
+        eval -- "${opt_env_var[i-1]}=\"\""
       elif [[ "${!i}" == "-h" ]]; then
-        # if '-f' is not declared in the spec, print help 
+        # if '-h' is not declared in the spec, print help 
         # message when encountered
         echo "${help_message}" >&2 
       else
@@ -1148,8 +1149,8 @@ EOF
 
     # check if it's a long opt
     elif bg.is_valid_long_opt "${!i}"; then
-      if bg.in_array "${!i}" 'long_opts'; then
-        eval "${opt_env_vars[i-1]}=\"\""
+      if bg.in_array "${!i}" 'opt_long_form'; then
+        eval -- "${opt_env_var[i-1]}=\"\""
       else
         echo "ERROR: '${!i}' is not a valid option" >&2
         return 1

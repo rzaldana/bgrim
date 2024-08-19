@@ -1178,70 +1178,6 @@ test_cli_add_opt_escapes_any_backslash_in_help_message() {
     "stdout should contain lines from stdin and new flag spec line"
 }
 
-test_canonicalize_args_returns_1_when_no_args_are_provided() {
-  create_buffer_files 
-  bg.canonicalize_args >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: arg1 (args_array) not provided but required" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_canonicalize_args_returns_1_when_only_one_arg_is_provided() {
-  create_buffer_files 
-  bg.canonicalize_args 'myarray' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: canonicalize_args requires at least one arg after 'args_array' to canonicalize" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_canonicalize_args_returns_1_when_args_array_is_not_a_valid_var_name() {
-  bg.is_valid_var_name() {
-    return 1
-  }
-  create_buffer_files 
-  bg.canonicalize_args 'myarray' '-f' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: 'myarray' is not a valid variable name" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_canonicalize_args_returns_1_when_args_array_is_readonly() {
-  declare -ar myarray
-  create_buffer_files 
-  bg.canonicalize_args 'myarray' '-f' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: 'myarray' is a readonly array" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_canonicalize_args_returns_argument_as_it_is_when_only_one_short_form_option_is_provided() {
-  create_buffer_files 
-  bg.canonicalize_args 'myarray' '-f' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-
-  assert_equals "1" "${#myarray[@]}" "myarray should have exactly one element"
-  assert_equals '-f' "${myarray[0]}" "first element in myarray should be '-f'"
-}
-
 test_cli_parse_returns_1_when_spec_is_empty() {
   create_buffer_files
   printf "" \
@@ -1424,11 +1360,10 @@ test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
 # Parse with one opt
 ##########################################################################################
 parse_with_one_opt() {
-  shopt -s lastpipe
-  set -o pipefail
-  bg.cli.init \
-   | bg.cli.add_opt "f" "flag" "myflag" "help message" \
-   | bg.cli.parse "$@"
+  bg.cli.parse "$@" < <(
+    bg.cli.init \
+      | bg.cli.add_opt "f" "flag" "myflag" "help message"
+  )
 }
 
 test_cli_parse_with_one_opt_and_no_args() {
@@ -1525,7 +1460,8 @@ test_cli_parse_with_one_opt_prints_help() {
   create_buffer_files
   parse_with_one_opt -h >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  IFS= read -d '' help_message <<EOF
+  local help_message
+  IFS= read -d '' help_message <<EOF || true
 parse_with_one_opt
 
 Usage: parse_with_one_opt [options]
