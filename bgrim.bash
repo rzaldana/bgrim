@@ -277,6 +277,7 @@ bg.clear_traps() {
   trap - DEBUG
   trap - EXIT
   trap - ERR
+  #echo "cleared all pseudo-signal traps" >/dev/tty
 
   # read all signal names available in the system
   # into an array 
@@ -284,7 +285,6 @@ bg.clear_traps() {
   local IFS
   IFS=' '$'\t'
   while IFS= read -r line; do
-    shift 1
     # shellcheck disable=SC2086
     set -- $line
     for token in "${@}"; do
