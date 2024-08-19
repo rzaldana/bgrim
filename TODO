@@ -1,3 +1,4 @@
+-1. Add set -euo pipefail in the code for each individual test (this cannot be done through the setup or setup_suite functions)
 0. Move all tests that use parse_with_one_opt function to a separate file in integration tests
 1. Implement `index_of` function that takes an element and an array and returns the index of the element in the array. Function should error out if element is not in array. Then use this function in lines 1139 and 1152 to get the index of the option we're processing in the opt_env_vars array 
 2. Implement bg.cli.name function which sets the name to be displayed as the executable in the help message
