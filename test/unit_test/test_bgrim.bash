@@ -100,7 +100,7 @@ test_is_valid_var_name_returns_2_when_given_no_args() {
 
 test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environment() {
   # Set a few specific options
-  set -o pipefail
+  set -euo pipefail
   set -o vi
   shopt -s extglob
 
@@ -175,6 +175,7 @@ test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
 }
 
 test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
+  set -euo pipefail
   create_buffer_files
 
   # declare some variables
@@ -201,6 +202,7 @@ test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
 }
 
 test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
+  set -euo pipefail
   create_buffer_files
 
   # declare some variables
@@ -219,6 +221,7 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 }
 
 test_is_empty_returns_0_if_given_an_empty_string() {
+  set -euo pipefail
   stdout_and_stderr="$(bg.is_empty "" 2>&1)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
@@ -226,6 +229,7 @@ test_is_empty_returns_0_if_given_an_empty_string() {
 }
 
 test_is_empty_returns_1_if_given_a_non_empty_string() {
+  set -uo pipefail
   local test_var
   test_var="hello"
   stdout_and_stderr="$(bg.is_empty "$test_var" 2>&1)"
@@ -256,6 +260,7 @@ test_is_empty_returns_1_if_given_a_non_empty_string() {
 
 test_is_array_returns_0_if_there_is_an_array_with_the_given_name() {
   local -a my_test_array
+  set -euo pipefail
   stdout_and_stderr="$(bg.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when an array with that name exists"
@@ -280,6 +285,7 @@ test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array(
 
 
 test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
+  set -euo pipefail
   local -a test_array=( "val1" "val2" "val3" ) 
   stdout_and_stderr="$(bg.in_array "val2" "test_array" 2>&1)"
   ret_code="$?"
@@ -307,6 +313,7 @@ test_in_array_returns_2_and_prints_error_message_when_an_array_with_the_given_na
 }
 
 test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
+  set -euo pipefail
   local stdout_and_stderr
 
   # shellcheck disable=SC2317
@@ -331,6 +338,7 @@ test_is_function_returns_1_when_the_given_name_does_not_refer_to_a_function() {
 }
 
 test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
+  set -euo pipefail
   local stdout_and_stderr
   test_fn() {
     # shellcheck disable=SC2317
@@ -344,6 +352,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
 
 
 test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
+  set -euo pipefail
   local stdout_and_stderr
   stdout_and_stderr="$(bg.is_valid_command set arg1)"
   ret_code="$?"
@@ -352,6 +361,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
 }
 
 test_is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
+  set -euo pipefail
   local stdout_and_stderr
   stdout_and_stderr="$(bg.is_valid_command ls arg1)"
   ret_code="$?"
@@ -368,6 +378,7 @@ test_is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
 }
 
 test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
+  set -euo pipefail
   local test_opt="pipefail"
   local stdout_and_stderr
   stdout_and_stderr="$( bg.is_valid_shell_opt "$test_opt" )"
@@ -387,6 +398,7 @@ test_is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
 }
 
 test_is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
+  set -euo pipefail
   local test_opt="cdspell"
   local stdout_and_stderr
   stdout_and_stderr="$( bg.is_valid_bash_opt "$test_opt" )"
@@ -405,6 +417,7 @@ test_is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
 }
 
 test_is_shell_opt_set_returns_0_if_the_given_option_is_set() {
+  set -euo pipefail
   local test_opt="pipefail"
   local stdout_and_stderr
   set -o "$test_opt" 
@@ -439,6 +452,7 @@ test_is_shell_opt_set_returns_2_if_the_given_option_is_not_valid() {
 
 
 test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_trap() {
+  set -euo pipefail
   local stdout_and_stderr
   stdout_and_stderr="$( 
   # Clear SIGINT trap
@@ -454,6 +468,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_tra
 }
 
 test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
+  set -euo pipefail
   local stdout_and_stderr
   stdout_and_stderr="$( 
   # Clear SIGINT trap
@@ -469,6 +484,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
 }
 
 test_get_trap_command_returns_trap_command_if_given_a_signal_that_has_a_trap() {
+  set -euo pipefail
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
@@ -518,6 +534,7 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
 }
 
 test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
+  set -euo pipefail
   local stdout_file
   local stderr_file
   local traps_file
@@ -544,6 +561,7 @@ test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
 
 
 test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
+  set -euo pipefail
   local stdout_file
   local stderr_file
   local traps_file
@@ -569,6 +587,7 @@ test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
 }
 
 test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_already_has_a_trap() {
+  set -euo pipefail
   local stdout_file
   local stderr_file
   local traps_file
@@ -662,6 +681,7 @@ test_tmpfile_fails_when_filename_var_is_not_a_valid_var_name() {
 
 
 test_tmpfile_invokes_mktemp_and_trap_function() {
+  set -euo pipefail
   local stdout_file
   local stderr_file
   local tmpfile_name_file
@@ -698,6 +718,7 @@ test_tmpfile_invokes_mktemp_and_trap_function() {
 
 
 test_tmpfile_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand() {
+  set -euo pipefail
   local stdout_file
   local stderr_file
   local tmpfile_name_file
@@ -816,6 +837,7 @@ test_is_valid_long_opt_returns_1_if_string_ends_with_a_dash() {
 }
 
 test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_only_letters() {
+  set -euo pipefail
   create_buffer_files
   bg.is_valid_long_opt "--string" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -826,6 +848,7 @@ test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contain
 }
 
 test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_and_numbers() {
+  set -euo pipefail
   create_buffer_files
   bg.is_valid_long_opt "--strin4g" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -837,6 +860,7 @@ test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contain
 
 
 test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_numbers_and_dashes() {
+  set -euo pipefail
   create_buffer_files
   bg.is_valid_long_opt "--string-flag2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -895,6 +919,7 @@ test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_das
 }
 
 test_is_valid_short_opt_returns_0_if_string_is_a_dash_followed_by_a_letter() {
+  set -euo pipefail
   create_buffer_files
   bg.is_valid_short_opt "-d" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -959,6 +984,7 @@ test_is_var_readonly_returns_1_if_variable_is_set_but_not_readonly() {
 }
 
 test_is_var_readonly_returns_0_if_variable_is_readonly() {
+  set -euo pipefail
   create_buffer_files
   declare -r myvar
   bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
@@ -969,6 +995,7 @@ test_is_var_readonly_returns_0_if_variable_is_readonly() {
 }
 
 test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes() {
+  set -euo pipefail
   create_buffer_files
   declare -ra myvar
   bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
@@ -1011,6 +1038,7 @@ test_to_array_returns_1_if_given_variable_is_readonly() {
 }
 
 test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
+  set -euo pipefail
   create_buffer_files
   bg.to_array myarray >"$stdout_file" 2>"$stderr_file" <<<'just a line'
   ret_code="$?"
@@ -1025,6 +1053,7 @@ test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
 
 
 test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
+  set -euo pipefail
   create_buffer_files
   bg.to_array myarray >"$stdout_file" 2>"$stderr_file" \
     <<<"$(printf "%s\n %s" "line 1" "line 2")"
@@ -1040,6 +1069,7 @@ test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
 }
 
 test_cli_init_prints_the_string_init_to_stdout() {
+  set -euo pipefail
   create_buffer_files
   bg.cli.init >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -1120,6 +1150,7 @@ test_cli_add_opt_returns_1_if_env_var_is_a_readonly_variable() {
 }
 
 test_cli_add_opt_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() {
+  set -euo pipefail
   shopt -s lastpipe
   create_buffer_files
   {
@@ -1141,6 +1172,7 @@ test_cli_add_opt_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line
 }
 
 test_cli_add_opt_escapes_any_pipe_characters_in_help_message() {
+  set -euo pipefail
   shopt -s lastpipe
   create_buffer_files
   {
@@ -1163,6 +1195,7 @@ test_cli_add_opt_escapes_any_pipe_characters_in_help_message() {
 
 
 test_cli_add_opt_escapes_any_backslash_in_help_message() {
+  set -euo pipefail
   shopt -s lastpipe
   create_buffer_files
   {
@@ -1248,6 +1281,7 @@ test_require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() 
 }
 
 test_require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
+  set -euo pipefail
   create_buffer_files
   local -a required_args=( "ARG" )
   bg.require_args "val1" >"$stdout_file" 2>"$stderr_file"
@@ -1275,6 +1309,7 @@ test_require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() 
 }
 
 test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided() {
+  set -euo pipefail
   create_buffer_files
   local -a required_args=( "ARG1" "ARG2" )
   bg.require_args "myvalue1" "myvalue2" >"$stdout_file" 2>"$stderr_file"
@@ -1303,6 +1338,7 @@ test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_
 }
 
 test_require_args_places_args_with_spaces_in_correct_variable() {
+  set -euo pipefail
   local var1
   local var2
   test_func(){
@@ -1322,6 +1358,7 @@ test_require_args_places_args_with_spaces_in_correct_variable() {
 }
 
 test_is_var_set_returns_0_if_a_variable_is_set() {
+  set -euo pipefail
   create_buffer_files
   local myvar
   bg.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
@@ -1372,6 +1409,7 @@ parse_with_one_opt() {
 }
 
 test_cli_parse_with_one_opt_and_no_args() {
+  set -euo pipefail
   create_buffer_files
   parse_with_one_opt >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -1382,6 +1420,7 @@ test_cli_parse_with_one_opt_and_no_args() {
 }
 
 test_cli_parse_with_one_opt_and_one_short_arg() {
+  set -euo pipefail
   create_buffer_files
   parse_with_one_opt -f >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -1451,6 +1490,7 @@ test_cli_parse_with_one_opt_and_valid_with_invalid_opt4() {
 }
 
 test_cli_parse_with_one_opt_and_one_arg_with_opt() {
+  set -euo pipefail
   create_buffer_files
   parse_with_one_opt -f 'myarg' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
