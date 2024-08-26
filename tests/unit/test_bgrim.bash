@@ -1418,3 +1418,43 @@ test_get_parent_routine_name_returns_name_of_script_if_currently_executing_func_
   assert_equals "get_parent_routine2.bash" "$(< "$stdout_file")" "stdout should contain 'get_parent_routine.bash'"
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
+
+test_index_of_returns_error_if_item_not_found_in_array() {
+  set -uo pipefail
+  local -a myarray=( "first" "second" "third" )
+  create_buffer_files
+  bg.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: item 'fourth' not found in array with name 'myarray'" \
+    "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+
+test_index_of_returns_the_index_of_the_provided_item_in_the_provided_array() {
+  set -euo pipefail
+  local -a myarray=( "first" "second" "third" )
+  create_buffer_files
+  bg.index_of "second" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "1" "$(< "$stdout_file" )" "stdout should contain '1'"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_index_of_returns_error_if_array_does_not_exist() {
+  set -uo pipefail
+  #local -a myarray=( "first" "second" "third" )
+  create_buffer_files
+  bg.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: array 'myarray' not found in execution environment" \
+    "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+

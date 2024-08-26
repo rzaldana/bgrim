@@ -92,7 +92,7 @@ bg.is_array() (
 
 # description: |
 #   This function is meant to ensure that a function receives all the arguments
-#   it expects. It expects an array called 'required_args' to be set in inputs
+#   it expects. It expects an array called 'required_args' to be set in its
 #   environment and it takes all the arguments that a function receives as its
 #   cli arguments. It checks if there is a cli argument for every entry in the 
 #   'required_args' array and assigns the value of the cli argument to a variable
@@ -934,6 +934,76 @@ bg.get_parent_routine_name() {
   else
     printf "%s" "${FUNCNAME[2]}"
   fi
+}
+
+# description: |
+#   Takes a string and the name of an array and prints 
+#   the index of the string in the array, if the string
+#   is an item an array. If the string is not a member
+#   of the array or if the provided array name does not
+#   refer to an existing array in the function's execution
+#   environment, it returns 1 and prints an error message
+#   to stderr
+# inputs:
+#   stdin: null 
+#   args:
+#     1: "item"
+#     2: "array_name"
+# outputs:
+#   stdout: index of the provded item in the array
+#   stderr: |
+#     error message if validation of arguments fails,
+#     if the given item is not a member of the array
+#     or if the array does not exist 
+#   return_code:
+#     0: "when the item was found in the array"
+#     1: "when an error ocurred"
+# tags:
+#   - "arrays"
+bg.index_of() {
+  local item
+  local array_name
+
+  # Check number of arguments
+  local -a required_args=( "item" "array_name" )
+  if ! bg.require_args "$@"; then
+    return 2 
+  fi
+
+  # Check if array exists
+  # shellcheck disable=SC2031
+  if ! bg.is_array "${array_name}"; then
+    # shellcheck disable=SC2031
+    printf \
+      "ERROR: array '%s' not found in execution environment" \
+      "${array_name}" \
+      >&2
+    return 1
+  fi
+
+
+  local -i array_length
+  # shellcheck disable=SC2031
+  eval "array_length=\"\${#${array_name}[@]}\""
+
+  local current_item
+  local -i index="-1"
+  for ((index=0; index<array_length; index++)); do
+    # shellcheck disable=SC2031
+    eval "current_item=\${${array_name}[$index]}" 
+    if [[ "$current_item" == "$item" ]]; then
+      printf "%s" "$index"
+      return 0
+    fi
+  done
+
+  # shellcheck disable=SC2031
+  printf \
+    "ERROR: item '%s' not found in array with name '%s'" \
+    "$item" \
+    "$array_name" \
+    >&2
+  return 1
 }
 
 
