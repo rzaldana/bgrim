@@ -1006,6 +1006,84 @@ bg.index_of() {
   return 1
 }
 
+_bg.cli.canonicalize_opts() {
+  local -a required_args=( "input_array" "output_array" )
+  if ! bg.require_args "$@"; then
+    return 2 
+  fi
+
+  # Check if output array is readonly
+  if bg.is_var_readonly "$output_array"; then
+    printf \
+      "ERROR: '%s' is a readonly variable\n" \
+      "$output_array" \
+      >&2
+    return 1
+  fi
+
+  # Check if output array is a valid variable name
+  if ! bg.is_valid_var_name "$output_array"; then
+    printf \
+      "ERROR: '%s' is not a valid variable name\n" \
+      "$output_array" \
+      >&2
+    return 1
+  fi
+
+
+  # Empty output array
+  eval "$output_array=()"
+
+  # Check if input array exists
+  # shellcheck disable=SC2154
+  if ! bg.is_array "$input_array"; then
+    printf \
+      "ERROR: array '%s' not found in execution environment\n" \
+      "$input_array" \
+      >&2
+    return 1
+  fi
+ 
+  # Iterate over input array 
+  local -i input_array_length
+  eval "input_array_length=\"\${#${input_array}[@]}\""
+  local short_opt_regex="^-[[:alpha:]].+$"
+  local long_opt_regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+=.+$"
+  local -i i
+  local token
+  local opt
+  local arg
+  for ((i=0; i<input_array_length; i++)); do
+    eval "token=\"\${${input_array}[$i]}\""
+
+    # If token matches short_opt_regex, extract opt and arg
+    if [[ "$token" =~ $short_opt_regex ]]; then
+      IFS= read -n 2 -d '' opt <<<"$token"
+      arg="${token#"$opt"}"
+      eval "$output_array+=( \"$opt\" )"
+      eval "$output_array+=( \"$arg\" )"
+      continue
+    fi
+
+    # If token matches long_opt_regex, extract opt and arg
+    if [[ "$token" =~ $long_opt_regex ]]; then
+      IFS= read -d '=' opt <<<"$token"
+      arg="${token#"$opt="}"
+      eval "$output_array+=( \"$opt\" )"
+      eval "$output_array+=( \"$arg\" )"
+      continue
+    fi
+
+    # If token didn't match any regex, just add to output_array as is
+    eval "$output_array+=( \"$token\" )"
+
+  # Regex is composed of the following expressions:
+  # ^-                matches a single dash at the beginning of the string 
+  # [[:alpha:]]$      matches a single letter at the end of the string
+
+  done
+}
+
 
 # description: |
 #   reads an argparse spec on stdin and prints the spec to stdout
@@ -1075,6 +1153,8 @@ bg.cli.add_opt() {
 }
 
 bg.cli.parse() {
+  # Store all spec lines from stdin
+  # into an array called 'spec_array'
   local -a spec_array
   bg.to_array 'spec_array'
 
@@ -1090,17 +1170,6 @@ bg.cli.parse() {
   # all arrays contains the data for a
   # record. Each record represents an
   # option spec.
-  #local -a long_opts
-  #local -a short_opts
-  #local -a opt_env_vars
-  #local -a long_opts_with_arg
-  #local -a long_opts_with_arg_env_vars
-  #local -a short_opts_with_arg
-  #local -a short_opts_with_arg_env_vars
-  #local -a opt_help_messages
-  #local -i max_help_summary_length=0
-  #local -i n_opts=0
-
   local -a opt_long_form
   local -a opt_short_form
   local -a opt_env_var
@@ -1115,14 +1184,14 @@ bg.cli.parse() {
     # Check that first command is 'init'
     if [[ "$line_no" -eq 0 ]]; then
       if [[ "$line" != "init" ]]; then
-      echo "ERROR: Invalid argparse spec. Line 0: should be 'init' but was '$line'" >&2
-      return 1
+        echo "ERROR: Invalid argparse spec. Line 0: should be 'init' but was '$line'" >&2
+        return 1
       fi
       continue
     fi
 
 
-    # Read line command
+    # Read line command (i.e. first word before the fist pipe char)
     read -d '|' line_command <<<"$line"
 
     # Remove line command from line
@@ -1157,7 +1226,8 @@ bg.cli.parse() {
   # Generate cli help message
   ################################################################################
   # Get routine name to be displayed in help message
-  local routine_name="parse_with_one_opt"
+  local routine_name
+  routine_name="$(bg.get_parent_routine_name)"
 
   # Find longest help summary so we can nicely align
   # auto-generated help message
@@ -1202,9 +1272,12 @@ EOF
     fi
 
     # check if it's a short opt
+    local -i index
     if bg.is_valid_short_opt "${!i}"; then
       if bg.in_array "${!i}" 'opt_short_form'; then
-        eval -- "${opt_env_var[i-1]}=\"\""
+        # Find index of option in 'opt_short_form' array
+        index="$( bg.index_of "${!i}" 'opt_short_form' )"
+        eval -- "${opt_env_var[index]}=\"\""
       elif [[ "${!i}" == "-h" ]]; then
         # if '-h' is not declared in the spec, print help 
         # message when encountered
@@ -1217,7 +1290,9 @@ EOF
     # check if it's a long opt
     elif bg.is_valid_long_opt "${!i}"; then
       if bg.in_array "${!i}" 'opt_long_form'; then
-        eval -- "${opt_env_var[i-1]}=\"\""
+        # Find index of option in 'opt_long_form' array
+        index="$( bg.index_of "${!i}" 'opt_long_form' )"
+        eval -- "${opt_env_var[index]}=\"\""
       else
         echo "ERROR: '${!i}' is not a valid option" >&2
         return 1

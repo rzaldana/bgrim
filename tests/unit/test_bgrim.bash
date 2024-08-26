@@ -1457,4 +1457,89 @@ test_index_of_returns_error_if_array_does_not_exist() {
     "$(< "$stderr_file" )" "stderr should be empty"
 }
 
+test_canonicalize_separates_arguments_from_short_options_provided_as_one_word() {
+  set -euo pipefail
+  create_buffer_files
+  local -a inputs=( "option1" "-parg" "-c" "--an-option" "an arg" "-emyarg" "-d" )
+  local -a outputs
+  local -a expected_outputs=( "option1" "-p" "arg" "-c" "--an-option" "an arg" "-e" "myarg" "-d" )
+  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should exit with code 0"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+  local -i outputs_length="${#outputs[@]}"
+  assert_equals "${#expected_outputs[@]}" "$outputs_length" "outputs array should have 3 items"
+  for ((i=0; i<outputs_length; i++)); do
+    assert_equals "${expected_outputs[i]}" "${outputs[i]}"
+  done
+}
+
+
+test_canonicalize_separates_arguments_from_long_options_provided_as_one_word() {
+  set -euo pipefail
+  create_buffer_files
+  local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
+  local -a outputs
+  local -a expected_outputs=( "option1" "--my-option" "myarg" "--another-opt" "another arg" )
+  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should exit with code 0"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+  local -i outputs_length="${#outputs[@]}"
+  assert_equals "${#expected_outputs[@]}" "$outputs_length" "outputs array should have 3 items"
+  for ((i=0; i<outputs_length; i++)); do
+    assert_equals "${expected_outputs[i]}" "${outputs[i]}"
+  done
+}
+
+test_canonicalize_returns_error_if_inputs_array_does_not_exist() {
+  set -uo pipefail
+  create_buffer_files
+  #local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
+  local -a outputs=( "1" "2" "3" )
+  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should exit with code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: array 'inputs' not found in execution environment" \
+    "$(< "$stderr_file" )" \
+    "stderr should contain error message"
+  
+  # Outputs array should be empty 
+  assert_equals "0" "${#outputs[@]}" "outputs array should be empty"
+}
+
+test_canonicalize_returns_error_if_outputs_array_is_not_valid_var_name() {
+  set -uo pipefail
+  create_buffer_files
+  local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
+  _bg.cli.canonicalize_opts 'inputs' 'outputs=' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should exit with code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'outputs=' is not a valid variable name" \
+    "$(< "$stderr_file")" \
+    "stderr should contain error message"
+}
+
+test_canonicalize_returns_error_if_outputs_array_is_readonly() {
+  set -uo pipefail
+  create_buffer_files
+  #local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
+  local -a outputs
+  local -ra outputs=( "1" "2" "3" )
+  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should exit with code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: 'outputs' is a readonly variable" \
+    "$(< "$stderr_file" )" \
+    "stderr should contain error message"
+}
+
 
