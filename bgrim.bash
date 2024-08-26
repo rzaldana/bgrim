@@ -344,35 +344,6 @@ bg.clear_vars_with_prefix() {
   done
 }
 
-
-################################################################################
-# description: |
-#   Checks if the first argument is a string with length 0
-# inputs:
-#   stdin:
-#   args:
-#     1: "string to evaluate"
-# outputs:
-#   stdout:
-#   stderr:
-#   return_code:
-#     0: "if arg1 is a string of length 0 or is not provided"
-#     1: "if arg1 is a string of length more than 1"
-# tags:
-#   - "syntax_sugar"
-###############################################################################
-bg.is_empty() ( 
-  local -a required_args=( "string" )
-  local string
-  if ! bg.require_args "$@"; then
-    return 2
-  fi
-
-  [[ -z "${string}" ]] \
-    && return 0
-  return 1 
-)
-
 ################################################################################
 # description: Checks if the shell program running this process is bash 
 # inputs:
@@ -936,6 +907,33 @@ bg.to_array() {
   while IFS= read -r line; do
     eval "${array_name}+=('${line}')"
   done
+}
+
+
+# description: |
+#   Returns the name of the parent routine of the
+#   currently executing function, where the currently
+#   executing function is the function that called
+#   bg.get_parent_routine_name
+# inputs:
+#   stdin: null 
+#   args: null
+# outputs:
+#   stdout: null
+#   stderr: null
+#   return_code:
+#     0: "always" 
+# tags:
+#   - "std"
+bg.get_parent_routine_name() {
+  # If calling function is running at top-level
+  # or if calling routine is the top-level 'main'
+  # routine, return the name of the script
+  if [[ "${#FUNCNAME[@]}" -le 3 ]]; then
+    printf "%s" "$( basename "${BASH_SOURCE[1]}" )"
+  else
+    printf "%s" "${FUNCNAME[2]}"
+  fi
 }
 
 

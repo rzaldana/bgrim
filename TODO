@@ -2,3 +2,4 @@
 2. Implement bg.cli.name function which sets the name to be displayed as the executable in the help message
 3. Implement bg.cli.description function to set description of utility to be printed out in help message
 4. Implement bg.cli.help_message to override auto-generated help message
+5. Implement bash native replacement for basename and substitute it in bg.get_parent_routine_name

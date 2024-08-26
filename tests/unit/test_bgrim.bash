@@ -220,24 +220,6 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 
 }
 
-test_is_empty_returns_0_if_given_an_empty_string() {
-  set -euo pipefail
-  stdout_and_stderr="$(bg.is_empty "" 2>&1)"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "function call should return 0 when no arg is given"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
-
-test_is_empty_returns_1_if_given_a_non_empty_string() {
-  set -uo pipefail
-  local test_var
-  test_var="hello"
-  stdout_and_stderr="$(bg.is_empty "$test_var" 2>&1)"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "function call should return 1 when first arg is non-emtpy string"
-  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
-
 #test_is_shell_bash_returns_0_if_running_in_bash() {
 #  local FAKE_BASH_VERSION="x.x.x"
 #  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
@@ -1396,4 +1378,43 @@ test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
+}
+
+test_get_parent_routine_name_returns_name_of_parent_of_currently_executing_func_if_within_nested_func() {
+  set -euo pipefail
+  create_buffer_files
+
+  test_func1() {
+    bg.get_parent_routine_name
+  }
+
+  test_func2() {
+    test_func1 
+  }
+
+  test_func2 >"$stdout_file" 2>"$stderr_file" 
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "test_func2" "$(< "$stdout_file")" "stdout should contain 'test_func2'"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_get_parent_routine_name_returns_name_of_script_if_executing_at_top_level() {
+  set -euo pipefail
+  create_buffer_files
+  ./test_scripts/get_parent_routine1.bash >"$stdout_file" 2>"$stderr_file" 
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "get_parent_routine1.bash" "$(< "$stdout_file")" "stdout should contain 'get_parent_routine.bash'"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_get_parent_routine_name_returns_name_of_script_if_currently_executing_func_is_at_top_level() {
+  set -euo pipefail
+  create_buffer_files
+  ./test_scripts/get_parent_routine2.bash >"$stdout_file" 2>"$stderr_file" 
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "get_parent_routine2.bash" "$(< "$stdout_file")" "stdout should contain 'get_parent_routine.bash'"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
