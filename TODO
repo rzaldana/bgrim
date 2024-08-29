@@ -3,3 +3,5 @@
 3. Implement bg.cli.description function to set description of utility to be printed out in help message
 4. Implement bg.cli.help_message to override auto-generated help message
 5. Implement bash native replacement for basename and substitute it in bg.get_parent_routine_name
+
+NOTE: we will process tokens instead of options
