@@ -49,18 +49,9 @@ run_tests_in_bash_version() {
     run \
     --rm \
     bash \
-    './submodules/bash_unit/bash_unit' './tests/unit/test_bgrim.bash' \
+    './submodules/bash_unit/bash_unit' ./tests/test_*.bash \
     && docker compose -f "$SCRIPT_DIR/docker-compose.yml" rm -fsv
-    echo "Integration Tests for bash version $VERSION" | prefix "++++++++++++++++"
-  } && {
-  docker compose \
-    -f "$SCRIPT_DIR/docker-compose.yml"\
-    run \
-    --rm \
-    bash \
-    './submodules/bash_unit/bash_unit' './tests/integration/test_bgrim.bash' \
-    && docker compose -f "$SCRIPT_DIR/docker-compose.yml" rm -fsv
-  }
+  } 
 }
 
 main() {

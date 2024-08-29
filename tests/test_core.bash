@@ -1,70 +1,20 @@
 #!/usr/bin/env bash
 
-################################################################################
-# description: |
-#   creates a trap that will delete the given filenames when the 
-#   current shell exits. This only works here because bash_unit runs each
-#   unit test function in a separate subshell, so any execute trap declared 
-#   within a test will execute when the subshell exits, i.e., when the test
-#   is finished running. The command can only be used once for each test. 
-#   Subsequent calls will overwrite previous traps.
-# inputs:
-#   stdin:
-#   args:
-# outputs:
-#   stdout:
-#   stderr:
-#   return_code:
-# Returns:
-#   0: if the first argument is missing or an empty string 
-#   1: otherwise
-################################################################################
-rm_on_exit() {
-  # Check that at least one arg was provided
-  [[ "$#" -gt 0 ]] || { echo "rm_on_exit: No file names were provided" >&2; return 1; }
+# Get the directory of the script that's currently running
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-  # shellcheck disable=SC2317 
-  cleanup_fn() {
-    # Change permissions
-    for file in "$@"; do
-      chmod 0500 "$file"
-    done
-
-    # Remove file
-    rm_output="$(rm -rf "$@" 2>&1)" \
-      || { echo "Unable to remove temporary file. Output from 'rm':  $rm_output" >&2; return 1; }
-  }
-
-  # shellcheck disable=SC2064
-  trap "cleanup_fn $*" EXIT
-}
-
-create_buffer_files() {
-  stderr_file="$(mktemp)"  
-  stdout_file="$(mktemp)"
-  rm_on_exit "$stdout_file" "$stderr_file"
-}
+# Source test library
+# shellcheck source=./lib/tst.bash
+PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
-  LIBRARY_NAME="bgrim.bash"
-
-  # Get the absolute path of the library under test
-  LIBRARY_PATH="$(cd ../..>/dev/null && pwd)/$LIBRARY_NAME"
-
-  # source library
-  # shellcheck source=../bgrim.bash
-  source "$LIBRARY_PATH" \
-    || { echo "Unable to source library at $LIBRARY_PATH"; exit 1; }
-
-  # set unofficial strict mode
-  # (all functions should work in strict mode)
-  #set -euo pipefail
+  tst.source_lib_from_root "core.bash"
 }
 
 test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
   set -euo pipefail
   ret_code=0
-  stdout_and_stderr="$(bg.is_valid_var_name "my_func" 2>&1)"  || ret_code="$?"
+  stdout_and_stderr="$(core.is_valid_var_name "my_func" 2>&1)"  || ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when given alphanumeric and underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
@@ -72,7 +22,7 @@ test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeri
 test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
   set -euo pipefail
   ret_code=0
-  stdout_and_stderr="$(bg.is_valid_var_name "my.func" 2>&1)" || ret_code="$?"
+  stdout_and_stderr="$(core.is_valid_var_name "my.func" 2>&1)" || ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
@@ -80,7 +30,7 @@ test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric
 test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
   set -euo pipefail
   ret_code=0
-  stdout_and_stderr="$(bg.is_valid_var_name "1my_func" 2>&1)" || ret_code="$?"
+  stdout_and_stderr="$(core.is_valid_var_name "1my_func" 2>&1)" || ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
@@ -88,12 +38,12 @@ test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
 test_is_valid_var_name_returns_2_when_given_no_args() {
   set -euo pipefail
   ret_code=0
-  create_buffer_files
-  bg.is_valid_var_name >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
+  tst.create_buffer_files
+  core.is_valid_var_name >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout shouldb be empty"
   assert_equals \
-    "ERROR: bg.is_valid_var_name: argument 1 (var_name) is required but was not provided" \
+    "ERROR: core.is_valid_var_name: argument 1 (var_name) is required but was not provided" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -104,11 +54,11 @@ test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environm
   set -o vi
   shopt -s extglob
 
-  create_buffer_files
+  tst.create_buffer_files
 
   # Run function 
   ret_code=0
-  bg.clear_shell_opts >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
+  core.clear_shell_opts >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
 
   # Stderr and stdout are empty
   assert_equals "" "$(cat "$stderr_file")" "stderr should be empty"
@@ -132,7 +82,7 @@ test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
   ret_code_file="$(mktemp)"
 
   # Cleanup stderr and stdout files on exit
-  rm_on_exit "$stderr_file" "$func_stdout_file" "$ret_code_file" "$total_stdout_file"
+  tst.rm_on_exit "$stderr_file" "$func_stdout_file" "$ret_code_file" "$total_stdout_file"
 
   # set -o functrace so return traps are inherited by subshell
   set -o functrace
@@ -149,7 +99,7 @@ test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
     trap 'true' EXIT >/dev/null 2>&1
     trap 'true' SIGINT >/dev/null 2>&1
 
-    bg.clear_traps >"$func_stdout_file" #|| echo "failed!" >/dev/tty
+    core.clear_traps >"$func_stdout_file" #|| echo "failed!" >/dev/tty
     echo "$?" > "$ret_code_file" || echo "failed to write!" >/dev/tty
 
     # After clearing
@@ -176,13 +126,13 @@ test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
 
 test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
 
   # declare some variables
   PREFIX_MY_VAR="my value"
   export PREFIX_ENV_VAR="env value"
   local PREFIX_LOCAL_VAR="local value"
-  bg.clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
+  core.clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
   exit_code="$?"
 
   local was_prefix_var_empty
@@ -203,13 +153,13 @@ test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
 
 test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
 
   # declare some variables
   PREFIX_MY_VAR='my value'
   export PREFIX_ENV_VAR="env value"
   local PREFIX_LOCAL_VAR="local value"
-  bg.clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
+  core.clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
     || exit_code="$?"
   assert_equals "1" "$exit_code"
   assert_equals "" "$(< "$stdout_file")"
@@ -223,7 +173,7 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 #test_is_shell_bash_returns_0_if_running_in_bash() {
 #  local FAKE_BASH_VERSION="x.x.x"
 #  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-#  stdout_and_stderr="$(bg.is_shell_bash 2>&1)"
+#  stdout_and_stderr="$(core.is_shell_bash 2>&1)"
 #  ret_code="$?"
 #  assert_equals "0" "$ret_code" "function call should return 0 when BASH_VERSION variable is set"
 #  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -233,7 +183,7 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
   # shellcheck disable=SC2034
 #  local FAKE_BASH_VERSION=
 #  local _BG_BASH_VERSION_VAR_NAME="FAKE_BASH_VERSION"
-#  stdout_and_stderr="$(bg.is_shell_bash 2>&1)"
+#  stdout_and_stderr="$(core.is_shell_bash 2>&1)"
 #  ret_code="$?"
 #  assert_equals "1" "$ret_code" "function call should return 0 when BASH_VERSION variable is unset"
 #  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -243,14 +193,14 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 test_is_array_returns_0_if_there_is_an_array_with_the_given_name() {
   local -a my_test_array
   set -euo pipefail
-  stdout_and_stderr="$(bg.is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(core.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when an array with that name exists"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
 test_is_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
-  stdout_and_stderr="$(bg.is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(core.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when no variable with the given name is set" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -259,7 +209,7 @@ test_is_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
 test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array() {
   # shellcheck disable=SC2034
   local my_test_array="test_val"
-  stdout_and_stderr="$(bg.is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(core.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when variable with given name is not an array" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -269,7 +219,7 @@ test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array(
 test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
   set -euo pipefail
   local -a test_array=( "val1" "val2" "val3" ) 
-  stdout_and_stderr="$(bg.in_array "val2" "test_array" 2>&1)"
+  stdout_and_stderr="$(core.in_array "val2" "test_array" 2>&1)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when value is present in array with given name"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -277,7 +227,7 @@ test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name
 
 test_in_array_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_name() {
   local -a test_array=( "val1" "val2" "val3" ) 
-  stdout_and_stderr="$(bg.in_array "val4" "test_array" 2>&1)"
+  stdout_and_stderr="$(core.in_array "val4" "test_array" 2>&1)"
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when value is not present in array with given name"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -286,8 +236,8 @@ test_in_array_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_
 test_in_array_returns_2_and_prints_error_message_when_an_array_with_the_given_name_doesnt_exist() {
   local stderr_file
   stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
-  stdout="$(bg.in_array "val4" "test_array" 2>"$stderr_file")"
+  tst.rm_on_exit "$stderr_file"
+  stdout="$(core.in_array "val4" "test_array" 2>"$stderr_file")"
   ret_code="$?"
   assert_equals "2" "$ret_code" "function call should return 2 when array with given name doesn't exist" 
   assert_equals "" "$stdout" "stdout should be empty"
@@ -303,7 +253,7 @@ test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
     echo "test" 
   }
 
-  stdout_and_stderr="$(bg.is_function test_fn)"
+  stdout_and_stderr="$(core.is_function test_fn)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "is_function should return 0 when the given fn is defined"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -313,7 +263,7 @@ test_is_function_returns_1_when_the_given_name_does_not_refer_to_a_function() {
   local stdout_and_stderr
   local test_fn
 
-  stdout_and_stderr="$(bg.is_function test_fn)"
+  stdout_and_stderr="$(core.is_function test_fn)"
   ret_code="$?"
   assert_equals "1" "$ret_code" "is_function should return 1 when the given fn is not defined"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -326,7 +276,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
     # shellcheck disable=SC2317
     return 0
   }
-  stdout_and_stderr="$(bg.is_valid_command test_fn arg1)"
+  stdout_and_stderr="$(core.is_valid_command test_fn arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -336,7 +286,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
 test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
   set -euo pipefail
   local stdout_and_stderr
-  stdout_and_stderr="$(bg.is_valid_command set arg1)"
+  stdout_and_stderr="$(core.is_valid_command set arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -345,7 +295,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
 test_is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
   set -euo pipefail
   local stdout_and_stderr
-  stdout_and_stderr="$(bg.is_valid_command ls arg1)"
+  stdout_and_stderr="$(core.is_valid_command ls arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -353,7 +303,7 @@ test_is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() 
 
 test_is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
   local stdout_and_stderr
-  stdout_and_stderr="$(bg.is_valid_command "{" "ls;" "}")"
+  stdout_and_stderr="$(core.is_valid_command "{" "ls;" "}")"
   ret_code="$?"
   assert_equals "" "$stdout_and_stderr"
   assert_equals "1" "$ret_code"
@@ -363,7 +313,7 @@ test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
   set -euo pipefail
   local test_opt="pipefail"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg.is_valid_shell_opt "$test_opt" )"
+  stdout_and_stderr="$( core.is_valid_shell_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -373,7 +323,7 @@ test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
 test_is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
   local test_opt="pipefai"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg.is_valid_shell_opt "$test_opt" )"
+  stdout_and_stderr="$( core.is_valid_shell_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -383,7 +333,7 @@ test_is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
   set -euo pipefail
   local test_opt="cdspell"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg.is_valid_bash_opt "$test_opt" )"
+  stdout_and_stderr="$( core.is_valid_bash_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -392,7 +342,7 @@ test_is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
 test_is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
   local test_opt="dspell"
   local stdout_and_stderr
-  stdout_and_stderr="$( bg.is_valid_bash_opt "$test_opt" )"
+  stdout_and_stderr="$( core.is_valid_bash_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -403,7 +353,7 @@ test_is_shell_opt_set_returns_0_if_the_given_option_is_set() {
   local test_opt="pipefail"
   local stdout_and_stderr
   set -o "$test_opt" 
-  stdout_and_stderr="$( bg.is_shell_opt_set "$test_opt" )"
+  stdout_and_stderr="$( core.is_shell_opt_set "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -413,7 +363,7 @@ test_is_shell_opt_set_returns_1_if_the_given_option_is_not_set() {
   local test_opt="pipefail"
   local stdout_and_stderr
   set +o "$test_opt" 
-  stdout_and_stderr="$( bg.is_shell_opt_set "$test_opt" )"
+  stdout_and_stderr="$( core.is_shell_opt_set "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -424,8 +374,8 @@ test_is_shell_opt_set_returns_2_if_the_given_option_is_not_valid() {
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
-  stdout="$( bg.is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
+  tst.rm_on_exit "$stderr_file"
+  stdout="$( core.is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
   ret_code="$?"
   assert_equals "2" "$ret_code"
   assert_equals "" "$stdout"
@@ -441,7 +391,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_tra
   trap - SIGINT 
 
   # Call function
-  bg.get_trap_command 'SIGINT' 2>&1 
+  core.get_trap_command 'SIGINT' 2>&1 
   )"
 
   ret_code="$?"
@@ -457,7 +407,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
   trap '' SIGINT 
 
   # Call function
-  bg.get_trap_command 'SIGINT' 2>&1 
+  core.get_trap_command 'SIGINT' 2>&1 
   )"
 
   ret_code="$?"
@@ -470,7 +420,7 @@ test_get_trap_command_returns_trap_command_if_given_a_signal_that_has_a_trap() {
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
+  tst.rm_on_exit "$stderr_file"
   # Set SIGINT trap
   trap "$(cat <<HERE
 echo hello
@@ -480,7 +430,7 @@ HERE
 
   stdout="$( 
     # Call function
-    bg.get_trap_command 'SIGINT' 2>"$stderr_file"
+    core.get_trap_command 'SIGINT' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -494,7 +444,7 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
+  tst.rm_on_exit "$stderr_file"
 
   # shellcheck disable=SC2317
   fake_trap() {
@@ -506,7 +456,7 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
 
   stdout="$( 
     # Call function
-    bg.get_trap_command 'MYSIG' 2>"$stderr_file"
+    core.get_trap_command 'MYSIG' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -523,13 +473,13 @@ test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
   traps_file="$(mktemp)"
-  rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
+  tst.rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
 
   # Ignore trap
   trap '' SIGINT
  
   # Use function to set trap 
-  bg.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  core.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -550,13 +500,13 @@ test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
   traps_file="$(mktemp)"
-  rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
+  tst.rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
 
   # Clear trap
   trap '-' SIGINT
  
   # Use function to set trap 
-  bg.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  core.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -576,7 +526,7 @@ test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_alread
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
   traps_file="$(mktemp)"
-  rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
+  tst.rm_on_exit "$stderr_file" "$stdout_file" "$traps_file"
 
   # Clear trap
   trap - SIGINT
@@ -585,7 +535,7 @@ test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_alread
   trap "echo hello" SIGINT
  
   # Use function to set second trap 
-  bg.trap "echo goodbye" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  core.trap "echo goodbye" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -601,7 +551,7 @@ test_trap_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_exi
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
+  tst.rm_on_exit "$stderr_file"
 
   # shellcheck disable=SC2317
   fake_get_trap_command() {
@@ -609,11 +559,11 @@ test_trap_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_exi
     return 1
   }
 
-  fake bg.get_trap_command fake_get_trap_command
+  fake core.get_trap_command fake_get_trap_command
 
   stdout="$( 
     # Call function
-    bg.trap 'command' 'MYSIG' 2>"$stderr_file"
+    core.trap 'command' 'MYSIG' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -627,7 +577,7 @@ test_trap_returns_1_and_error_message_if_there_is_an_error_while_setting_the_new
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
-  rm_on_exit "$stderr_file"
+  tst.rm_on_exit "$stderr_file"
 
   # shellcheck disable=SC2317
   fake_trap() {
@@ -640,7 +590,7 @@ test_trap_returns_1_and_error_message_if_there_is_an_error_while_setting_the_new
 
   stdout="$( 
     # Call function
-    bg.trap 'command' 'SIGINT' 2>"$stderr_file"
+    core.trap 'command' 'SIGINT' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -654,13 +604,21 @@ test_tmpfile_fails_when_filename_var_is_not_a_valid_var_name() {
   local stderr_file
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
-  bg.tmpfile '$myvar' >"$stdout_file" 2>"$stderr_file"
+  # shellcheck disable=SC2016
+  core.tmpfile '$myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "return code should be 1 filename_var is not a valid var name"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "ERROR: '\$myvar' is not a valid variable name" "$(< "$stderr_file")"
 }
 
+test_trap_can_set_two_traps() {
+  ./test_scripts/trap.bash
+}
+
+test_tmpfile_creates_two_temporary_files() {
+  ./test_scripts/tmpfile.bash
+}
 
 test_tmpfile_invokes_mktemp_and_trap_function() {
   set -euo pipefail
@@ -673,21 +631,21 @@ test_tmpfile_invokes_mktemp_and_trap_function() {
   stderr_file="$(mktemp)"
   trap_output_file="$(mktemp)"
   tmpfile_name_file="$(mktemp)"
-  rm_on_exit "$stdout_file" "$stderr_file" "$tmpfile_name_file" "$trap_output_file"
+  tst.rm_on_exit "$stdout_file" "$stderr_file" "$tmpfile_name_file" "$trap_output_file"
 
   fake_mktemp() {
     echo "test_file" >"$tmpfile_name_file"
     cat "$tmpfile_name_file"
   }
 
-  bg.trap() {
+  core.trap() {
     echo "1:$1" >"$trap_output_file"
     echo "2:$2" >>"$trap_output_file"
   }
 
   __BG_MKTEMP="fake_mktemp"
 
-  bg.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
+  core.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals \
     "$(printf "%s\n%s" "1:rm -f '$(< "$tmpfile_name_file")'" "2:EXIT")" \
@@ -709,21 +667,21 @@ test_tmpfile_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand
   stderr_file="$(mktemp)"
   trap_output_file="$(mktemp)"
   tmpfile_name_file="$(mktemp)"
-  rm_on_exit "$stdout_file" "$stderr_file" "$tmpfile_name_file" "$trap_output_file"
+  tst.rm_on_exit "$stdout_file" "$stderr_file" "$tmpfile_name_file" "$trap_output_file"
 
   fake_mktemp() {
     echo "test_file" >"$tmpfile_name_file"
     cat "$tmpfile_name_file"
   }
 
-  bg.trap() {
+  core.trap() {
     echo "1:$1" >"$trap_output_file"
     echo "2:$2" >>"$trap_output_file"
   }
 
   __BG_MKTEMP="fake_mktemp"
 
-  bg.tmpfile 'myfilename' >"$stdout_file" 2>"$stderr_file"
+  core.tmpfile 'myfilename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals \
     "$(printf "%s\n%s" "1:rm -f '$(< "$tmpfile_name_file")'" "2:EXIT")" \
@@ -741,21 +699,21 @@ test_tmpfile_returns_1_if_mktemp_fails() {
   local filename
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
-  rm_on_exit "$stdout_file" "$stderr_file"
+  tst.rm_on_exit "$stdout_file" "$stderr_file"
 
   fake_mktemp() {
     echo "ERROR!" >&2
     return 1
   }
 
-  bg.trap() {
+  core.trap() {
     echo "1:${1:-}"
     echo "2:${2:-}"
   }
 
   __BG_MKTEMP="fake_mktemp"
 
-  bg.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
+  core.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "${filename:-}" "'filename' var should be empty"
@@ -770,20 +728,20 @@ test_tmpfile_returns_1_if_trap_fails() {
   local filename
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
-  rm_on_exit "$stdout_file" "$stderr_file"
+  tst.rm_on_exit "$stdout_file" "$stderr_file"
 
   fake_mktemp() {
     echo "test_file"
   }
 
-  bg.trap() {
+  core.trap() {
     echo "ERROR!" >&2
     return 1
   }
 
   __BG_MKTEMP="fake_mktemp"
 
-  bg.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
+  core.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "${filename:-}" "'filename' var should be empty"
@@ -792,8 +750,8 @@ test_tmpfile_returns_1_if_trap_fails() {
 }
 
 test_is_valid_long_opt_returns_1_if_string_does_not_start_with_double_dashes() {
-  create_buffer_files
-  bg.is_valid_long_opt "string" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "string" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -801,8 +759,8 @@ test_is_valid_long_opt_returns_1_if_string_does_not_start_with_double_dashes() {
 }
 
 test_is_valid_long_opt_returns_1_if_string_does_not_contain_only_alphanumeric_chars_and_dashes() {
-  create_buffer_files
-  bg.is_valid_long_opt "--my_string" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--my_string" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -810,8 +768,8 @@ test_is_valid_long_opt_returns_1_if_string_does_not_contain_only_alphanumeric_ch
 }
 
 test_is_valid_long_opt_returns_1_if_string_ends_with_a_dash() {
-  create_buffer_files
-  bg.is_valid_long_opt "--mystring-" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--mystring-" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -820,8 +778,8 @@ test_is_valid_long_opt_returns_1_if_string_ends_with_a_dash() {
 
 test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_only_letters() {
   set -euo pipefail
-  create_buffer_files
-  bg.is_valid_long_opt "--string" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--string" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -831,8 +789,8 @@ test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contain
 
 test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_and_numbers() {
   set -euo pipefail
-  create_buffer_files
-  bg.is_valid_long_opt "--strin4g" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--strin4g" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -843,8 +801,8 @@ test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contain
 
 test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_numbers_and_dashes() {
   set -euo pipefail
-  create_buffer_files
-  bg.is_valid_long_opt "--string-flag2" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--string-flag2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -853,8 +811,8 @@ test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contain
 }
 
 test_is_valid_long_opt_returns_1_if_string_starts_with_double_dashes_and_contains_a_single_letter() {
-  create_buffer_files
-  bg.is_valid_long_opt "--s" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--s" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -863,8 +821,8 @@ test_is_valid_long_opt_returns_1_if_string_starts_with_double_dashes_and_contain
 }
 
 test_is_valid_long_opt_returns_1_if_string_starts_with_a_single_dash() {
-  create_buffer_files
-  bg.is_valid_long_opt "-string" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "-string" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -873,8 +831,8 @@ test_is_valid_long_opt_returns_1_if_string_starts_with_a_single_dash() {
 }
 
 test_is_valid_long_opt_returns_1_if_string_starts_with_more_than_two_dashes() {
-  create_buffer_files
-  bg.is_valid_long_opt "---string-flag" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "---string-flag" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -882,8 +840,8 @@ test_is_valid_long_opt_returns_1_if_string_starts_with_more_than_two_dashes() {
 }
 
 test_is_valid_long_opt_returns_1_if_string_is_just_two_dashes() {
-  create_buffer_files
-  bg.is_valid_long_opt "--" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -892,8 +850,8 @@ test_is_valid_long_opt_returns_1_if_string_is_just_two_dashes() {
 
 
 test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_dash_after_the_initial_double_dashes() {
-  create_buffer_files
-  bg.is_valid_long_opt "--string--flag" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_long_opt "--string--flag" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -902,8 +860,8 @@ test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_das
 
 test_is_valid_short_opt_returns_0_if_string_is_a_dash_followed_by_a_letter() {
   set -euo pipefail
-  create_buffer_files
-  bg.is_valid_short_opt "-d" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_short_opt "-d" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -911,8 +869,8 @@ test_is_valid_short_opt_returns_0_if_string_is_a_dash_followed_by_a_letter() {
 }
 
 test_is_valid_short_opt_returns_1_if_string_is_just_a_dash() {
-  create_buffer_files
-  bg.is_valid_short_opt "-" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_short_opt "-" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -920,8 +878,8 @@ test_is_valid_short_opt_returns_1_if_string_is_just_a_dash() {
 }
 
 test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_a_number() {
-  create_buffer_files
-  bg.is_valid_short_opt "-1" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_short_opt "-1" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -929,8 +887,8 @@ test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_a_number() {
 }
 
 test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_two_letters() {
-  create_buffer_files
-  bg.is_valid_short_opt "-no" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_short_opt "-no" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -938,8 +896,8 @@ test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_two_letters() 
 }
 
 test_is_valid_short_opt_returns_1_if_string_is_a_long_option() {
-  create_buffer_files
-  bg.is_valid_short_opt "--n" >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_valid_short_opt "--n" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -947,8 +905,8 @@ test_is_valid_short_opt_returns_1_if_string_is_a_long_option() {
 }
 
 test_is_var_readonly_returns_1_if_variable_is_unset() {
-  create_buffer_files
-  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -956,9 +914,9 @@ test_is_var_readonly_returns_1_if_variable_is_unset() {
 }
 
 test_is_var_readonly_returns_1_if_variable_is_set_but_not_readonly() {
-  create_buffer_files
+  tst.create_buffer_files
   declare myvar
-  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -967,9 +925,9 @@ test_is_var_readonly_returns_1_if_variable_is_set_but_not_readonly() {
 
 test_is_var_readonly_returns_0_if_variable_is_readonly() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
   declare -r myvar
-  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -978,9 +936,9 @@ test_is_var_readonly_returns_0_if_variable_is_readonly() {
 
 test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
   declare -ra myvar
-  bg.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -988,13 +946,13 @@ test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes(
 }
 
 test_to_array_returns_1_if_given_string_is_not_a_valid_var_name() {
-  create_buffer_files
+  tst.create_buffer_files
 
-  bg.is_valid_var_name() {
+  core.is_valid_var_name() {
     return 1 
   }
   
-  bg.to_array 'string' >"$stdout_file" 2>"$stderr_file"
+  core.to_array 'string' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1005,11 +963,11 @@ test_to_array_returns_1_if_given_string_is_not_a_valid_var_name() {
 }
 
 test_to_array_returns_1_if_given_variable_is_readonly() {
-  create_buffer_files
+  tst.create_buffer_files
 
   declare -r myarray
   
-  bg.to_array 'myarray' >"$stdout_file" 2>"$stderr_file"
+  core.to_array 'myarray' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1021,8 +979,8 @@ test_to_array_returns_1_if_given_variable_is_readonly() {
 
 test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
   set -euo pipefail
-  create_buffer_files
-  bg.to_array myarray >"$stdout_file" 2>"$stderr_file" <<<'just a line'
+  tst.create_buffer_files
+  core.to_array myarray >"$stdout_file" 2>"$stderr_file" <<<'just a line'
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1036,8 +994,8 @@ test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
 
 test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
   set -euo pipefail
-  create_buffer_files
-  bg.to_array myarray >"$stdout_file" 2>"$stderr_file" \
+  tst.create_buffer_files
+  core.to_array myarray >"$stdout_file" 2>"$stderr_file" \
     <<<"$(printf "%s\n %s" "line 1" "line 2")"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -1050,183 +1008,9 @@ test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
   assert_equals "${myarray[1]}" ' line 2' "element 1 should contain string ' line 2'"
 }
 
-test_cli_init_prints_the_string_init_to_stdout() {
-  set -euo pipefail
-  create_buffer_files
-  bg.cli.init >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "init" "$(< "$stdout_file" )" "stdout should contain the string 'init'"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-}
-
-test_cli_add_opt_returns_1_if_first_arg_is_a_number() {
-  create_buffer_files
-  bg.cli.add_opt '2' 'flag' 'FLAG' 'flag description' \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: short form '2' should be a single lowercase letter" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_cli.add_opt_returns_1_if_first_arg_is_more_than_one_character() {
-  create_buffer_files
-  bg.cli.add_opt 'fl' 'flag' 'FLAG' 'flag description'\
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: short form 'fl' should be a single lowercase letter" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_cli_add_opt_flag_returns_1_if_long_form_is_not_a_valid_long_option() {
-  create_buffer_files
-  bg.is_valid_long_opt() {
-    return 1
-  }
-
-  bg.cli.add_opt 'f' 'flag' 'FLAG' 'flag description'\
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: long form 'flag' is not a valid long option" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_cli_add_opt_returns_1_if_env_var_is_not_a_valid_var_name() {
-  create_buffer_files
-
-  bg.cli.add_opt 'f' 'flag' '?' 'flag description'\
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: '?' is not a valid variable name" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_cli_add_opt_returns_1_if_env_var_is_a_readonly_variable() {
-  create_buffer_files
-  local -r FLAG
-  bg.cli.add_opt 'f' 'flag' 'FLAG' 'flag description'\
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: 'FLAG' is a readonly variable" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_cli_add_opt_prints_all_lines_in_its_stdin_to_stdout_and_adds_flag_spec_line() {
-  set -euo pipefail
-  shopt -s lastpipe
-  create_buffer_files
-  {
-    echo "line 1" 
-    echo " line 2" 
-  } | bg.cli.add_opt 'd' 'directory' 'DIR' 'Directory that will store data' \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals \
-    "$(printf \
-      "%s\n %s\n%s" \
-        "line 1" \
-        "line 2" \
-        "flag|d|directory|DIR|Directory that will store data"\
-    )" \
-    "$(< "$stdout_file" )" \
-    "stdout should contain lines from stdin and new flag spec line"
-}
-
-test_cli_add_opt_escapes_any_pipe_characters_in_help_message() {
-  set -euo pipefail
-  shopt -s lastpipe
-  create_buffer_files
-  {
-    echo "line 1" 
-    echo " line 2" 
-  } | bg.cli.add_opt 'd' 'directory' 'DIR' 'Directory |that will | store data' \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals \
-    "$(printf \
-      '%s\n %s\n%s' \
-        "line 1" \
-        "line 2" \
-        'flag|d|directory|DIR|Directory \|that will \| store data'\
-    )" \
-    "$(< "$stdout_file")" \
-    "stdout should contain lines from stdin and new flag spec line"
-}
-
-
-test_cli_add_opt_escapes_any_backslash_in_help_message() {
-  set -euo pipefail
-  shopt -s lastpipe
-  create_buffer_files
-  {
-    echo "line 1" 
-    echo " line 2" 
-  } | bg.cli.add_opt 'd' 'directory' 'DIR' 'Directory \that will \ store data' \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals \
-    "$(printf \
-      "%s\n %s\n%s" \
-        "line 1" \
-        "line 2" \
-        'flag|d|directory|DIR|Directory \\that will \\ store data'\
-    )" \
-    "$(< "$stdout_file" )" \
-    "stdout should contain lines from stdin and new flag spec line"
-}
-
-test_cli_parse_returns_1_when_spec_is_empty() {
-  create_buffer_files
-  printf "" \
-    | bg.cli.parse "" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: argparse spec is empty" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_cli_parse_returns_1_when_first_line_of_spec_is_not_init_command() {
-  create_buffer_files
-  printf 'command\n' \
-    | bg.cli.parse "" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: Invalid argparse spec. Line 0: should be 'init' but was 'command'" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
 test_require_args_returns_2_if_required_args_array_is_not_set() {
-  create_buffer_files
-  bg.require_args >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1237,9 +1021,9 @@ test_require_args_returns_2_if_required_args_array_is_not_set() {
 }
 
 test_require_args_returns_2_if_required_args_array_is_empty() {
-  create_buffer_files
+  tst.create_buffer_files
   local -a required_args=()
-  bg.require_args >"$stdout_file" 2>"$stderr_file"
+  core.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1250,9 +1034,9 @@ test_require_args_returns_2_if_required_args_array_is_empty() {
 }
 
 test_require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() {
-  create_buffer_files
+  tst.create_buffer_files
   local -a required_args=( "ARG" )
-  bg.require_args >"$stdout_file" 2>"$stderr_file"
+  core.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1264,9 +1048,9 @@ test_require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() 
 
 test_require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
   local -a required_args=( "ARG" )
-  bg.require_args "val1" >"$stdout_file" 2>"$stderr_file"
+  core.require_args "val1" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1278,9 +1062,9 @@ test_require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
 }
 
 test_require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() {
-  create_buffer_files
+  tst.create_buffer_files
   local -a required_args=( "ARG1" "ARG2" )
-  bg.require_args "myvalue" >"$stdout_file" 2>"$stderr_file"
+  core.require_args "myvalue" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1292,9 +1076,9 @@ test_require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() 
 
 test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
   local -a required_args=( "ARG1" "ARG2" )
-  bg.require_args "myvalue1" "myvalue2" >"$stdout_file" 2>"$stderr_file"
+  core.require_args "myvalue1" "myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1307,9 +1091,9 @@ test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided()
 }
 
 test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_name() {
-  create_buffer_files
+  tst.create_buffer_files
   local -a required_args=( "var()" "ARG2" )
-  bg.require_args "myvalue1 myvalue2" >"$stdout_file" 2>"$stderr_file"
+  core.require_args "myvalue1 myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1325,11 +1109,11 @@ test_require_args_places_args_with_spaces_in_correct_variable() {
   local var2
   test_func(){
     local -a required_args=( "var1" "var2" )
-    if ! bg.require_args "$@"; then
+    if ! core.require_args "$@"; then
       return 2
     fi
   }
-  create_buffer_files
+  tst.create_buffer_files
   test_func "a value" "second value" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "$var1" "a value"
@@ -1341,9 +1125,9 @@ test_require_args_places_args_with_spaces_in_correct_variable() {
 
 test_is_var_set_returns_0_if_a_variable_is_set() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
   local myvar
-  bg.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1351,9 +1135,9 @@ test_is_var_set_returns_0_if_a_variable_is_set() {
 }
 
 test_is_var_set_returns_1_if_a_variable_is_unset_and_nounset_is_set() {
-  create_buffer_files
+  tst.create_buffer_files
   set -u
-  bg.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1361,9 +1145,9 @@ test_is_var_set_returns_1_if_a_variable_is_unset_and_nounset_is_set() {
 }
 
 test_is_var_set_returns_1_if_a_variable_is_unset() {
-  create_buffer_files
+  tst.create_buffer_files
   unset myvar
-  bg.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1371,9 +1155,9 @@ test_is_var_set_returns_1_if_a_variable_is_unset() {
 }
 
 test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
-  create_buffer_files
+  tst.create_buffer_files
   unset myvar
-  bg.is_var_set >"$stdout_file" 2>"$stderr_file"
+  core.is_var_set >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1382,15 +1166,16 @@ test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
 
 test_get_parent_routine_name_returns_name_of_parent_of_currently_executing_func_if_within_nested_func() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
 
   test_func1() {
-    bg.get_parent_routine_name
+    core.get_parent_routine_name
   }
 
   test_func2() {
     test_func1 
   }
+
 
   test_func2 >"$stdout_file" 2>"$stderr_file" 
   ret_code="$?"
@@ -1401,7 +1186,7 @@ test_get_parent_routine_name_returns_name_of_parent_of_currently_executing_func_
 
 test_get_parent_routine_name_returns_name_of_script_if_executing_at_top_level() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
   ./test_scripts/get_parent_routine1.bash >"$stdout_file" 2>"$stderr_file" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -1411,7 +1196,7 @@ test_get_parent_routine_name_returns_name_of_script_if_executing_at_top_level() 
 
 test_get_parent_routine_name_returns_name_of_script_if_currently_executing_func_is_at_top_level() {
   set -euo pipefail
-  create_buffer_files
+  tst.create_buffer_files
   ./test_scripts/get_parent_routine2.bash >"$stdout_file" 2>"$stderr_file" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -1422,8 +1207,8 @@ test_get_parent_routine_name_returns_name_of_script_if_currently_executing_func_
 test_index_of_returns_error_if_item_not_found_in_array() {
   set -uo pipefail
   local -a myarray=( "first" "second" "third" )
-  create_buffer_files
-  bg.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1436,8 +1221,8 @@ test_index_of_returns_error_if_item_not_found_in_array() {
 test_index_of_returns_the_index_of_the_provided_item_in_the_provided_array() {
   set -euo pipefail
   local -a myarray=( "first" "second" "third" )
-  create_buffer_files
-  bg.index_of "second" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.index_of "second" 'myarray' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "1" "$(< "$stdout_file" )" "stdout should contain '1'"
@@ -1447,8 +1232,8 @@ test_index_of_returns_the_index_of_the_provided_item_in_the_provided_array() {
 test_index_of_returns_error_if_array_does_not_exist() {
   set -uo pipefail
   #local -a myarray=( "first" "second" "third" )
-  create_buffer_files
-  bg.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  tst.create_buffer_files
+  core.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1457,89 +1242,5 @@ test_index_of_returns_error_if_array_does_not_exist() {
     "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-test_canonicalize_separates_arguments_from_short_options_provided_as_one_word() {
-  set -euo pipefail
-  create_buffer_files
-  local -a inputs=( "option1" "-parg" "-c" "--an-option" "an arg" "-emyarg" "-d" )
-  local -a outputs
-  local -a expected_outputs=( "option1" "-p" "arg" "-c" "--an-option" "an arg" "-e" "myarg" "-d" )
-  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should exit with code 0"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-  local -i outputs_length="${#outputs[@]}"
-  assert_equals "${#expected_outputs[@]}" "$outputs_length" "outputs array should have 3 items"
-  for ((i=0; i<outputs_length; i++)); do
-    assert_equals "${expected_outputs[i]}" "${outputs[i]}"
-  done
-}
-
-
-test_canonicalize_separates_arguments_from_long_options_provided_as_one_word() {
-  set -euo pipefail
-  create_buffer_files
-  local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
-  local -a outputs
-  local -a expected_outputs=( "option1" "--my-option" "myarg" "--another-opt" "another arg" )
-  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should exit with code 0"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-  local -i outputs_length="${#outputs[@]}"
-  assert_equals "${#expected_outputs[@]}" "$outputs_length" "outputs array should have 3 items"
-  for ((i=0; i<outputs_length; i++)); do
-    assert_equals "${expected_outputs[i]}" "${outputs[i]}"
-  done
-}
-
-test_canonicalize_returns_error_if_inputs_array_does_not_exist() {
-  set -uo pipefail
-  create_buffer_files
-  #local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
-  local -a outputs=( "1" "2" "3" )
-  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should exit with code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals \
-    "ERROR: array 'inputs' not found in execution environment" \
-    "$(< "$stderr_file" )" \
-    "stderr should contain error message"
-  
-  # Outputs array should be empty 
-  assert_equals "0" "${#outputs[@]}" "outputs array should be empty"
-}
-
-test_canonicalize_returns_error_if_outputs_array_is_not_valid_var_name() {
-  set -uo pipefail
-  create_buffer_files
-  local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
-  _bg.cli.canonicalize_opts 'inputs' 'outputs=' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should exit with code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals \
-    "ERROR: 'outputs=' is not a valid variable name" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_canonicalize_returns_error_if_outputs_array_is_readonly() {
-  set -uo pipefail
-  create_buffer_files
-  #local -a inputs=( "option1" "--my-option=myarg" "--another-opt=another arg" )
-  local -a outputs
-  local -ra outputs=( "1" "2" "3" )
-  _bg.cli.canonicalize_opts 'inputs' 'outputs' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should exit with code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals \
-    "ERROR: 'outputs' is a readonly variable" \
-    "$(< "$stderr_file" )" \
-    "stderr should contain error message"
-}
 
 

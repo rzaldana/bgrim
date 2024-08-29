@@ -76,7 +76,7 @@ export __BG_MKTEMP="mktemp"
 #   0 if the given name refers to an existing array variable
 #   1 otherwise
 ################################################################################
-bg.is_array() ( 
+core.is_array() ( 
   local array_name="${1:-}"  
   local re="declare -a"
   local array_attributes
@@ -119,14 +119,14 @@ bg.is_array() (
 #
 #       #!/usr/bin/env bash
 #
-#       source bgrim.bash
+#       source core.bash
 #
 #       set +e # do not exit on error
 #
 #       myfunc() {
 #         local arg1 arg2
 #         required_args=( arg1 arg2 )
-#         if ! bg.require_args "$@" ; then
+#         if ! core.require_args "$@" ; then
 #           return 2
 #         fi
 #
@@ -154,13 +154,13 @@ bg.is_array() (
 #       ================================================
 #       ERROR: myfunc: argument 2 (arg2) is required but was not provided
 #       return code: 2
-bg.require_args() {
+core.require_args() {
 
   local calling_function
   calling_function="${FUNCNAME[1]}"
 
   # Fail if required_args array is not set 
-  if ! bg.is_array 'required_args'; then
+  if ! core.is_array 'required_args'; then
     echo "ERROR: require_args: 'required_args' array not found" >&2
     return 2
   fi
@@ -214,10 +214,10 @@ bg.require_args() {
 #   0 if the given string is a valid variable name 
 #   1 otherwise
 ################################################################################
-bg.is_valid_var_name() ( 
+core.is_valid_var_name() ( 
   local var_name
   local -a required_args=( "var_name" )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -244,7 +244,7 @@ bg.is_valid_var_name() (
 # tags:
 #   - "changes env"
 ################################################################################
-bg.clear_shell_opts() {
+core.clear_shell_opts() {
   # Clear all options set with the 'set' built-in
   while read -r option_name option_status; do
     set +o "${option_name}" >/dev/null 2>&1
@@ -271,7 +271,7 @@ bg.clear_shell_opts() {
 # tags:
 #   - "changes env"
 ################################################################################
-bg.clear_traps() {
+core.clear_traps() {
   # Clear pseudo-signal traps
   trap - RETURN
   trap - DEBUG
@@ -319,10 +319,10 @@ bg.clear_traps() {
 # tags:
 #   - "changes env"
 ################################################################################
-bg.clear_vars_with_prefix() {
+core.clear_vars_with_prefix() {
   local -a required_args=( 'prefix' )
   local prefix
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -332,7 +332,7 @@ bg.clear_vars_with_prefix() {
     && return 1
 
   # Check that prefix is a valid variable name
-  if ! bg.is_valid_var_name "$prefix"; then \
+  if ! core.is_valid_var_name "$prefix"; then \
     printf '%s\n' "ERROR: '$prefix' is not a valid variable prefix" >&2
     return 1
   fi
@@ -358,9 +358,9 @@ bg.clear_vars_with_prefix() {
 # tags:
 #   - "compatibility"
 ################################################################################
-#bg.is_shell_bash() {
+#core.is_shell_bash() {
 #  local bash_version_var_name="${_BG_BASH_VERSION_VAR_NAME:-BASH_VERSION}"
-#  if bg.is_empty "${!bash_version_var_name}"; then
+#  if core.is_empty "${!bash_version_var_name}"; then
 #    return 1
 #  else
 #    return 0
@@ -383,16 +383,16 @@ bg.clear_vars_with_prefix() {
 #   1 if the given value does not exist in the array with the given name
 #   2 if there is no array in the environment with the given name
 ################################################################################
-bg.in_array() ( 
+core.in_array() ( 
   local value
   local array_name
   local -a required_args=( 'value' 'array_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
   # Check if array exists
-  if ! bg.is_array "$array_name"; then
+  if ! core.is_array "$array_name"; then
     echo "The array with name '$array_name' does not exist" >&2
     return 2
   fi
@@ -428,10 +428,10 @@ bg.in_array() (
 #   1: if no function with the given name exists in the environment 
 #   2: if no arguments are provided 
 ################################################################################
-bg.is_function() ( 
+core.is_function() ( 
   local function_name
   local -a required_args=( 'function_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -460,10 +460,10 @@ bg.is_function() (
 # tags:
 #   - "syntax_sugar"
 ################################################################################
-bg.is_valid_command() ( 
+core.is_valid_command() ( 
   local command_name
   local -a required_args=( 'command_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -493,13 +493,13 @@ bg.is_valid_command() (
 # tags:
 #   - "option decorators"
 ################################################################################
-bg.is_valid_shell_opt() ( 
+core.is_valid_shell_opt() ( 
   local opt_name
   local opt_name_iterator
   local opt_value
 
   local -a required_args=( 'opt_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -530,12 +530,12 @@ bg.is_valid_shell_opt() (
 # tags:
 #   - "option decorators"
 ################################################################################
-bg.is_valid_bash_opt() ( 
+core.is_valid_bash_opt() ( 
   local opt_name
   local opt_name_iterator
   local opt_value
   local -a required_args=( 'opt_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -565,14 +565,14 @@ bg.is_valid_bash_opt() (
 # tags:
 #   - "option decorators"
 ################################################################################
-bg.is_shell_opt_set() ( 
+core.is_shell_opt_set() ( 
   local opt_name
   local opt_name_iterator
   local opt_value
   local is_valid_opt=""
 
   local -a required_args=( 'opt_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -608,10 +608,10 @@ bg.is_shell_opt_set() (
 # dependencies:
 # tags:
 #   - "error_handling" 
-bg.get_trap_command() ( 
+core.get_trap_command() ( 
   local signal_spec
   local -a required_args=( 'signal_spec' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -659,19 +659,19 @@ bg.get_trap_command() (
 # dependencies:
 # tags:
 #   - "error_handling" 
-bg.trap() {
+core.trap() {
 
   local trap_command
   local signal_spec
   local -a required_args=( 'trap_command' 'signal_spec' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
   signal_spec="${2:-}"
 
   # Get previous trap command, if any
-  previous_trap_cmd="$(bg.get_trap_command "$signal_spec" 2>/dev/null)" \
+  previous_trap_cmd="$(core.get_trap_command "$signal_spec" 2>/dev/null)" \
     || { printf "Error retrieving existing trap for signal '%s'" "$signal_spec"
          return 1
         } >&2
@@ -703,15 +703,15 @@ bg.trap() {
 # dependencies:
 # tags:
 #   - "error_handling" 
-bg.tmpfile() {
+core.tmpfile() {
   local filename_var
   local -a required_args=( 'filename_var' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
   # Validate that filename_var is a valid variable name
-  if ! bg.is_valid_var_name "$filename_var"; then
+  if ! core.is_valid_var_name "$filename_var"; then
     echo "ERROR: '$filename_var' is not a valid variable name" >&2
     return 1
   fi
@@ -719,7 +719,7 @@ bg.tmpfile() {
   local tmpfile_name
   tmpfile_name="$("$__BG_MKTEMP")" \
     || { echo "ERROR: Unable to create temporary file" >&2; return 1; }
-  bg.trap "rm -f '$tmpfile_name'" 'EXIT' \
+  core.trap "rm -f '$tmpfile_name'" 'EXIT' \
     || { echo "ERROR: Unable to set exit trap to delete file '$tmpfile_name'" >&2; return 1; }
 
   # Assign name of tmpfile to variable whose name is contained in
@@ -749,10 +749,10 @@ bg.tmpfile() {
 #     2: "when no string was provided"
 # tags:
 #   - "cli parsing"
-bg.is_valid_long_opt() ( 
+core.is_valid_long_opt() ( 
   local string
   local -a required_args=( 'string' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -788,10 +788,10 @@ bg.is_valid_long_opt() (
 #     2: "when no string was provided"
 # tags:
 #   - "cli parsing"
-bg.is_valid_short_opt() ( 
+core.is_valid_short_opt() ( 
   local string
   local -a required_args=( 'string' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -818,10 +818,10 @@ bg.is_valid_short_opt() (
 #     1: "when the variable is not readonly or unset"
 # tags:
 #   - "cli parsing"
-bg.is_var_readonly() ( 
+core.is_var_readonly() ( 
   local var_name
   local -a required_args=( 'var_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
@@ -837,9 +837,6 @@ bg.is_var_readonly() (
   fi
 )
 
-bg.cli.init() {
-  printf "%s\n" 'init'
-}
 
 # description: |
 #   returns 0 if the given variable name refers to a declared variable 
@@ -856,10 +853,10 @@ bg.cli.init() {
 #     1: "when the variable is not set 
 # tags:
 # - "utility"
-bg.is_var_set() ( 
+core.is_var_set() ( 
   local var_name
   local -a required_args=( "var_name" )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2 
   fi
   declare -p "$var_name" 1>/dev/null 2>&1
@@ -882,20 +879,20 @@ bg.is_var_set() (
 #     1: "when an error ocurred"
 # tags:
 #   - "cli parsing"
-bg.to_array() {
+core.to_array() {
   local array_name
   local -a required_args=( 'array_name' )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2
   fi
 
   # Validate args
-  if ! bg.is_valid_var_name "$array_name"; then
+  if ! core.is_valid_var_name "$array_name"; then
     echo "ERROR: '$array_name' is not a valid variable name" >&2
     return 1
   fi
 
-  if bg.is_var_readonly "$array_name"; then
+  if core.is_var_readonly "$array_name"; then
     echo "ERROR: '$array_name' is a readonly variable" >&2
     return 1
   fi
@@ -914,7 +911,7 @@ bg.to_array() {
 #   Returns the name of the parent routine of the
 #   currently executing function, where the currently
 #   executing function is the function that called
-#   bg.get_parent_routine_name
+#   core.get_parent_routine_name
 # inputs:
 #   stdin: null 
 #   args: null
@@ -925,7 +922,7 @@ bg.to_array() {
 #     0: "always" 
 # tags:
 #   - "std"
-bg.get_parent_routine_name() {
+core.get_parent_routine_name() {
   # If calling function is running at top-level
   # or if calling routine is the top-level 'main'
   # routine, return the name of the script
@@ -960,19 +957,19 @@ bg.get_parent_routine_name() {
 #     1: "when an error ocurred"
 # tags:
 #   - "arrays"
-bg.index_of() {
+core.index_of() {
   local item
   local array_name
 
   # Check number of arguments
   local -a required_args=( "item" "array_name" )
-  if ! bg.require_args "$@"; then
+  if ! core.require_args "$@"; then
     return 2 
   fi
 
   # Check if array exists
   # shellcheck disable=SC2031
-  if ! bg.is_array "${array_name}"; then
+  if ! core.is_array "${array_name}"; then
     # shellcheck disable=SC2031
     printf \
       "ERROR: array '%s' not found in execution environment" \
@@ -1004,306 +1001,5 @@ bg.index_of() {
     "$array_name" \
     >&2
   return 1
-}
-
-_bg.cli.canonicalize_opts() {
-  local -a required_args=( "input_array" "output_array" )
-  if ! bg.require_args "$@"; then
-    return 2 
-  fi
-
-  # Check if output array is readonly
-  if bg.is_var_readonly "$output_array"; then
-    printf \
-      "ERROR: '%s' is a readonly variable\n" \
-      "$output_array" \
-      >&2
-    return 1
-  fi
-
-  # Check if output array is a valid variable name
-  if ! bg.is_valid_var_name "$output_array"; then
-    printf \
-      "ERROR: '%s' is not a valid variable name\n" \
-      "$output_array" \
-      >&2
-    return 1
-  fi
-
-
-  # Empty output array
-  eval "$output_array=()"
-
-  # Check if input array exists
-  # shellcheck disable=SC2154
-  if ! bg.is_array "$input_array"; then
-    printf \
-      "ERROR: array '%s' not found in execution environment\n" \
-      "$input_array" \
-      >&2
-    return 1
-  fi
- 
-  # Iterate over input array 
-  local -i input_array_length
-  eval "input_array_length=\"\${#${input_array}[@]}\""
-  local short_opt_regex="^-[[:alpha:]].+$"
-  local long_opt_regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+=.+$"
-  local -i i
-  local token
-  local opt
-  local arg
-  for ((i=0; i<input_array_length; i++)); do
-    eval "token=\"\${${input_array}[$i]}\""
-
-    # If token matches short_opt_regex, extract opt and arg
-    if [[ "$token" =~ $short_opt_regex ]]; then
-      IFS= read -n 2 -d '' opt <<<"$token"
-      arg="${token#"$opt"}"
-      eval "$output_array+=( \"$opt\" )"
-      eval "$output_array+=( \"$arg\" )"
-      continue
-    fi
-
-    # If token matches long_opt_regex, extract opt and arg
-    if [[ "$token" =~ $long_opt_regex ]]; then
-      IFS= read -d '=' opt <<<"$token"
-      arg="${token#"$opt="}"
-      eval "$output_array+=( \"$opt\" )"
-      eval "$output_array+=( \"$arg\" )"
-      continue
-    fi
-
-    # If token didn't match any regex, just add to output_array as is
-    eval "$output_array+=( \"$token\" )"
-
-  # Regex is composed of the following expressions:
-  # ^-                matches a single dash at the beginning of the string 
-  # [[:alpha:]]$      matches a single letter at the end of the string
-
-  done
-}
-
-
-# description: |
-#   reads an argparse spec on stdin and prints the spec to stdout
-#   with a new line detailing the configuration of the new flag
-#   defined through the command-line parameters
-# inputs:
-#   stdin: an argparse spec 
-#   args:
-#     1: "flag short form"
-#     2: "flag long form"
-#     3: "environment variable where value of flag will be stored"
-#     4: "help message for flag"
-# outputs:
-#   stdout:
-#   stderr: |
-#     error message if validation of arguments fails
-#   return_code:
-#     0: "when new line was successfully added to spec"
-#     1: "when an error ocurred"
-# tags:
-#   - "cli parsing"
-bg.cli.add_opt() {
-  # Check number of arguments
-  local -a required_args=( "short_form" "long_form" "env_var" "help_message" )
-  if ! bg.require_args "$@"; then
-    return 2 
-  fi
-
-  # Validate arguments
-  if ! [[ "$short_form" =~ ^[a-z]$ ]]; then
-    echo "ERROR: short form '$short_form' should be a single lowercase letter" >&2
-    return 1
-  fi
-
-  if ! bg.is_valid_long_opt "--$long_form"; then
-    echo "ERROR: long form '$long_form' is not a valid long option" >&2
-    return 1
-  fi
-
-  if ! bg.is_valid_var_name "$env_var"; then
-    echo "ERROR: '$env_var' is not a valid variable name" >&2
-    return 1
-  fi
-
-  if bg.is_var_readonly "$env_var"; then
-    echo "ERROR: '$env_var' is a readonly variable" >&2
-    return 1
-  fi
-
-
-  # Escape any backslashes (\) in help message
-  #help_message="${help_message//|/\\\\\\}"
-  help_message="${help_message//\\/\\\\}"
-
-  # Escape any pipe (|) characters in help message
-  help_message="${help_message//\|/\\\|}"
-
- 
-  # Print all lines from stdin to stdout 
-  while IFS= read -r line; do
-    printf "%s\n" "$line"
-  done
-
-
-  # Print new spec line
-  printf '%s|%s|%s|%s|%s\n' 'flag' "$short_form" "$long_form" "$env_var" "$help_message"
-}
-
-bg.cli.parse() {
-  # Store all spec lines from stdin
-  # into an array called 'spec_array'
-  local -a spec_array
-  bg.to_array 'spec_array'
-
-  # Check that spec is not empty
-  if [[ "${#spec_array[@]}" == '0' ]]; then
-    echo "ERROR: argparse spec is empty" >&2
-    return 1
-  fi
-
-  # Create spec table
-  # Spec table is just a collection of 
-  # arrays where the same index across
-  # all arrays contains the data for a
-  # record. Each record represents an
-  # option spec.
-  local -a opt_long_form
-  local -a opt_short_form
-  local -a opt_env_var
-  local -a opt_help_message
-  local -a opt_help_summary
-  local -a opt_has_arg
-
-  for line_no in "${!spec_array[@]}"; do
-    local line
-    line="${spec_array[$line_no]}"
-
-    # Check that first command is 'init'
-    if [[ "$line_no" -eq 0 ]]; then
-      if [[ "$line" != "init" ]]; then
-        echo "ERROR: Invalid argparse spec. Line 0: should be 'init' but was '$line'" >&2
-        return 1
-      fi
-      continue
-    fi
-
-
-    # Read line command (i.e. first word before the fist pipe char)
-    read -d '|' line_command <<<"$line"
-
-    # Remove line command from line
-    line="${line#"${line_command}|"}"
-
-
-    case "$line_command" in
-      flag)
-        local short_form
-        local long_form
-        local env_var
-        local help_message
-        local help_summary
-        IFS='|' read short_form long_form env_var help_message <<<"$line"
-        opt_long_form+=( "--$long_form" )
-        opt_short_form+=( "-$short_form" )
-        opt_env_var+=( "$env_var" )
-        opt_help_message+=( "$help_message" )
-        opt_has_arg+=( "false" )
-        opt_help_summary+=( "-$short_form, --$long_form" )
-        #help_summary_length="${#help_summary}" # extract
-
-        #if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then # extract
-        #  max_help_summary_length="${help_summary_length}" # extract
-        #fi
-        #n_opts=$((n_opts+1))
-    esac
-  done 
-
-
-  ################################################################################
-  # Generate cli help message
-  ################################################################################
-  # Get routine name to be displayed in help message
-  local routine_name
-  routine_name="$(bg.get_parent_routine_name)"
-
-  # Find longest help summary so we can nicely align
-  # auto-generated help message
-  local -i max_help_summary_length=0
-  for help_summary in "${opt_help_summary[@]}"; do
-    help_summary_length="${#help_summary}"
-    if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then
-      max_help_summary_length="${help_summary_length}"
-    fi
-  done
-
-  # Get number of option specs so we can iterate over them
-  # when creating the help message
-  n_opt_specs="${#opt_short_form[@]}"
-
-  # Fill in help message template
-  ## Emtpy IFS means no word splitting
-  ## -d '' means read until end of file 
-  local help_message
-  IFS= read -d '' help_message << EOF || true
-$routine_name
-
-Usage: $routine_name [options]
-
-$( for (( i=0; i<n_opt_specs; i++  ));
-    do
-      printf "%${max_help_summary_length}s %s\n"\
-        "${opt_short_form[$i]}, ${opt_long_form[$i]}" \
-        "${opt_help_message[$i]}"
-    done
-)
-EOF
-
-  # process options
-  local -i i=1
-  local -i n="${#}"
-  while [[ "$i" -le "$n" ]]; do
-    # check if arg is '--' and if it is,
-    # stop processing options
-    if [[ "${!i}" == "--" ]]; then
-      break
-    fi
-
-    # check if it's a short opt
-    local -i index
-    if bg.is_valid_short_opt "${!i}"; then
-      if bg.in_array "${!i}" 'opt_short_form'; then
-        # Find index of option in 'opt_short_form' array
-        index="$( bg.index_of "${!i}" 'opt_short_form' )"
-        eval -- "${opt_env_var[index]}=\"\""
-      elif [[ "${!i}" == "-h" ]]; then
-        # if '-h' is not declared in the spec, print help 
-        # message when encountered
-        echo "${help_message}" >&2 
-      else
-        echo "ERROR: '${!i}' is not a valid option" >&2
-        return 1
-      fi
-
-    # check if it's a long opt
-    elif bg.is_valid_long_opt "${!i}"; then
-      if bg.in_array "${!i}" 'opt_long_form'; then
-        # Find index of option in 'opt_long_form' array
-        index="$( bg.index_of "${!i}" 'opt_long_form' )"
-        eval -- "${opt_env_var[index]}=\"\""
-      else
-        echo "ERROR: '${!i}' is not a valid option" >&2
-        return 1
-      fi
-    else
-      # argument is not a long or short option, stop processing options
-      break
-    fi
-
-    # Increment counter
-    (( i++ ))
-  done
 }
 
