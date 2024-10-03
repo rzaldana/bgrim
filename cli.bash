@@ -153,7 +153,118 @@ cli.add_opt() {
 
 
   # Print new spec line
-  printf '%s|%s|%s|%s|%s\n' 'flag' "$short_form" "$long_form" "$env_var" "$help_message"
+  printf '%s|%s|%s|%s|%s\n' 'opt' "$short_form" "$long_form" "$env_var" "$help_message"
+}
+
+
+# description: |
+#   reads an argparse spec on stdin and prints the spec to stdout
+#   with a new line detailing the configuration of the new option with arg 
+#   defined through the command-line parameters
+# inputs:
+#   stdin: an argparse spec 
+#   args:
+#     1: "option short form"
+#     2: "option long form"
+#     3: "environment variable where value of the option will be stored"
+#     4: "help message for option"
+# outputs:
+#   stdout:
+#   stderr: |
+#     error message if validation of arguments fails
+#   return_code:
+#     0: "when new line was successfully added to spec"
+#     1: "when an error ocurred"
+# tags:
+#   - "cli parsing"
+cli.add_opt_with_arg() {
+  # Check number of arguments
+  local -a required_args=( "short_form" "long_form" "env_var" "help_message" )
+  if ! core.require_args "$@"; then
+    return 2 
+  fi
+
+  # Validate arguments
+  if ! [[ "$short_form" =~ ^[a-z]$ ]]; then
+    echo "ERROR: short form '$short_form' should be a single lowercase letter" >&2
+    return 1
+  fi
+
+  if ! core.is_valid_long_opt "--$long_form"; then
+    echo "ERROR: long form '$long_form' is not a valid long option" >&2
+    return 1
+  fi
+
+  if ! core.is_valid_var_name "$env_var"; then
+    echo "ERROR: '$env_var' is not a valid variable name" >&2
+    return 1
+  fi
+
+  if core.is_var_readonly "$env_var"; then
+    echo "ERROR: '$env_var' is a readonly variable" >&2
+    return 1
+  fi
+
+
+  # Escape any backslashes (\) in help message
+  #help_message="${help_message//|/\\\\\\}"
+  help_message="${help_message//\\/\\\\}"
+
+  # Escape any pipe (|) characters in help message
+  help_message="${help_message//\|/\\\|}"
+
+ 
+  # Print all lines from stdin to stdout 
+  while IFS= read -r line; do
+    printf "%s\n" "$line"
+  done
+
+
+  # Print new spec line
+  printf '%s|%s|%s|%s|%s\n' 'opt_with_arg' "$short_form" "$long_form" "$env_var" "$help_message"
+}
+
+__cli.normalize_short_opt_token() {
+  # Check number of arguments
+  local -a required_args=( "token" "acc_arr" "short_opts_with_arg_arr" )
+  if ! core.require_args "$@"; then
+    return 2 
+  fi
+
+  # Check that acc_arr contains the name of a valid array
+  if ! core.is_array "$acc_arr"; then
+    printf "ERROR: '%s' is not a valid array\n" "$acc_arr" >&2
+    return 1
+  fi
+
+  # Check that short_opts_with_arg_arr is the name of a valid array
+  if ! core.is_array "$short_opts_with_arg_arr"; then
+    printf "ERROR: '%s' is not a valid array\n" "$short_opts_with_arg_arr" >&2
+    return 1
+  fi
+
+  # Remove '-' from token
+  token="${token#-}"
+
+  # Get first char from token
+  local first_letter
+  first_letter="${token:0:1}"
+
+  # If token only has one letter, append first letter to accumulator array and exit
+  local -i token_length="${#token}"
+  if ! (( token_length > 1 )); then
+    eval "$acc_arr+=( -$first_letter )"
+  else
+    # If token has more than one letter, check if first letter expects arg
+    if core.in_array "$first_letter" "$short_opts_with_arg_arr"; then
+      eval "$acc_arr+=( '-$first_letter' )"
+      eval "$acc_arr+=( '${token:1}' )"
+    # If first letter does not expect arg, append first letter to acc_arr and recurse
+    else
+      eval "$acc_arr+=( '-$first_letter' )"
+      __cli.normalize_short_opt_token "-${token:1}" "$acc_arr" "$short_opts_with_arg_arr"
+    fi
+  fi
 }
 
 cli.parse() {
@@ -203,7 +314,7 @@ cli.parse() {
 
 
     case "$line_command" in
-      flag)
+      opt)
         local short_form
         local long_form
         local env_var
@@ -216,12 +327,15 @@ cli.parse() {
         opt_help_message+=( "$help_message" )
         opt_has_arg+=( "false" )
         opt_help_summary+=( "-$short_form, --$long_form" )
+        ;;
         #help_summary_length="${#help_summary}" # extract
 
         #if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then # extract
         #  max_help_summary_length="${help_summary_length}" # extract
         #fi
         #n_opts=$((n_opts+1))
+      opt_with_arg)
+        return 0
     esac
   done 
 
