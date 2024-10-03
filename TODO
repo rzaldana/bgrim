@@ -1,7 +1,12 @@
-1. Implement integration tests for options with arguments (Use canonicalize_opts function in bg.parse to transform all options of the form "-oarg" and "--option=arg" to separate tokens)
+1. Finish implementing __cli.is_valid_long_opt_token (finish modifying tests from core.is_valid_long_opt)
+2. Implement normalize_tokens() func, which will separate all options and args into individual tokens for further processing
 2. Implement bg.cli.name function which sets the name to be displayed as the executable in the help message
 3. Implement bg.cli.description function to set description of utility to be printed out in help message
 4. Implement bg.cli.help_message to override auto-generated help message
 5. Implement bash native replacement for basename and substitute it in bg.get_parent_routine_name
 
 NOTE: we will process tokens instead of options
+
+Logic inside cli.parse that should be it's own function:
+- spec_lines_to_table: reads in the spec lines as provided by cli.add_* functions and turns into a table with a set schema
+- generate_opt_help_message: reads in a spec table  

@@ -772,7 +772,7 @@ core.is_valid_long_opt() (
 
 # description: |
 #   returns 0 if the given string is a valid short option name and 1 otherwise
-#   A valid long option string complies with the following rules:
+#   A valid short option string complies with the following rules:
 #   - starts with a single dash
 #   - is followed by a single uppercase or lowercase letter
 # inputs:

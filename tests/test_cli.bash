@@ -427,6 +427,183 @@ test_cli_parse_with_one_opt_with_arg_and_no_args() {
 #  assert_equals "ERROR: option '-f' requires an argument" "$(< "$stderr_file")" "stderr should contain an error message"
 #}
 
+test_is_valid_short_opt_token_returns_0_if_string_is_a_dash_followed_by_a_letter() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __cli.is_valid_short_opt_token "-d" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_token_returns_1_if_string_is_just_a_dash() {
+  tst.create_buffer_files
+  __cli.is_valid_short_opt_token "-" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_token_returns_1_if_string_is_a_dash_followed_by_a_number() {
+  tst.create_buffer_files
+  __cli.is_valid_short_opt_token "-1" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_token_returns_0_if_string_is_a_dash_followed_by_multiple_letters() {
+  tst.create_buffer_files
+  __cli.is_valid_short_opt_token "-nod" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_token_returns_0_if_string_is_a_dash_followed_by_multiple_letters_and_a_number() {
+  tst.create_buffer_files
+  __cli.is_valid_short_opt_token "-no1d" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_is_valid_short_opt_token_returns_1_if_string_is_a_dash_followed_by_a_number_and_multiple_letters() {
+  tst.create_buffer_files
+  __cli.is_valid_short_opt_token "-2nod" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+
+test_is_valid_short_opt_token_returns_1_if_string_is_a_long_option() {
+  tst.create_buffer_files
+  __cli.is_valid_short_opt_token "--n" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+
+test_is_valid_long_opt_token_returns_1_if_string_does_not_start_with_double_dashes() {
+  tst.create_buffer_files
+  __cli.is_valid_long_opt_token "string" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+#test_is_valid_long_opt_returns_1_if_string_does_not_contain_only_alphanumeric_chars_and_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--my_string" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_ends_with_a_dash() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--mystring-" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_only_letters() {
+#  set -euo pipefail
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--string" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_and_numbers() {
+#  set -euo pipefail
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--strin4g" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#
+#test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_numbers_and_dashes() {
+#  set -euo pipefail
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--string-flag2" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_starts_with_double_dashes_and_contains_a_single_letter() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--s" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_starts_with_a_single_dash() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "-string" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_starts_with_more_than_two_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "---string-flag" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_is_just_two_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#
+#test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_dash_after_the_initial_double_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--string--flag" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+
+
 test_normalize_short_opt_token_fails_if_acc_array_is_not_name_of_array() {
   tst.create_buffer_files
   local token='-d'
@@ -452,6 +629,7 @@ test_normalize_short_opt_token_fails_if_short_opts_with_args_array_is_not_name_o
 }
 
 test_normalize_short_opt_token_1() {
+  set -euo pipefail
   tst.create_buffer_files
   local token='-d'
   local -a acc_array
@@ -466,6 +644,7 @@ test_normalize_short_opt_token_1() {
 }
 
 test_normalize_short_opt_token_2() {
+  set -euo pipefail
   tst.create_buffer_files
   local token='-c'
   local -a acc_array
@@ -481,6 +660,7 @@ test_normalize_short_opt_token_2() {
 
 
 test_normalize_short_opt_token_3() {
+  set -euo pipefail
   tst.create_buffer_files
   local token='-carg'
   local -a acc_array
@@ -496,6 +676,7 @@ test_normalize_short_opt_token_3() {
 }
 
 test_normalize_short_opt_token_4() {
+  set -euo pipefail
   tst.create_buffer_files
   local token='-fe'
   local -a acc_array
@@ -511,6 +692,7 @@ test_normalize_short_opt_token_4() {
 }
 
 test_normalize_short_opt_token_5() {
+  set -euo pipefail
   tst.create_buffer_files
   local token='-febarg'
   local -a acc_array
@@ -527,9 +709,10 @@ test_normalize_short_opt_token_5() {
   assert_equals "4" "${#acc_array[@]}" "acc_array should have 4 elements"
 }
 
-test_normalize_short_opt_token_5() {
+test_normalize_short_opt_token_6() {
+  set -euo pipefail
   tst.create_buffer_files
-  local token='-fedarg'
+  local token='-fedargbc'
   local -a acc_array
   local -a short_opts_with_args=( "a" "b" "c" )
   __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
@@ -541,6 +724,63 @@ test_normalize_short_opt_token_5() {
   assert_equals "-e" "${acc_array[1]}" "second element of acc_array should be '-e'"
   assert_equals "-d" "${acc_array[2]}" "third element of acc_array should be '-d'"
   assert_equals "-a" "${acc_array[3]}" "fourth element of acc_array should be '-a'"
-  assert_equals "rg" "${acc_array[4]}" "fifth element of acc_array should be 'rg'"
+  assert_equals "rgbc" "${acc_array[4]}" "fifth element of acc_array should be 'rgbc'"
   assert_equals "5" "${#acc_array[@]}" "acc_array should have 5 elements"
 }
+
+test_normalize_long_opt_token_fails_when_acc_arr_is_not_an_arr(){
+  tst.create_buffer_files
+  local token='-d'
+  local acc_array
+  __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: 'acc_array' is not a valid array" "$(< "$stderr_file")" "stderr should contain msg"
+}
+
+test_normalize_long_opt_token_1(){
+  set -euo pipefail
+  tst.create_buffer_files
+  local token='--opt'
+  local -a acc_array
+  __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should contain msg"
+  assert_equals "--opt" "${acc_array[0]}" "first element of acc_array should be '--opt'"
+  assert_equals "1" "${#acc_array[@]}" "acc_array should have 1 element"
+}
+
+test_normalize_long_opt_token_2(){
+  set -euo pipefail
+  tst.create_buffer_files
+  local token='--opt=arg'
+  local -a acc_array
+  __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should contain msg"
+  assert_equals "--opt" "${acc_array[0]}" "first element of acc_array should be '--opt'"
+  assert_equals "arg" "${acc_array[1]}" "second element of acc_array should be 'arg'"
+  assert_equals "2" "${#acc_array[@]}" "acc_array should have 1 element"
+}
+
+test_normalize_long_opt_token_3(){
+  set -euo pipefail
+  tst.create_buffer_files
+  local token='--opt='
+  local -a acc_array
+  __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should contain msg"
+  assert_equals "--opt" "${acc_array[0]}" "first element of acc_array should be '--opt'"
+  assert_equals "" "${acc_array[1]}" "second element of acc_array should be ''"
+  assert_equals "2" "${#acc_array[@]}" "acc_array should have 1 element"
+}
+
+

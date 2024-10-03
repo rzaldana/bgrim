@@ -224,6 +224,64 @@ cli.add_opt_with_arg() {
   printf '%s|%s|%s|%s|%s\n' 'opt_with_arg' "$short_form" "$long_form" "$env_var" "$help_message"
 }
 
+__cli.is_valid_short_opt_token() {
+  local string
+  local -a required_args=( 'string' )
+  if ! core.require_args "$@"; then
+    return 2
+  fi
+
+  local regex="^-[[:alpha:]].*$"
+
+  # Regex is composed of the following expressions:
+  # ^-                matches a single dash at the beginning of the string 
+  # [[:alpha:]]$      matches a single letter at the end of the string
+  [[ "$string" =~ $regex ]]
+}
+
+# description: |
+#   returns 0 if the given string is a valid long option name and 1 otherwise
+#   A valid long option string complies with the following rules:
+#   - starts with double dashes ("--")
+#   - contains only dashes and alphanumeric characters
+#   - ends with an alphanumeric characters
+#   - has at least one alphanumeric character after the initial double dashes 
+#   - any dash after the initial double dashes is surrounded by alphanumeric
+#     characters on both sides
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the string is a valid long option"
+#     1: "when the string is not a valid long option"
+#     2: "when no string was provided"
+# tags:
+#   - "cli parsing"
+__cli.is_valid_long_opt_token() ( 
+  local string
+  local -a required_args=( 'string' )
+  if ! core.require_args "$@"; then
+    return 2
+  fi
+
+  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+$"
+
+  # Regex is composed of the following expressions:
+  # ^--[[:alnum:]]+   match double dashes '--' at the beginning of the line, 
+  #                   followed by one or more alphanumeric chars
+  # (-[[:alnum:]]+)*  match 0 or more instances (*) of the expression between
+  #                   parentheses. The expr between parentheses will match
+  #                   any string that starts with a dash '-' followed by one
+  #                   or more (+) alphanumeric chars
+  # [[:alnum:]]+$     match one or more alphanumeric chars at the end of the
+  #                   line 
+  [[ "$string" =~ $regex ]]
+)
+
 __cli.normalize_short_opt_token() {
   # Check number of arguments
   local -a required_args=( "token" "acc_arr" "short_opts_with_arg_arr" )
@@ -264,6 +322,36 @@ __cli.normalize_short_opt_token() {
       eval "$acc_arr+=( '-$first_letter' )"
       __cli.normalize_short_opt_token "-${token:1}" "$acc_arr" "$short_opts_with_arg_arr"
     fi
+  fi
+}
+
+__cli.normalize_long_opt_token() {
+  # Check number of arguments
+  local -a required_args=( "token" "acc_arr" )
+  if ! core.require_args "$@"; then
+    return 2 
+  fi
+
+  # Check that acc_arr contains the name of a valid array
+  if ! core.is_array "$acc_arr"; then
+    printf "ERROR: '%s' is not a valid array\n" "$acc_arr" >&2
+    return 1
+  fi
+
+  # Check if token contains an equal sign
+  if [[ "$token" == *"="* ]]; then
+    # if it does, separate the option from the
+    # arg and append them to the accumulator array
+    # as separate elements
+    local option
+    local arg
+    option="${token%%=*}"
+    arg="${token#*=}"
+    eval "$acc_arr+=( '$option' '$arg' )"
+  else
+    # Otherwise, just append the option to the accumulator
+    # array
+    eval "$acc_arr+=( '$token' )"
   fi
 }
 
