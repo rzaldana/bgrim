@@ -268,7 +268,7 @@ __cli.is_valid_long_opt_token() (
     return 2
   fi
 
-  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+$"
+  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+(=.*$|$)"
 
   # Regex is composed of the following expressions:
   # ^--[[:alnum:]]+   match double dashes '--' at the beginning of the line, 
@@ -277,8 +277,9 @@ __cli.is_valid_long_opt_token() (
   #                   parentheses. The expr between parentheses will match
   #                   any string that starts with a dash '-' followed by one
   #                   or more (+) alphanumeric chars
-  # [[:alnum:]]+$     match one or more alphanumeric chars at the end of the
-  #                   line 
+  # [[:alnum:]]+      match one or more alphanumeric chars
+  # (=.*$|$)          match either an equal sign followed by any number of
+  #                   chars until the end of the line or the end of the line
   [[ "$string" =~ $regex ]]
 )
 
