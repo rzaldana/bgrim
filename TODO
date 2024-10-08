@@ -1,4 +1,12 @@
-1. Finish implementing __cli.is_valid_long_opt_token (finish modifying tests from core.is_valid_long_opt) (DONE)
+0. Refactor require_args function so it allows the end-user to specify if a specific argument should be a readable array ("ra:var_name"), or a read-writable array ("rwa:var_name"). 
+  If the argument is a readable array, require_args should complain unless the provided variable:
+    - has the -a property set
+    - has a value set (at least the empty array ())
+  If the argument is a read-writable array, require_args should complain unless the provided variable:
+    - has the -a property set
+    - has a value set (at least the empty array ())
+    - does not have the -r property set
+1. Refactor all functions in core and cli that take arrays as arguments to use the new require_args function
 2. Implement normalize_tokens() func, which will separate all options and args into individual tokens for further processing (will use __cli.is_valid_long_opt_token and __cli.is_valid_short_opt_token to route a token to the right normalizing function)
 2. Implement bg.cli.name function which sets the name to be displayed as the executable in the help message
 3. Implement bg.cli.description function to set description of utility to be printed out in help message
@@ -10,3 +18,7 @@ NOTE: we will process tokens instead of options
 Logic inside cli.parse that should be it's own function:
 - spec_lines_to_table: reads in the spec lines as provided by cli.add_* functions and turns into a table with a set schema
 - generate_opt_help_message: reads in a spec table  
+
+NOTE: The difference between declaring a variable and setting a variable is relevant.
+When we run 'declare myvar' (or any variation thereof, such as `declare -a myvar` or `local -a myvar`), we are only DECLARING a variable. The variable is declared and will show up when we run `declare -p myvar`. However, the variable is unset, so if we have the `-u` (nounset) option set, any attempt to read the variable's value WILL fail.
+

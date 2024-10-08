@@ -19,6 +19,14 @@ test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeri
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
+test_is_valid_var_name_returns_0_when_the_given_string_contains_a_single_letter() {
+  set -euo pipefail
+  ret_code=0
+  stdout_and_stderr="$(core.is_valid_var_name "a" 2>&1)"  || ret_code="$?"
+  assert_equals "0" "$ret_code" "function call should return 0 when given a single letter"
+  assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
+}
+
 test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
   set -euo pipefail
   ret_code=0
@@ -190,31 +198,30 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 #}
 
 
-test_is_array_returns_0_if_there_is_an_array_with_the_given_name() {
+test_is_var_array_returns_0_if_there_is_an_array_variable_with_the_given_name_and_the_variable_is_set() {
   local -a my_test_array
   set -euo pipefail
-  stdout_and_stderr="$(core.is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(core.is_var_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when an array with that name exists"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
-  stdout_and_stderr="$(core.is_array "my_test_array" 2>&1)" 
+test_is_var_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
+  stdout_and_stderr="$(core.is_var_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when no variable with the given name is set" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array() {
+test_is_var_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array() {
   # shellcheck disable=SC2034
   local my_test_array="test_val"
-  stdout_and_stderr="$(core.is_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(core.is_var_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when variable with given name is not an array" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
-
 
 test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
   set -euo pipefail
@@ -749,160 +756,160 @@ test_tmpfile_returns_1_if_trap_fails() {
   assert_equals "1" "$ret_code" "should return 1"
 }
 
-test_is_valid_long_opt_returns_1_if_string_does_not_start_with_double_dashes() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "string" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
+#test_is_valid_long_opt_returns_1_if_string_does_not_start_with_double_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "string" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_does_not_contain_only_alphanumeric_chars_and_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--my_string" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_ends_with_a_dash() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--mystring-" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_only_letters() {
+#  set -euo pipefail
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--string" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_and_numbers() {
+#  set -euo pipefail
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--strin4g" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#
+#test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_numbers_and_dashes() {
+#  set -euo pipefail
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--string-flag2" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_starts_with_double_dashes_and_contains_a_single_letter() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--s" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_starts_with_a_single_dash() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "-string" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_starts_with_more_than_two_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "---string-flag" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_long_opt_returns_1_if_string_is_just_two_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#
+#test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_dash_after_the_initial_double_dashes() {
+#  tst.create_buffer_files
+#  core.is_valid_long_opt "--string--flag" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 1"
+#  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
 
-test_is_valid_long_opt_returns_1_if_string_does_not_contain_only_alphanumeric_chars_and_dashes() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "--my_string" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_long_opt_returns_1_if_string_ends_with_a_dash() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "--mystring-" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_only_letters() {
-  set -euo pipefail
-  tst.create_buffer_files
-  core.is_valid_long_opt "--string" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-
-}
-
-test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_and_numbers() {
-  set -euo pipefail
-  tst.create_buffer_files
-  core.is_valid_long_opt "--strin4g" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-
-}
-
-
-test_is_valid_long_opt_returns_0_if_string_starts_with_double_dashes_and_contains_letters_numbers_and_dashes() {
-  set -euo pipefail
-  tst.create_buffer_files
-  core.is_valid_long_opt "--string-flag2" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-
-}
-
-test_is_valid_long_opt_returns_1_if_string_starts_with_double_dashes_and_contains_a_single_letter() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "--s" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-
-}
-
-test_is_valid_long_opt_returns_1_if_string_starts_with_a_single_dash() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "-string" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-
-}
-
-test_is_valid_long_opt_returns_1_if_string_starts_with_more_than_two_dashes() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "---string-flag" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_long_opt_returns_1_if_string_is_just_two_dashes() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "--" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-
-test_is_valid_long_opt_returns_1_if_string_contains_more_than_one_contiguous_dash_after_the_initial_double_dashes() {
-  tst.create_buffer_files
-  core.is_valid_long_opt "--string--flag" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_short_opt_returns_0_if_string_is_a_dash_followed_by_a_letter() {
-  set -euo pipefail
-  tst.create_buffer_files
-  core.is_valid_short_opt "-d" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_short_opt_returns_1_if_string_is_just_a_dash() {
-  tst.create_buffer_files
-  core.is_valid_short_opt "-" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_a_number() {
-  tst.create_buffer_files
-  core.is_valid_short_opt "-1" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_two_letters() {
-  tst.create_buffer_files
-  core.is_valid_short_opt "-no" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_is_valid_short_opt_returns_1_if_string_is_a_long_option() {
-  tst.create_buffer_files
-  core.is_valid_short_opt "--n" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
+#test_is_valid_short_opt_returns_0_if_string_is_a_dash_followed_by_a_letter() {
+#  set -euo pipefail
+#  tst.create_buffer_files
+#  core.is_valid_short_opt "-d" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "0" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_short_opt_returns_1_if_string_is_just_a_dash() {
+#  tst.create_buffer_files
+#  core.is_valid_short_opt "-" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_a_number() {
+#  tst.create_buffer_files
+#  core.is_valid_short_opt "-1" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_short_opt_returns_1_if_string_is_a_dash_followed_by_two_letters() {
+#  tst.create_buffer_files
+#  core.is_valid_short_opt "-no" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
+#
+#test_is_valid_short_opt_returns_1_if_string_is_a_long_option() {
+#  tst.create_buffer_files
+#  core.is_valid_short_opt "--n" >"$stdout_file" 2>"$stderr_file"
+#  ret_code="$?"
+#  assert_equals "1" "$ret_code" "should return exit code 0"
+#  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+#  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+#}
 
 test_is_var_readonly_returns_1_if_variable_is_unset() {
   tst.create_buffer_files
@@ -1123,35 +1130,46 @@ test_require_args_places_args_with_spaces_in_correct_variable() {
   assert_equals "" "$(< "$stderr_file")"
 }
 
-test_is_var_set_returns_0_if_a_variable_is_set() {
+
+test_is_var_declared_returns_0_if_a_variable_is_declared() {
   set -euo pipefail
   tst.create_buffer_files
   local myvar
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_set_returns_1_if_a_variable_is_unset_and_nounset_is_set() {
+test_is_var_declared_returns_1_if_a_variable_is_undeclared_and_nounset_is_set() {
   tst.create_buffer_files
   set -u
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_set_returns_1_if_a_variable_is_unset() {
+test_is_var_declared_returns_1_if_a_variable_is_undeclared() {
   tst.create_buffer_files
   unset myvar
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  core.is_var_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_declared_returns_2_and_error_message_if_no_args_are_provided() {
+  tst.create_buffer_files
+  unset myvar
+  core.is_var_declared >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "2" "$ret_code" "should return exit code 2"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
 }
 
 test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
@@ -1162,6 +1180,60 @@ test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
+}
+
+test_is_var_set_returns_1_if_a_variable_is_undeclared() {
+  tst.create_buffer_files
+  unset myvar
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_set_returns_0_if_a_variable_is_declared_and_set() {
+  tst.create_buffer_files
+  unset myvar
+  local myvar=
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_set_returns_1_if_a_variable_is_declared_but_unset() {
+  tst.create_buffer_files
+  unset myvar
+  local myvar
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_set_returns_0_if_an_integer_variable_is_declared_and_set() {
+  tst.create_buffer_files
+  unset myvar
+  local -i myvar=0
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_is_var_set_returns_1_if_an_integer_variable_is_declared_but_unset() {
+  tst.create_buffer_files
+  unset myvar
+  local -i myvar
+  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
 test_get_parent_routine_name_returns_name_of_parent_of_currently_executing_func_if_within_nested_func() {

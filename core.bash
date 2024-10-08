@@ -76,7 +76,7 @@ export __BG_MKTEMP="mktemp"
 #   0 if the given name refers to an existing array variable
 #   1 otherwise
 ################################################################################
-core.is_array() ( 
+core.is_var_array() ( 
   local array_name="${1:-}"  
   local re="declare -a"
   local array_attributes
@@ -160,7 +160,7 @@ core.require_args() {
   calling_function="${FUNCNAME[1]}"
 
   # Fail if required_args array is not set 
-  if ! core.is_array 'required_args'; then
+  if ! core.is_var_array 'required_args'; then
     echo "ERROR: require_args: 'required_args' array not found" >&2
     return 2
   fi
@@ -193,7 +193,7 @@ core.require_args() {
   else
     # assign the value of each cli argument to the corresponding required arg
     for ((i=0; i < "${#required_args[@]}" ; i++)); do
-      eval "${required_args[$i]}='${provided_args[$i]}'"
+      eval "${required_args[$i]}=\"\${provided_args[\$i]}\""
     done
   fi
 
@@ -221,7 +221,7 @@ core.is_valid_var_name() (
     return 2
   fi
 
-  local re="^[a-zA-Z_][a-zA-Z0-9_]+$"
+  local re="^[a-zA-Z_][a-zA-Z0-9_]*$"
   if [[ "$var_name" =~ $re ]]; then
     return 0
   else
@@ -392,16 +392,17 @@ core.in_array() (
   fi
 
   # Check if array exists
-  if ! core.is_array "$array_name"; then
+  if ! core.is_var_array "$array_name"; then
     echo "The array with name '$array_name' does not exist" >&2
     return 2
   fi
 
   # Store values of array into a temporary local array
-  local -a tmp_array
-  eval "tmp_array=( \"\${${array_name}[@]}\")"
+  #local -a tmp_array
+  #eval "tmp_array=( \"\${${array_name}[@]}\")"
 
-  for elem in "${tmp_array[@]}" ; do
+  array_name="${array_name}[@]"
+  for elem in "${!array_name}" ; do
     [[ "$elem" == "$value" ]] && return 0
   done
   return 1
@@ -727,81 +728,7 @@ core.tmpfile() {
   eval "$filename_var=$tmpfile_name"
 }
 
-# description: |
-#   returns 0 if the given string is a valid long option name and 1 otherwise
-#   A valid long option string complies with the following rules:
-#   - starts with double dashes ("--")
-#   - contains only dashes and alphanumeric characters
-#   - ends with an alphanumeric characters
-#   - has at least one alphanumeric character after the initial double dashes 
-#   - any dash after the initial double dashes is surrounded by alphanumeric
-#     characters on both sides
-# inputs:
-#   stdin:
-#   args:
-#     1: "string to evaluate"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the string is a valid long option"
-#     1: "when the string is not a valid long option"
-#     2: "when no string was provided"
-# tags:
-#   - "cli parsing"
-core.is_valid_long_opt() ( 
-  local string
-  local -a required_args=( 'string' )
-  if ! core.require_args "$@"; then
-    return 2
-  fi
 
-  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+$"
-
-  # Regex is composed of the following expressions:
-  # ^--[[:alnum:]]+   match double dashes '--' at the beginning of the line, 
-  #                   followed by one or more alphanumeric chars
-  # (-[[:alnum:]]+)*  match 0 or more instances (*) of the expression between
-  #                   parentheses. The expr between parentheses will match
-  #                   any string that starts with a dash '-' followed by one
-  #                   or more (+) alphanumeric chars
-  # [[:alnum:]]+$     match one or more alphanumeric chars at the end of the
-  #                   line 
-  [[ "$string" =~ $regex ]]
-)
-
-# description: |
-#   returns 0 if the given string is a valid short option name and 1 otherwise
-#   A valid short option string complies with the following rules:
-#   - starts with a single dash
-#   - is followed by a single uppercase or lowercase letter
-# inputs:
-#   stdin:
-#   args:
-#     1: "string to evaluate"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the string is a valid long option"
-#     1: "when the string is not a valid long option"
-#     2: "when no string was provided"
-# tags:
-#   - "cli parsing"
-core.is_valid_short_opt() ( 
-  local string
-  local -a required_args=( 'string' )
-  if ! core.require_args "$@"; then
-    return 2
-  fi
-
-  local regex="^-[[:alpha:]]$"
-
-  # Regex is composed of the following expressions:
-  # ^-                matches a single dash at the beginning of the string 
-  # [[:alpha:]]$      matches a single letter at the end of the string
-  [[ "$string" =~ $regex ]]
-)
 
 # description: |
 #   returns 0 if the given string is a readonly variable
@@ -840,7 +767,33 @@ core.is_var_readonly() (
 
 # description: |
 #   returns 0 if the given variable name refers to a declared variable 
-#   returns 1 if the given variable name refers to an unset variable 
+#   returns 1 if the given variable name is not declared in the execution context 
+# inputs:
+#   stdin:
+#   args:
+#     1: "variable name"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the variable is set"
+#     1: "when the variable is not set 
+# tags:
+# - "utility"
+core.is_var_declared() ( 
+  local var_name
+  local -a required_args=( "var_name" )
+  if ! core.require_args "$@"; then
+    return 2 
+  fi
+  declare -p "$var_name" 1>/dev/null 2>&1
+)
+
+# description: |
+#   returns 0 if the given variable name refers to a variable that's declared and
+#   has a set value (even if it's an empty string or empty array). returns 1 if 
+#   the given variable name is not declared or is declared but does not have a
+#   set value.
 # inputs:
 #   stdin:
 #   args:
@@ -859,7 +812,15 @@ core.is_var_set() (
   if ! core.require_args "$@"; then
     return 2 
   fi
-  declare -p "$var_name" 1>/dev/null 2>&1
+
+  if ! core.is_var_declared "$var_name"; then
+    return 1
+  fi
+
+  regex='^declare -[a-zA-Z-]+ [a-zA-Z_][a-zA-Z0-9_]*\=.+$'
+  if ! [[ "$( declare -p "$var_name" )" =~ $regex ]]; then
+    return 1 
+  fi
 )
 
 # description: |
@@ -902,7 +863,7 @@ core.to_array() {
 
   # Read lines from stdin
   while IFS= read -r line; do
-    eval "${array_name}+=('${line}')"
+    eval "${array_name}+=( \"\${line}\")"
   done
 }
 
@@ -969,7 +930,7 @@ core.index_of() {
 
   # Check if array exists
   # shellcheck disable=SC2031
-  if ! core.is_array "${array_name}"; then
+  if ! core.is_var_array "${array_name}"; then
     # shellcheck disable=SC2031
     printf \
       "ERROR: array '%s' not found in execution environment" \

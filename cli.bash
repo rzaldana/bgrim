@@ -40,7 +40,7 @@ _cli.canonicalize_opts() {
 
   # Check if input array exists
   # shellcheck disable=SC2154
-  if ! core.is_array "$input_array"; then
+  if ! core.is_var_array "$input_array"; then
     printf \
       "ERROR: array '%s' not found in execution environment\n" \
       "$input_array" \
@@ -122,7 +122,7 @@ cli.add_opt() {
     return 1
   fi
 
-  if ! core.is_valid_long_opt "--$long_form"; then
+  if ! __cli.is_valid_long_opt "--$long_form"; then
     echo "ERROR: long form '$long_form' is not a valid long option" >&2
     return 1
   fi
@@ -190,7 +190,7 @@ cli.add_opt_with_arg() {
     return 1
   fi
 
-  if ! core.is_valid_long_opt "--$long_form"; then
+  if ! __cli.is_valid_long_opt "--$long_form"; then
     echo "ERROR: long form '$long_form' is not a valid long option" >&2
     return 1
   fi
@@ -223,6 +223,82 @@ cli.add_opt_with_arg() {
   # Print new spec line
   printf '%s|%s|%s|%s|%s\n' 'opt_with_arg' "$short_form" "$long_form" "$env_var" "$help_message"
 }
+
+# description: |
+#   returns 0 if the given string is a valid short option name and 1 otherwise
+#   A valid short option string complies with the following rules:
+#   - starts with a single dash
+#   - is followed by a single uppercase or lowercase letter
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the string is a valid long option"
+#     1: "when the string is not a valid long option"
+#     2: "when no string was provided"
+# tags:
+#   - "cli parsing"
+__cli.is_valid_short_opt() ( 
+  local string
+  local -a required_args=( 'string' )
+  if ! core.require_args "$@"; then
+    return 2
+  fi
+
+  local regex="^-[[:alpha:]]$"
+
+  # Regex is composed of the following expressions:
+  # ^-                matches a single dash at the beginning of the string 
+  # [[:alpha:]]$      matches a single letter at the end of the string
+  [[ "$string" =~ $regex ]]
+)
+
+# description: |
+#   returns 0 if the given string is a valid long option name and 1 otherwise
+#   A valid long option string complies with the following rules:
+#   - starts with double dashes ("--")
+#   - contains only dashes and alphanumeric characters
+#   - ends with an alphanumeric characters
+#   - has at least one alphanumeric character after the initial double dashes 
+#   - any dash after the initial double dashes is surrounded by alphanumeric
+#     characters on both sides
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to evaluate"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the string is a valid long option"
+#     1: "when the string is not a valid long option"
+#     2: "when no string was provided"
+# tags:
+#   - "cli parsing"
+__cli.is_valid_long_opt() ( 
+  local string
+  local -a required_args=( 'string' )
+  if ! core.require_args "$@"; then
+    return 2
+  fi
+
+  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+$"
+
+  # Regex is composed of the following expressions:
+  # ^--[[:alnum:]]+   match double dashes '--' at the beginning of the line, 
+  #                   followed by one or more alphanumeric chars
+  # (-[[:alnum:]]+)*  match 0 or more instances (*) of the expression between
+  #                   parentheses. The expr between parentheses will match
+  #                   any string that starts with a dash '-' followed by one
+  #                   or more (+) alphanumeric chars
+  # [[:alnum:]]+$     match one or more alphanumeric chars at the end of the
+  #                   line 
+  [[ "$string" =~ $regex ]]
+)
 
 __cli.is_valid_short_opt_token() {
   local string
@@ -283,6 +359,96 @@ __cli.is_valid_long_opt_token() (
   [[ "$string" =~ $regex ]]
 )
 
+__cli.normalize_opt_tokens() {
+  local -a required_args=( "input_array" "output_array" "short_opts_with_args" "long_opts_with_args" )
+  if ! core.require_args "$@"; then
+    return 2
+  fi
+
+  if ! core.is_var_array "$input_array"; then
+    printf "ERROR: '%s' is not an array\n" "$input_array" >&2
+    return 1
+  fi
+
+  if ! core.is_var_array "$output_array"; then
+    printf "ERROR: '%s' is not an array\n" "$output_array" >&2
+    return 1
+  fi
+
+  if ! core.is_var_array "$short_opts_with_args"; then
+    printf "ERROR: '%s' is not an array\n" "$short_opts_with_args" >&2
+    return 1
+  fi
+
+  if ! core.is_var_array "$long_opts_with_args"; then
+    printf "ERROR: '%s' is not an array\n" "$long_opts_with_args" >&2
+    return 1
+  fi
+
+
+  local input_array_length
+  eval "input_array_length=\"\${#${input_array}[@]}\""
+
+  if (( input_array_length == 0 )); then
+    eval "${output_array}=( '--' )"
+    return 0
+  fi
+
+
+  # Store values of input_array into temporary array
+  #local input_array_ref="${input_array}[@]"
+  local input_array_ref="${input_array}[@]"
+  local -a tmp_in_arr 
+  echo "WORKING" >/dev/tty
+  #eval "tmp_in_arr=( \"\${${input_array}[@]}\")"
+  echo "${input_array_ref}" >/dev/tty
+  echo "${!input_array_ref}" >/dev/tty
+  echo "WORKING" >/dev/tty
+  tmp_in_arr=( "${!input_array_ref}" )
+
+  # Create tmp_out_arr to store normalized options before splitting
+  # args and options
+  local -a tmp_out_arr 
+
+  # Create array to keep track of mapping index of old array -> index of new array
+  local -a mappings
+
+  # Add '--' after processing all options
+  #eval "${output_array}+=( '--' )"
+
+  local -i index
+  for index in "${!tmp_in_arr[@]}"; do
+
+    # Retrieve token from array
+    local elem="${tmp_in_arr[$index]}"
+
+    # Empty array to store normalized options
+    local -a normalized_options=()
+
+    # If token is a short option token, call __cli.normalize_short_opt_token
+    if __cli.is_valid_short_opt "${elem}"; then
+      __cli.normalize_short_opt_token "${elem}" "normalize_options" "$short_opts_with_args"
+
+      for normalized_option in "${normalized_options[@]}"; do
+        # Store normalized option in output array
+        tmp_out_arr+=( "${normalized_option}" )
+
+        # Store index of token in original input array into mappings array
+        mappings+=( "${index}" )
+      done
+    else
+    # else, insert element into output array as it is
+      tmp_out_arr+=( "${elem}" )
+    fi
+  done
+
+  # Split options and arguments from tmp_out_arr
+  local -i args_encountered=0
+  for token in "${tmp_out_arr[@]}"; do
+    eval "${output_array}+=( '${token}' )"
+  done
+}
+
 __cli.normalize_short_opt_token() {
   # Check number of arguments
   local -a required_args=( "token" "acc_arr" "short_opts_with_arg_arr" )
@@ -291,13 +457,13 @@ __cli.normalize_short_opt_token() {
   fi
 
   # Check that acc_arr contains the name of a valid array
-  if ! core.is_array "$acc_arr"; then
+  if ! core.is_var_array "$acc_arr"; then
     printf "ERROR: '%s' is not a valid array\n" "$acc_arr" >&2
     return 1
   fi
 
   # Check that short_opts_with_arg_arr is the name of a valid array
-  if ! core.is_array "$short_opts_with_arg_arr"; then
+  if ! core.is_var_array "$short_opts_with_arg_arr"; then
     printf "ERROR: '%s' is not a valid array\n" "$short_opts_with_arg_arr" >&2
     return 1
   fi
@@ -312,15 +478,15 @@ __cli.normalize_short_opt_token() {
   # If token only has one letter, append first letter to accumulator array and exit
   local -i token_length="${#token}"
   if ! (( token_length > 1 )); then
-    eval "$acc_arr+=( -$first_letter )"
+    eval "$acc_arr+=( \"-\$first_letter\" )"
   else
     # If token has more than one letter, check if first letter expects arg
     if core.in_array "$first_letter" "$short_opts_with_arg_arr"; then
-      eval "$acc_arr+=( '-$first_letter' )"
-      eval "$acc_arr+=( '${token:1}' )"
+      eval "$acc_arr+=( \"-\$first_letter\" )"
+      eval "$acc_arr+=( \"\${token:1}\" )"
     # If first letter does not expect arg, append first letter to acc_arr and recurse
     else
-      eval "$acc_arr+=( '-$first_letter' )"
+      eval "$acc_arr+=( \"-\$first_letter\" )"
       __cli.normalize_short_opt_token "-${token:1}" "$acc_arr" "$short_opts_with_arg_arr"
     fi
   fi
@@ -334,7 +500,7 @@ __cli.normalize_long_opt_token() {
   fi
 
   # Check that acc_arr contains the name of a valid array
-  if ! core.is_array "$acc_arr"; then
+  if ! core.is_var_array "$acc_arr"; then
     printf "ERROR: '%s' is not a valid array\n" "$acc_arr" >&2
     return 1
   fi
@@ -348,11 +514,11 @@ __cli.normalize_long_opt_token() {
     local arg
     option="${token%%=*}"
     arg="${token#*=}"
-    eval "$acc_arr+=( '$option' '$arg' )"
+    eval "$acc_arr+=( \"\$option\" \"\$arg\" )"
   else
     # Otherwise, just append the option to the accumulator
     # array
-    eval "$acc_arr+=( '$token' )"
+    eval "$acc_arr+=( \"\$token\" )"
   fi
 }
 
@@ -480,7 +646,7 @@ EOF
 
     # check if it's a short opt
     local -i index
-    if core.is_valid_short_opt "${!i}"; then
+    if __cli.is_valid_short_opt "${!i}"; then
       if core.in_array "${!i}" 'opt_short_form'; then
         # Find index of option in 'opt_short_form' array
         index="$( core.index_of "${!i}" 'opt_short_form' )"
@@ -495,7 +661,7 @@ EOF
       fi
 
     # check if it's a long opt
-    elif core.is_valid_long_opt "${!i}"; then
+    elif __cli.is_valid_long_opt "${!i}"; then
       if core.in_array "${!i}" 'opt_long_form'; then
         # Find index of option in 'opt_long_form' array
         index="$( core.index_of "${!i}" 'opt_long_form' )"
