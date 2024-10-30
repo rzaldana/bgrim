@@ -440,7 +440,7 @@ core.clear_vars_with_prefix() {
 core.in_array() ( 
   local value
   local array_name
-  local -a required_args=( 'value' 'array_name' )
+  local -a required_args=( 'value' 'ra:array_name' )
   if ! core.require_args "$@"; then
     return 2
   fi
@@ -896,7 +896,7 @@ core.is_var_set() (
 #   - "cli parsing"
 core.to_array() {
   local array_name
-  local -a required_args=( 'array_name' )
+  local -a required_args=( 'rwa:array_name' )
   if ! core.require_args "$@"; then
     return 2
   fi
@@ -977,7 +977,7 @@ core.index_of() {
   local array_name
 
   # Check number of arguments
-  local -a required_args=( "item" "array_name" )
+  local -a required_args=( "item" "ra:array_name" )
   if ! core.require_args "$@"; then
     return 2 
   fi

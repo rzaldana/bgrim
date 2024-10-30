@@ -525,7 +525,7 @@ __cli.normalize_long_opt_token() {
 cli.parse() {
   # Store all spec lines from stdin
   # into an array called 'spec_array'
-  local -a spec_array
+  local -a spec_array=()
   core.to_array 'spec_array'
 
   # Check that spec is not empty

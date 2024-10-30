@@ -240,17 +240,6 @@ test_in_array_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_in_array_returns_2_and_prints_error_message_when_an_array_with_the_given_name_doesnt_exist() {
-  local stderr_file
-  stderr_file="$(mktemp)"
-  tst.rm_on_exit "$stderr_file"
-  stdout="$(core.in_array "val4" "test_array" 2>"$stderr_file")"
-  ret_code="$?"
-  assert_equals "2" "$ret_code" "function call should return 2 when array with given name doesn't exist" 
-  assert_equals "" "$stdout" "stdout should be empty"
-  assert_equals "The array with name 'test_array' does not exist" "$(cat "$stderr_file")" "stderr should contain error message"
-}
-
 test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
   set -euo pipefail
   local stdout_and_stderr
@@ -952,41 +941,10 @@ test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes(
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_to_array_returns_1_if_given_string_is_not_a_valid_var_name() {
-  tst.create_buffer_files
-
-  core.is_valid_var_name() {
-    return 1 
-  }
-  
-  core.to_array 'string' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: 'string' is not a valid variable name" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
-test_to_array_returns_1_if_given_variable_is_readonly() {
-  tst.create_buffer_files
-
-  declare -r myarray
-  
-  core.to_array 'myarray' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: 'myarray' is a readonly variable" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
 test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
   set -euo pipefail
   tst.create_buffer_files
+  local -a myarray=()
   core.to_array myarray >"$stdout_file" 2>"$stderr_file" <<<'just a line'
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -1002,6 +960,7 @@ test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
 test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
   set -euo pipefail
   tst.create_buffer_files
+  local -a myarray=()
   core.to_array myarray >"$stdout_file" 2>"$stderr_file" \
     <<<"$(printf "%s\n %s" "line 1" "line 2")"
   ret_code="$?"
@@ -1448,19 +1407,3 @@ test_index_of_returns_the_index_of_the_provided_item_in_the_provided_array() {
   assert_equals "1" "$(< "$stdout_file" )" "stdout should contain '1'"
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
-
-test_index_of_returns_error_if_array_does_not_exist() {
-  set -uo pipefail
-  #local -a myarray=( "first" "second" "third" )
-  tst.create_buffer_files
-  core.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals \
-    "ERROR: array 'myarray' not found in execution environment" \
-    "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-
-
