@@ -171,12 +171,13 @@ core.require_args() {
     return 2
   fi
 
-
   local -a provided_args=( "$@" )
 
   # Validate that required args are all valid variable names
   local valid_var_name_re="^[a-zA-Z_][a-zA-Z0-9_]+$"
   for arg in "${required_args[@]}"; do
+    # Remove type prefix, if present
+    arg="${arg##*:}"
     if ! [[ "$arg" =~ $valid_var_name_re ]]; then
       echo "ERROR: $calling_function: '$arg' is not a valid variable name" >&2
       return 1
@@ -192,8 +193,61 @@ core.require_args() {
     return 1
   else
     # assign the value of each cli argument to the corresponding required arg
+    local type_prefix
+    local provided_arg
+    local required_arg
     for ((i=0; i < "${#required_args[@]}" ; i++)); do
-      eval "${required_args[$i]}=\"\${provided_args[\$i]}\""
+      required_arg="${required_args[$i]}"
+      provided_arg="${provided_args[$i]}"
+
+      # For each required arg, if it has a type prefix,
+      # check that the provided type is of a type that 
+      # matches the type prefix
+      local re=".+:.+"
+      if [[ "$required_arg" =~ $re ]]; then 
+        IFS=: read -r type_prefix required_arg <<<"$required_arg"
+        #type_prefix="${required_arg%%:*}"
+        #required_arg="${required_arg##*:}"
+
+        case "${type_prefix}" in
+          "ra")
+            if ! core.is_var_array "$provided_arg"; then
+              echo "ERROR: $calling_function: array variable with name '$provided_arg' does not exist" >&2
+              return 1 
+            fi
+
+            if ! core.is_var_set "$provided_arg"; then
+              echo "ERROR: $calling_function: array variable with name '$provided_arg' is not set" >&2
+              return 1
+            fi
+            ;;
+
+          "rwa")
+            if ! core.is_var_array "$provided_arg"; then
+              echo "ERROR: $calling_function: array variable with name '$provided_arg' does not exist" >&2
+              return 1 
+            fi
+
+            if ! core.is_var_set "$provided_arg"; then
+              echo "ERROR: $calling_function: array variable with name '$provided_arg' is not set" >&2
+              return 1
+            fi
+
+            if core.is_var_readonly "$provided_arg"; then
+              echo "ERROR: $calling_function: array variable with name '$provided_arg' is read-only" >&2
+              return 1
+            fi
+            ;;
+          *)
+            echo "ERROR: $calling_function: Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra' and 'rwa'" >&2
+            return 1
+            ;;
+        esac
+      fi
+
+      # TODO: sanitize arguments in provided_args by replacing all double quotes(")
+      # in the arg with escaped double quotes to avoid arbitrary code execution
+      eval "${required_arg}=\"\${provided_arg}\""
     done
   fi
 

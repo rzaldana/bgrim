@@ -1,11 +1,3 @@
-0. Refactor require_args function so it allows the end-user to specify if a specific argument should be a readable array ("ra:var_name"), or a read-writable array ("rwa:var_name"). 
-  If the argument is a readable array, require_args should complain unless the provided variable:
-    - has the -a property set
-    - has a value set (at least the empty array ())
-  If the argument is a read-writable array, require_args should complain unless the provided variable:
-    - has the -a property set
-    - has a value set (at least the empty array ())
-    - does not have the -r property set
 1. Refactor all functions in core and cli that take arrays as arguments to use the new require_args function
 2. Implement normalize_tokens() func, which will separate all options and args into individual tokens for further processing (will use __cli.is_valid_long_opt_token and __cli.is_valid_short_opt_token to route a token to the right normalizing function)
 2. Implement bg.cli.name function which sets the name to be displayed as the executable in the help message

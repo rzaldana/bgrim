@@ -1087,7 +1087,7 @@ test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided()
   local -a required_args=( "ARG1" "ARG2" )
   core.require_args "myvalue1" "myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
     "" \
@@ -1095,6 +1095,39 @@ test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided()
     "stderr should be empty"
   assert_equals "$ARG1" "myvalue1" "variable 'ARG1' should contain value of argument"
   assert_equals "$ARG2" "myvalue2" "variable 'ARG2' should contain value of argument"
+}
+
+test_require_args_returns_0_if_three_args_are_required_and_three_args_are_provided() {
+  set -euo pipefail
+  tst.create_buffer_files
+  local -a required_args=( "ARG1" "ra:myarray" "ARG2" )
+  local -a new_array=()
+  core.require_args "myvalue1" "new_array" "myvalue2" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "" \
+    "$(< "$stderr_file")" \
+    "stderr should be empty"
+  assert_equals "$ARG1" "myvalue1" "variable 'ARG1' should contain value of argument"
+  assert_equals "$ARG2" "myvalue2" "variable 'ARG2' should contain value of argument"
+  assert_equals "$myarray" "new_array" "variable 'myarray' should contain value of argument"
+}
+
+test_require_args_returns_1_if_three_args_are_required_and_three_args_are_provided_but_arr_is_invalid() {
+  set -uo pipefail
+  tst.create_buffer_files
+  local -a required_args=( "ARG1" "ra:myarray" "ARG2" )
+  local -a new_array
+  core.require_args "myvalue1" "new_array" "myvalue2" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals \
+    "ERROR: ${FUNCNAME[0]}: array variable with name 'new_array' is not set" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
 }
 
 test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_name() {
@@ -1106,6 +1139,121 @@ test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
     "ERROR: ${FUNCNAME[0]}: 'var()' is not a valid variable name" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
+}
+
+test_require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_string_is_provided() {
+  tst.create_buffer_files
+  local -a required_args=( "ra:myarray" )
+  core.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: ${FUNCNAME[0]}: array variable with name 'nonarray' does not exist" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
+}
+
+test_require_args_returns_1_if_readable_array_arg_is_required_but_unset_array_variable_is_provided() {
+  tst.create_buffer_files
+  local -a an_array
+  local -a required_args=( "ra:myarray" )
+  core.require_args "an_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: ${FUNCNAME[0]}: array variable with name 'an_array' is not set" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
+}
+
+test_require_args_returns_0_if_readable_array_arg_is_required_and_set_array_variable_is_provided() {
+  tst.create_buffer_files
+  local -a another_array=()
+  local -a required_args=( "ra:myarray")
+  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_require_args_returns_0_if_readable_array_arg_is_required_and_set_readonly_array_variable_is_provided() {
+  tst.create_buffer_files
+  local -ra another_array=()
+  local -a required_args=( "ra:myarray")
+  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+
+test_require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_string_is_provided() {
+  tst.create_buffer_files
+  local -a required_args=( "rwa:myarray" )
+  core.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: ${FUNCNAME[0]}: array variable with name 'nonarray' does not exist" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
+}
+
+test_require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_array_variable_is_provided() {
+  tst.create_buffer_files
+  local -a an_array
+  local -a required_args=( "rwa:myarray" )
+  core.require_args "an_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: ${FUNCNAME[0]}: array variable with name 'an_array' is not set" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
+}
+
+test_require_args_returns_1_if_readable_array_arg_is_required_and_set_read_only_array_variable_is_provided() {
+  tst.create_buffer_files
+  local -ra another_array=()
+  local -a required_args=( "rwa:myarray")
+  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: ${FUNCNAME[0]}: array variable with name 'another_array' is read-only" \
+    "$(< "$stderr_file")" \
+    "stderr should contain an error message"
+}
+
+test_require_args_returns_0_if_readable_array_arg_is_required_and_set_writable_array_variable_is_provided() {
+  tst.create_buffer_files
+  local -a another_array=()
+  local -a required_args=( "rwa:myarray")
+  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_require_args_returns_1_if_invalid_prefix_is_provided() { 
+  tst.create_buffer_files
+  local -a required_args=( "dwa:myarray")
+  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "ERROR: ${FUNCNAME[0]}: Type prefix 'dwa' for variable 'myarray' is not valid. Valid prefixes are: 'ra' and 'rwa'" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
