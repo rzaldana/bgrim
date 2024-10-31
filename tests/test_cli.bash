@@ -822,35 +822,11 @@ test_is_valid_long_opt_token_returns_1_if_string_contains_more_than_one_contiguo
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-test_normalize_short_opt_token_fails_if_acc_array_is_not_name_of_array() {
-  tst.create_buffer_files
-  local token='-d'
-  local acc_array
-  local -a short_opts_with_args=( "a" "b" "c" )
-  __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: 'acc_array' is not a valid array" "$(< "$stderr_file")" "stderr should contain msg"
-}
-
-test_normalize_short_opt_token_fails_if_short_opts_with_args_array_is_not_name_of_array() {
-  tst.create_buffer_files
-  local token='-d'
-  local -a acc_array
-  local short_opts_with_args
-  __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: 'short_opts_with_args' is not a valid array" "$(< "$stderr_file")" "stderr should contain msg"
-}
-
 test_normalize_short_opt_token_1() {
   set -euo pipefail
   tst.create_buffer_files
   local token='-d'
-  local -a acc_array
+  local -a acc_array=()
   local -a short_opts_with_args=( "a" "b" "c" )
   __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -865,7 +841,7 @@ test_normalize_short_opt_token_2() {
   set -euo pipefail
   tst.create_buffer_files
   local token='-c'
-  local -a acc_array
+  local -a acc_array=()
   local -a short_opts_with_args=( "a" "b" "c" )
   __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -881,7 +857,7 @@ test_normalize_short_opt_token_3() {
   set -euo pipefail
   tst.create_buffer_files
   local token='-carg'
-  local -a acc_array
+  local -a acc_array=()
   local -a short_opts_with_args=( "a" "b" "c" )
   __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -897,7 +873,7 @@ test_normalize_short_opt_token_4() {
   set -euo pipefail
   tst.create_buffer_files
   local token='-fe'
-  local -a acc_array
+  local -a acc_array=()
   local -a short_opts_with_args=( "a" "b" "c" )
   __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -913,7 +889,7 @@ test_normalize_short_opt_token_5() {
   set -euo pipefail
   tst.create_buffer_files
   local token='-febarg'
-  local -a acc_array
+  local -a acc_array=()
   local -a short_opts_with_args=( "a" "b" "c" )
   __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -931,7 +907,7 @@ test_normalize_short_opt_token_6() {
   set -euo pipefail
   tst.create_buffer_files
   local token='-fedargbc'
-  local -a acc_array
+  local -a acc_array=()
   local -a short_opts_with_args=( "a" "b" "c" )
   __cli.normalize_short_opt_token "$token" "acc_array" "short_opts_with_args" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -946,22 +922,11 @@ test_normalize_short_opt_token_6() {
   assert_equals "5" "${#acc_array[@]}" "acc_array should have 5 elements"
 }
 
-test_normalize_long_opt_token_fails_when_acc_arr_is_not_an_arr(){
-  tst.create_buffer_files
-  local token='-d'
-  local acc_array
-  __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: 'acc_array' is not a valid array" "$(< "$stderr_file")" "stderr should contain msg"
-}
-
 test_normalize_long_opt_token_1(){
   set -euo pipefail
   tst.create_buffer_files
   local token='--opt'
-  local -a acc_array
+  local -a acc_array=()
   __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -975,7 +940,7 @@ test_normalize_long_opt_token_2(){
   set -euo pipefail
   tst.create_buffer_files
   local token='--opt=arg'
-  local -a acc_array
+  local -a acc_array=()
   __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -983,14 +948,14 @@ test_normalize_long_opt_token_2(){
   assert_equals "" "$(< "$stderr_file")" "stderr should contain msg"
   assert_equals "--opt" "${acc_array[0]}" "first element of acc_array should be '--opt'"
   assert_equals "arg" "${acc_array[1]}" "second element of acc_array should be 'arg'"
-  assert_equals "2" "${#acc_array[@]}" "acc_array should have 1 element"
+  assert_equals "2" "${#acc_array[@]}" "acc_array should have 2 elements"
 }
 
 test_normalize_long_opt_token_3(){
   set -euo pipefail
   tst.create_buffer_files
   local token='--opt='
-  local -a acc_array
+  local -a acc_array=()
   __cli.normalize_long_opt_token "$token" "acc_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -998,62 +963,16 @@ test_normalize_long_opt_token_3(){
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
   assert_equals "--opt" "${acc_array[0]}" "first element of acc_array should be '--opt'"
   assert_equals "" "${acc_array[1]}" "second element of acc_array should be ''"
-  assert_equals "2" "${#acc_array[@]}" "acc_array should have 1 element"
-}
-
-test_normalize_opt_tokens_fails_if_first_arg_is_not_an_array() {
-  tst.create_buffer_files
-  __cli.normalize_opt_tokens "in_arr" "out_arr" "short_opts_with_args" "long_opts_with_args" \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: 'in_arr' is not an array" "$(< "$stderr_file")" "stderr should contain msg"
-}
-
-test_normalize_opt_tokens_fails_if_second_arg_is_not_an_array() {
-  tst.create_buffer_files
-  local -a in_arr
-  __cli.normalize_opt_tokens "in_arr" "out_arr" "short_opts_with_args" "long_opts_with_args" \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: 'out_arr' is not an array" "$(< "$stderr_file")" "stderr should contain msg"
-}
-
-test_normalize_opt_tokens_fails_if_third_arg_is_not_an_array() {
- tst.create_buffer_files
-  local -a in_arr
-  local -a out_arr
-  __cli.normalize_opt_tokens "in_arr" "out_arr" "short_opts_with_args" "long_opts_with_args" \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: 'short_opts_with_args' is not an array" "$(< "$stderr_file")" "stderr should contain msg"
-}
-
-test_normalize_opt_tokens_fails_if_fourth_arg_is_not_an_array() {
-  tst.create_buffer_files
-  local -a in_arr
-  local -a out_arr
-  local -a short_opts_with_args
-  __cli.normalize_opt_tokens "in_arr" "out_arr" "short_opts_with_args" "long_opts_with_args" \
-    >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: 'long_opts_with_args' is not an array" "$(< "$stderr_file")" "stderr should contain msg"
+  assert_equals "2" "${#acc_array[@]}" "acc_array should have 2 elements"
 }
 
 test_normalize_opt_tokens_returns_an_empty_array_if_input_array_is_empty() {
   set -euo pipefail
   tst.create_buffer_files
   local -a in_arr=()
-  local -a out_arr
-  local -a short_opts_with_args
-  local -a long_opts_with_args
+  local -a out_arr=()
+  local -a short_opts_with_args=()
+  local -a long_opts_with_args=()
   __cli.normalize_opt_tokens "in_arr" "out_arr" "short_opts_with_args" "long_opts_with_args" \
     >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"

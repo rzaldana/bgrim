@@ -360,31 +360,10 @@ __cli.is_valid_long_opt_token() (
 )
 
 __cli.normalize_opt_tokens() {
-  local -a required_args=( "input_array" "output_array" "short_opts_with_args" "long_opts_with_args" )
+  local -a required_args=( "ra:input_array" "rwa:output_array" "ra:short_opts_with_args" "ra:long_opts_with_args" )
   if ! core.require_args "$@"; then
     return 2
   fi
-
-  if ! core.is_var_array "$input_array"; then
-    printf "ERROR: '%s' is not an array\n" "$input_array" >&2
-    return 1
-  fi
-
-  if ! core.is_var_array "$output_array"; then
-    printf "ERROR: '%s' is not an array\n" "$output_array" >&2
-    return 1
-  fi
-
-  if ! core.is_var_array "$short_opts_with_args"; then
-    printf "ERROR: '%s' is not an array\n" "$short_opts_with_args" >&2
-    return 1
-  fi
-
-  if ! core.is_var_array "$long_opts_with_args"; then
-    printf "ERROR: '%s' is not an array\n" "$long_opts_with_args" >&2
-    return 1
-  fi
-
 
   local input_array_length
   eval "input_array_length=\"\${#${input_array}[@]}\""
@@ -451,21 +430,9 @@ __cli.normalize_opt_tokens() {
 
 __cli.normalize_short_opt_token() {
   # Check number of arguments
-  local -a required_args=( "token" "acc_arr" "short_opts_with_arg_arr" )
+  local -a required_args=( "token" "rwa:acc_arr" "ra:short_opts_with_arg_arr" )
   if ! core.require_args "$@"; then
     return 2 
-  fi
-
-  # Check that acc_arr contains the name of a valid array
-  if ! core.is_var_array "$acc_arr"; then
-    printf "ERROR: '%s' is not a valid array\n" "$acc_arr" >&2
-    return 1
-  fi
-
-  # Check that short_opts_with_arg_arr is the name of a valid array
-  if ! core.is_var_array "$short_opts_with_arg_arr"; then
-    printf "ERROR: '%s' is not a valid array\n" "$short_opts_with_arg_arr" >&2
-    return 1
   fi
 
   # Remove '-' from token
@@ -473,6 +440,7 @@ __cli.normalize_short_opt_token() {
 
   # Get first char from token
   local first_letter
+  local rest_of_token
   first_letter="${token:0:1}"
 
   # If token only has one letter, append first letter to accumulator array and exit
@@ -480,29 +448,24 @@ __cli.normalize_short_opt_token() {
   if ! (( token_length > 1 )); then
     eval "$acc_arr+=( \"-\$first_letter\" )"
   else
+    rest_of_token="${token:1}"
     # If token has more than one letter, check if first letter expects arg
     if core.in_array "$first_letter" "$short_opts_with_arg_arr"; then
       eval "$acc_arr+=( \"-\$first_letter\" )"
-      eval "$acc_arr+=( \"\${token:1}\" )"
+      eval "$acc_arr+=( \"\${rest_of_token}\" )"
     # If first letter does not expect arg, append first letter to acc_arr and recurse
     else
       eval "$acc_arr+=( \"-\$first_letter\" )"
-      __cli.normalize_short_opt_token "-${token:1}" "$acc_arr" "$short_opts_with_arg_arr"
+      __cli.normalize_short_opt_token "-${rest_of_token}" "$acc_arr" "$short_opts_with_arg_arr"
     fi
   fi
 }
 
 __cli.normalize_long_opt_token() {
   # Check number of arguments
-  local -a required_args=( "token" "acc_arr" )
+  local -a required_args=( "token" "rwa:acc_arr" )
   if ! core.require_args "$@"; then
     return 2 
-  fi
-
-  # Check that acc_arr contains the name of a valid array
-  if ! core.is_var_array "$acc_arr"; then
-    printf "ERROR: '%s' is not a valid array\n" "$acc_arr" >&2
-    return 1
   fi
 
   # Check if token contains an equal sign
