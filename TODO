@@ -1,4 +1,5 @@
-1. Refactor all functions in cli.bash that take arrays as arguments to use the new require_args function (core.bash has already been refactored)
+0. Implement bg.arr.insert function, which will insert an element into an array at the given index and move all elements after that index to the right 
+1. Implement logic in normalize_tokens() function that separates options from args (use bg.arr.insert function to insert '--' in between the two)
 2. Implement normalize_tokens() func, which will separate all options and args into individual tokens for further processing (will use __cli.is_valid_long_opt_token and __cli.is_valid_short_opt_token to route a token to the right normalizing function)
 2. Implement bg.cli.name function which sets the name to be displayed as the executable in the help message
 3. Implement bg.cli.description function to set description of utility to be printed out in help message

@@ -380,9 +380,9 @@ __cli.normalize_opt_tokens() {
   local -a tmp_in_arr 
   echo "WORKING" >/dev/tty
   #eval "tmp_in_arr=( \"\${${input_array}[@]}\")"
-  echo "${input_array_ref}" >/dev/tty
-  echo "${!input_array_ref}" >/dev/tty
-  echo "WORKING" >/dev/tty
+  #echo "${input_array_ref}" >/dev/tty
+  #echo "${!input_array_ref}" >/dev/tty
+  #echo "WORKING" >/dev/tty
   tmp_in_arr=( "${!input_array_ref}" )
 
   # Create tmp_out_arr to store normalized options before splitting
@@ -406,7 +406,7 @@ __cli.normalize_opt_tokens() {
 
     # If token is a short option token, call __cli.normalize_short_opt_token
     if __cli.is_valid_short_opt "${elem}"; then
-      __cli.normalize_short_opt_token "${elem}" "normalize_options" "$short_opts_with_args"
+      __cli.normalize_short_opt_token "${elem}" "normalized_options" "$short_opts_with_args"
 
       for normalized_option in "${normalized_options[@]}"; do
         # Store normalized option in output array

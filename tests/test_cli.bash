@@ -986,16 +986,16 @@ test_normalize_opt_tokens_returns_an_empty_array_if_input_array_is_empty() {
 #test_normalize_opt_token_inserts_elements_from_input_array_to_output_array_as_they_are_if_they_are_not_option_tokens() {
 #  tst.create_buffer_files
 #  local -a in_arr=( "arg1" "arg2 more" "arg3" )
-#  local -a out_arr
-#  local -a short_opts_with_args
-#  local -a long_opts_with_args
+#  local -a out_arr=()
+#  local -a short_opts_with_args=()
+#  local -a long_opts_with_args=()
 #  __cli.normalize_opt_tokens "in_arr" "out_arr" "short_opts_with_args" "long_opts_with_args" \
 #    >"$stdout_file" 2>"$stderr_file"
 #  ret_code="$?"
 #  assert_equals "0" "$ret_code" "should return exit code 0"
 #  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
 #  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-#  assert_equals "4" "${#out_arr[@]}" "length of out_array should be 3"
+#  assert_equals "4" "${#out_arr[@]}" "length of out_array should be 4"
 #  assert_equals "--" "${out_arr[0]}" "first element of out_arr should be 'arg1'"
 #  assert_equals "arg1" "${out_arr[1]}" "first element of out_arr should be 'arg1'"
 #  assert_equals "arg2 more" "${out_arr[2]}" "second element of out_arr should be 'arg2'"
