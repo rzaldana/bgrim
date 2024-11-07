@@ -82,7 +82,7 @@ test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environm
   assert_equals "" "$(shopt -s)" 'There should be no set bash-specific options'
 }
 
-test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
+test_trap.clear_all_clears_all_traps_set_in_the_current_and_parent_environment() {
   set -euo pipefail
   stderr_file="$(mktemp)"
   func_stdout_file="$(mktemp)"
@@ -107,7 +107,7 @@ test_clear_traps_clears_all_traps_set_in_the_current_and_parent_environment() {
     trap 'true' EXIT >/dev/null 2>&1
     trap 'true' SIGINT >/dev/null 2>&1
 
-    core.clear_traps >"$func_stdout_file" #|| echo "failed!" >/dev/tty
+    bg.trap.clear_all >"$func_stdout_file" #|| echo "failed!" >/dev/tty
     echo "$?" > "$ret_code_file" || echo "failed to write!" >/dev/tty
 
     # After clearing
@@ -379,7 +379,7 @@ test_is_shell_opt_set_returns_2_if_the_given_option_is_not_valid() {
 }
 
 
-test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_trap() {
+test_trap.get_returns_nothing_if_given_a_signal_that_does_not_have_a_trap() {
   set -euo pipefail
   local stdout_and_stderr
   stdout_and_stderr="$( 
@@ -387,7 +387,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_tra
   trap - SIGINT 
 
   # Call function
-  core.get_trap_command 'SIGINT' 2>&1 
+  bg.trap.get 'SIGINT' 2>&1 
   )"
 
   ret_code="$?"
@@ -395,7 +395,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_that_does_not_have_a_tra
   assert_equals "0" "$ret_code" "should return 0 when trap is not set"
 }
 
-test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
+test_trap.get_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
   set -euo pipefail
   local stdout_and_stderr
   stdout_and_stderr="$( 
@@ -403,7 +403,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
   trap '' SIGINT 
 
   # Call function
-  core.get_trap_command 'SIGINT' 2>&1 
+  bg.trap.get 'SIGINT' 2>&1 
   )"
 
   ret_code="$?"
@@ -411,7 +411,7 @@ test_get_trap_command_returns_nothing_if_given_a_signal_with_an_ignore_trap() {
   assert_equals "0" "$ret_code" "should return 0 when trap is not set"
 }
 
-test_get_trap_command_returns_trap_command_if_given_a_signal_that_has_a_trap() {
+test_trap.get_returns_trap_command_if_given_a_signal_that_has_a_trap() {
   set -euo pipefail
   local stdout
   local stderr_file
@@ -426,7 +426,7 @@ HERE
 
   stdout="$( 
     # Call function
-    core.get_trap_command 'SIGINT' 2>"$stderr_file"
+    bg.trap.get 'SIGINT' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -436,7 +436,7 @@ HERE
 }
 
 
-test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_trap() {
+test_trap.get_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_trap() {
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
@@ -452,7 +452,7 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
 
   stdout="$( 
     # Call function
-    core.get_trap_command 'MYSIG' 2>"$stderr_file"
+    bg.trap.get 'MYSIG' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -461,7 +461,7 @@ test_get_trap_command_returns_1_and_error_code_if_there_is_an_error_while_retrie
   assert_equals "1" "$ret_code" "should return 1 when trap is not set"
 }
 
-test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
+test_trap.add_sets_a_trap_if_the_signal_spec_is_ignored() {
   set -euo pipefail
   local stdout_file
   local stderr_file
@@ -475,7 +475,7 @@ test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
   trap '' SIGINT
  
   # Use function to set trap 
-  core.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  bg.trap.add "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -488,7 +488,7 @@ test_trap_sets_a_trap_if_the_signal_spec_is_ignored() {
 }
 
 
-test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
+test_trap.add_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
   set -euo pipefail
   local stdout_file
   local stderr_file
@@ -502,7 +502,7 @@ test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
   trap '-' SIGINT
  
   # Use function to set trap 
-  core.trap "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  bg.trap.add "echo hello" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -514,7 +514,7 @@ test_trap_sets_a_trap_if_the_signal_spec_doesnt_have_a_trap() {
   assert_equals "trap -- 'echo hello' SIGINT" "$(< "$traps_file")" "SIGINT trap should contain 'echo hello'"
 }
 
-test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_already_has_a_trap() {
+test_trap.add_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_already_has_a_trap() {
   set -euo pipefail
   local stdout_file
   local stderr_file
@@ -531,7 +531,7 @@ test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_alread
   trap "echo hello" SIGINT
  
   # Use function to set second trap 
-  core.trap "echo goodbye" SIGINT 1>"$stdout_file" 2>"$stderr_file"
+  bg.trap.add "echo goodbye" SIGINT 1>"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   
   # Get list of traps for SIGINT
@@ -543,23 +543,23 @@ test_trap_adds_a_command_to_the_trap_for_an_existing_signal_if_the_signal_alread
   assert_equals 'trap -- '\'$'echo hello\necho goodbye'\'' SIGINT' "$traps" "SIGINT trap should contain both commands"
 }
 
-test_trap_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_existing_trap() {
+test_trap.add_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_existing_trap() {
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
   tst.rm_on_exit "$stderr_file"
 
   # shellcheck disable=SC2317
-  fake_get_trap_command() {
+  fake_trap.get() {
     echo "An Error occurred!" >&2
     return 1
   }
 
-  fake core.get_trap_command fake_get_trap_command
+  fake bg.trap.get fake_trap.get
 
   stdout="$( 
     # Call function
-    core.trap 'command' 'MYSIG' 2>"$stderr_file"
+    bg.trap.add 'command' 'MYSIG' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -569,7 +569,7 @@ test_trap_returns_1_and_error_code_if_there_is_an_error_while_retrieving_the_exi
 }
 
 
-test_trap_returns_1_and_error_message_if_there_is_an_error_while_setting_the_new_trap() {
+test_trap.add_returns_1_and_error_message_if_there_is_an_error_while_setting_the_new_trap() {
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
@@ -586,7 +586,7 @@ test_trap_returns_1_and_error_message_if_there_is_an_error_while_setting_the_new
 
   stdout="$( 
     # Call function
-    core.trap 'command' 'SIGINT' 2>"$stderr_file"
+    bg.trap.add 'command' 'SIGINT' 2>"$stderr_file"
   )"
 
   ret_code="$?"
@@ -608,7 +608,7 @@ test_tmpfile_fails_when_filename_var_is_not_a_valid_var_name() {
   assert_equals "ERROR: '\$myvar' is not a valid variable name" "$(< "$stderr_file")"
 }
 
-test_trap_can_set_two_traps() {
+test_trap.add_can_set_two_traps() {
   ./test_scripts/trap.bash
 }
 
@@ -634,7 +634,7 @@ test_tmpfile_invokes_mktemp_and_trap_function() {
     cat "$tmpfile_name_file"
   }
 
-  core.trap() {
+  bg.trap.add() {
     echo "1:$1" >"$trap_output_file"
     echo "2:$2" >>"$trap_output_file"
   }
@@ -670,7 +670,7 @@ test_tmpfile_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand
     cat "$tmpfile_name_file"
   }
 
-  core.trap() {
+  bg.trap.add() {
     echo "1:$1" >"$trap_output_file"
     echo "2:$2" >>"$trap_output_file"
   }
@@ -702,7 +702,7 @@ test_tmpfile_returns_1_if_mktemp_fails() {
     return 1
   }
 
-  core.trap() {
+  bg.trap.add() {
     echo "1:${1:-}"
     echo "2:${2:-}"
   }
@@ -730,7 +730,7 @@ test_tmpfile_returns_1_if_trap_fails() {
     echo "test_file"
   }
 
-  core.trap() {
+  bg.trap.add() {
     echo "ERROR!" >&2
     return 1
   }

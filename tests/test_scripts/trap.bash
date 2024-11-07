@@ -16,8 +16,8 @@ tmpfile="$(mktemp)"
 trap "rm -f '$tmpfile'" 'EXIT'
 
 (
-  core.trap "echo 'heey' >'$tmpfile'" EXIT
-  core.trap "echo 'wohoo'>>'$tmpfile'" EXIT
+  bg.trap.add "echo 'heey' >'$tmpfile'" EXIT
+  bg.trap.add "echo 'wohoo'>>'$tmpfile'" EXIT
 )
 
 # Check contents of tmpfile

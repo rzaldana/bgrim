@@ -325,7 +325,7 @@ core.clear_shell_opts() {
 # tags:
 #   - "changes env"
 ################################################################################
-core.clear_traps() {
+bg.trap.clear_all() {
   # Clear pseudo-signal traps
   trap - RETURN
   trap - DEBUG
@@ -663,7 +663,7 @@ core.is_shell_opt_set() (
 # dependencies:
 # tags:
 #   - "error_handling" 
-core.get_trap_command() ( 
+bg.trap.get() ( 
   local signal_spec
   local -a required_args=( 'signal_spec' )
   if ! core.require_args "$@"; then
@@ -714,7 +714,7 @@ core.get_trap_command() (
 # dependencies:
 # tags:
 #   - "error_handling" 
-core.trap() {
+bg.trap.add() {
 
   local trap_command
   local signal_spec
@@ -726,7 +726,7 @@ core.trap() {
   signal_spec="${2:-}"
 
   # Get previous trap command, if any
-  previous_trap_cmd="$(core.get_trap_command "$signal_spec" 2>/dev/null)" \
+  previous_trap_cmd="$(bg.trap.get "$signal_spec" 2>/dev/null)" \
     || { printf "Error retrieving existing trap for signal '%s'" "$signal_spec"
          return 1
         } >&2
@@ -774,7 +774,7 @@ core.tmpfile() {
   local tmpfile_name
   tmpfile_name="$("$__BG_MKTEMP")" \
     || { echo "ERROR: Unable to create temporary file" >&2; return 1; }
-  core.trap "rm -f '$tmpfile_name'" 'EXIT' \
+  bg.trap.add "rm -f '$tmpfile_name'" 'EXIT' \
     || { echo "ERROR: Unable to set exit trap to delete file '$tmpfile_name'" >&2; return 1; }
 
   # Assign name of tmpfile to variable whose name is contained in
