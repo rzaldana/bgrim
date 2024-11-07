@@ -974,7 +974,7 @@ test_arr.from_stdin_stores_more_than_one_line_from_stdin_into_new_array_array_na
   assert_equals "${myarray[1]}" ' line 2' "element 1 should contain string ' line 2'"
 }
 
-testin.require_args_returns_2_if_required_args_array_is_not_set() {
+test_in.require_args_returns_2_if_required_args_array_is_not_set() {
   tst.create_buffer_files
   bg.in.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -986,7 +986,7 @@ testin.require_args_returns_2_if_required_args_array_is_not_set() {
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_2_if_required_args_array_is_empty() {
+test_in.require_args_returns_2_if_required_args_array_is_empty() {
   tst.create_buffer_files
   local -a required_args=()
   bg.in.require_args >"$stdout_file" 2>"$stderr_file"
@@ -999,7 +999,7 @@ testin.require_args_returns_2_if_required_args_array_is_empty() {
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() {
+test_in.require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() {
   tst.create_buffer_files
   local -a required_args=( "ARG" )
   bg.in.require_args >"$stdout_file" 2>"$stderr_file"
@@ -1012,7 +1012,7 @@ testin.require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided(
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
+test_in.require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
   set -euo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG" )
@@ -1027,7 +1027,7 @@ testin.require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
   assert_equals "val1" "$ARG" "variable 'ARG' should contain value of argument"
 }
 
-testin.require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() {
+test_in.require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() {
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ARG2" )
   bg.in.require_args "myvalue" >"$stdout_file" 2>"$stderr_file"
@@ -1040,7 +1040,7 @@ testin.require_args_returns_1_if_two_args_are_required_but_only_one_is_provided(
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_0_if_two_args_are_required_and_two_args_are_provided() {
+test_in.require_args_returns_0_if_two_args_are_required_and_two_args_are_provided() {
   set -euo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ARG2" )
@@ -1056,7 +1056,7 @@ testin.require_args_returns_0_if_two_args_are_required_and_two_args_are_provided
   assert_equals "$ARG2" "myvalue2" "variable 'ARG2' should contain value of argument"
 }
 
-testin.require_args_returns_0_if_three_args_are_required_and_three_args_are_provided() {
+test_in.require_args_returns_0_if_three_args_are_required_and_three_args_are_provided() {
   set -euo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ra:myarray" "ARG2" )
@@ -1074,7 +1074,7 @@ testin.require_args_returns_0_if_three_args_are_required_and_three_args_are_prov
   assert_equals "$myarray" "new_array" "variable 'myarray' should contain value of argument"
 }
 
-testin.require_args_returns_1_if_three_args_are_required_and_three_args_are_provided_but_arr_is_invalid() {
+test_in.require_args_returns_1_if_three_args_are_required_and_three_args_are_provided_but_arr_is_invalid() {
   set -uo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ra:myarray" "ARG2" )
@@ -1089,7 +1089,7 @@ testin.require_args_returns_1_if_three_args_are_required_and_three_args_are_prov
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_name() {
+test_in.require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_name() {
   tst.create_buffer_files
   local -a required_args=( "var()" "ARG2" )
   bg.in.require_args "myvalue1 myvalue2" >"$stdout_file" 2>"$stderr_file"
@@ -1102,7 +1102,7 @@ testin.require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variabl
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_string_is_provided() {
+test_in.require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_string_is_provided() {
   tst.create_buffer_files
   local -a required_args=( "ra:myarray" )
   bg.in.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
@@ -1115,7 +1115,7 @@ testin.require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_st
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_1_if_readable_array_arg_is_required_but_unset_array_variable_is_provided() {
+test_in.require_args_returns_1_if_readable_array_arg_is_required_but_unset_array_variable_is_provided() {
   tst.create_buffer_files
   local -a an_array
   local -a required_args=( "ra:myarray" )
@@ -1129,7 +1129,7 @@ testin.require_args_returns_1_if_readable_array_arg_is_required_but_unset_array_
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_array_variable_is_provided() {
+test_in.require_args_returns_0_if_readable_array_arg_is_required_and_set_array_variable_is_provided() {
   tst.create_buffer_files
   local -a another_array=()
   local -a required_args=( "ra:myarray")
@@ -1140,7 +1140,7 @@ testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_array_va
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_readonly_array_variable_is_provided() {
+test_in.require_args_returns_0_if_readable_array_arg_is_required_and_set_readonly_array_variable_is_provided() {
   tst.create_buffer_files
   local -ra another_array=()
   local -a required_args=( "ra:myarray")
@@ -1152,7 +1152,7 @@ testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_readonly
 }
 
 
-testin.require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_string_is_provided() {
+test_in.require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_string_is_provided() {
   tst.create_buffer_files
   local -a required_args=( "rwa:myarray" )
   bg.in.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
@@ -1165,7 +1165,7 @@ testin.require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_s
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_array_variable_is_provided() {
+test_in.require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_array_variable_is_provided() {
   tst.create_buffer_files
   local -a an_array
   local -a required_args=( "rwa:myarray" )
@@ -1179,7 +1179,7 @@ testin.require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_array
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_1_if_readable_array_arg_is_required_and_set_read_only_array_variable_is_provided() {
+test_in.require_args_returns_1_if_readable_array_arg_is_required_and_set_read_only_array_variable_is_provided() {
   tst.create_buffer_files
   local -ra another_array=()
   local -a required_args=( "rwa:myarray")
@@ -1193,7 +1193,7 @@ testin.require_args_returns_1_if_readable_array_arg_is_required_and_set_read_onl
     "stderr should contain an error message"
 }
 
-testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_writable_array_variable_is_provided() {
+test_in.require_args_returns_0_if_readable_array_arg_is_required_and_set_writable_array_variable_is_provided() {
   tst.create_buffer_files
   local -a another_array=()
   local -a required_args=( "rwa:myarray")
@@ -1204,7 +1204,7 @@ testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_writable
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-testin.require_args_returns_1_if_invalid_prefix_is_provided() { 
+test_in.require_args_returns_1_if_invalid_prefix_is_provided() { 
   tst.create_buffer_files
   local -a required_args=( "dwa:myarray")
   bg.in.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
@@ -1217,7 +1217,7 @@ testin.require_args_returns_1_if_invalid_prefix_is_provided() {
     "stderr should contain an error message"
 }
 
-testin.require_args_places_args_with_spaces_in_correct_variable() {
+test_in.require_args_places_args_with_spaces_in_correct_variable() {
   set -euo pipefail
   local var1
   local var2

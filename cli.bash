@@ -6,100 +6,78 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR:$PATH" source core.bash 
 
 
-cli.init() {
+
+__bg.cli.sanitize_string() {
+  local string
+  local -a required_args=( "string" )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  # Escape any backslashes (\)
+  string="${string//\\/\\\\}"
+
+  # Escape any pipe (|) characters
+  string="${string//\|/\\\|}" 
+
+  printf '%s' "$string"
+}
+
+__bg.cli.stdin_to_stdout() {
+  while IFS= read -r line; do
+    printf "%s\n" "$line"
+  done
+}
+
+bg.cli.init() {
   printf "%s\n" 'init'
 }
 
-_cli.canonicalize_opts() {
-  local -a required_args=( "input_array" "output_array" )
+# description: |
+#   reads a cli spec on stdin and prints the spec to stdout
+#   with a new line detailing the that contains the description 
+#   that the cli tool will print in its help message
+# inputs:
+#   stdin: an argparse spec 
+#   args:
+#     1: "cli description"
+# outputs:
+#   stdout: cli spec with added description
+#   stderr:
+#   return_code:
+#     0: "when new line was successfully added to spec"
+#     1: "when an error ocurred"
+# tags:
+#   - "cli parsing"
+bg.cli.add_description() {
+  # Check required input args
+  local description
+  required_args=( "description" )
   if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
-  # Check if output array is readonly
-  if bg.var.is_readonly "$output_array"; then
-    printf \
-      "ERROR: '%s' is a readonly variable\n" \
-      "$output_array" \
-      >&2
-    return 1
-  fi
 
-  # Check if output array is a valid variable name
-  if ! bg.str.is_valid_var_name "$output_array"; then
-    printf \
-      "ERROR: '%s' is not a valid variable name\n" \
-      "$output_array" \
-      >&2
-    return 1
-  fi
+  # read cli spec from stdin and print to stdout
+  __bg.cli.stdin_to_stdout
 
+  # sanitize description string
+  description="$(__bg.cli.sanitize_string "$description")"
 
-  # Empty output array
-  eval "$output_array=()"
-
-  # Check if input array exists
-  # shellcheck disable=SC2154
-  if ! bg.var.is_array "$input_array"; then
-    printf \
-      "ERROR: array '%s' not found in execution environment\n" \
-      "$input_array" \
-      >&2
-    return 1
-  fi
- 
-  # Iterate over input array 
-  local -i input_array_length
-  eval "input_array_length=\"\${#${input_array}[@]}\""
-  local short_opt_regex="^-[[:alpha:]].+$"
-  local long_opt_regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+=.+$"
-  local -i i
-  local token
-  local opt
-  local arg
-  for ((i=0; i<input_array_length; i++)); do
-    eval "token=\"\${${input_array}[$i]}\""
-
-    # If token matches short_opt_regex, extract opt and arg
-    if [[ "$token" =~ $short_opt_regex ]]; then
-      IFS= read -n 2 -d '' opt <<<"$token"
-      arg="${token#"$opt"}"
-      eval "$output_array+=( \"$opt\" )"
-      eval "$output_array+=( \"$arg\" )"
-      continue
-    fi
-
-    # If token matches long_opt_regex, extract opt and arg
-    if [[ "$token" =~ $long_opt_regex ]]; then
-      IFS= read -d '=' opt <<<"$token"
-      arg="${token#"$opt="}"
-      eval "$output_array+=( \"$opt\" )"
-      eval "$output_array+=( \"$arg\" )"
-      continue
-    fi
-
-    # If token didn't match any regex, just add to output_array as is
-    eval "$output_array+=( \"$token\" )"
-
-  # Regex is composed of the following expressions:
-  # ^-                matches a single dash at the beginning of the string 
-  # [[:alpha:]]$      matches a single letter at the end of the string
-
-  done
+  # add new spec line with description
+  printf "%s|%s\n" "desc" "$description"
 }
 
-
 # description: |
-#   reads an argparse spec on stdin and prints the spec to stdout
+#   reads a cli spec on stdin and prints the spec to stdout
 #   with a new line detailing the configuration of the new flag
 #   defined through the command-line parameters
 # inputs:
 #   stdin: an argparse spec 
 #   args:
-#     1: "flag short form"
-#     2: "flag long form"
-#     3: "environment variable where value of flag will be stored"
-#     4: "help message for flag"
+#     1: "option letter"
+#     2: "environment variable where value of flag will be stored"
+#     3: "help message for flag"
 # outputs:
 #   stdout:
 #   stderr: |
@@ -109,21 +87,19 @@ _cli.canonicalize_opts() {
 #     1: "when an error ocurred"
 # tags:
 #   - "cli parsing"
-cli.add_opt() {
+bg.cli.add_opt() {
   # Check number of arguments
-  local -a required_args=( "short_form" "long_form" "env_var" "help_message" )
+  local opt_letter
+  local env_var
+  local help_message
+  local -a required_args=( "opt_letter" "env_var" "help_message" )
   if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
   # Validate arguments
-  if ! [[ "$short_form" =~ ^[a-z]$ ]]; then
-    echo "ERROR: short form '$short_form' should be a single lowercase letter" >&2
-    return 1
-  fi
-
-  if ! __cli.is_valid_long_opt "--$long_form"; then
-    echo "ERROR: long form '$long_form' is not a valid long option" >&2
+  if ! [[ "$opt_letter" =~ ^[a-z]$ ]]; then
+    echo "ERROR: option letter '$opt_letter' should be a single lowercase letter" >&2
     return 1
   fi
 
@@ -137,37 +113,26 @@ cli.add_opt() {
     return 1
   fi
 
+  help_message="$(__bg.cli.sanitize_string "$help_message")"
 
-  # Escape any backslashes (\) in help message
-  #help_message="${help_message//|/\\\\\\}"
-  help_message="${help_message//\\/\\\\}"
-
-  # Escape any pipe (|) characters in help message
-  help_message="${help_message//\|/\\\|}"
-
- 
   # Print all lines from stdin to stdout 
-  while IFS= read -r line; do
-    printf "%s\n" "$line"
-  done
-
+  __bg.cli.stdin_to_stdout
 
   # Print new spec line
-  printf '%s|%s|%s|%s|%s\n' 'opt' "$short_form" "$long_form" "$env_var" "$help_message"
+  printf '%s|%s|%s|%s\n' 'opt' "$opt_letter" "$env_var" "$help_message"
 }
 
 
 # description: |
-#   reads an argparse spec on stdin and prints the spec to stdout
-#   with a new line detailing the configuration of the new option with arg 
+#   reads a cli spec on stdin and prints the spec to stdout
+#   with a new line detailing the configuration of the new flag
 #   defined through the command-line parameters
 # inputs:
 #   stdin: an argparse spec 
 #   args:
-#     1: "option short form"
-#     2: "option long form"
-#     3: "environment variable where value of the option will be stored"
-#     4: "help message for option"
+#     1: "option letter"
+#     2: "environment variable where value of flag will be stored"
+#     3: "help message for flag"
 # outputs:
 #   stdout:
 #   stderr: |
@@ -177,21 +142,19 @@ cli.add_opt() {
 #     1: "when an error ocurred"
 # tags:
 #   - "cli parsing"
-cli.add_opt_with_arg() {
+bg.cli.add_opt_with_arg() {
   # Check number of arguments
-  local -a required_args=( "short_form" "long_form" "env_var" "help_message" )
+  local opt_letter
+  local env_var
+  local help_message
+  local -a required_args=( "opt_letter" "env_var" "help_message" )
   if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
   # Validate arguments
-  if ! [[ "$short_form" =~ ^[a-z]$ ]]; then
-    echo "ERROR: short form '$short_form' should be a single lowercase letter" >&2
-    return 1
-  fi
-
-  if ! __cli.is_valid_long_opt "--$long_form"; then
-    echo "ERROR: long form '$long_form' is not a valid long option" >&2
+  if ! [[ "$opt_letter" =~ ^[a-z]$ ]]; then
+    echo "ERROR: option letter '$opt_letter' should be a single lowercase letter" >&2
     return 1
   fi
 
@@ -204,7 +167,6 @@ cli.add_opt_with_arg() {
     echo "ERROR: '$env_var' is a readonly variable" >&2
     return 1
   fi
-
 
   # Escape any backslashes (\) in help message
   #help_message="${help_message//|/\\\\\\}"
@@ -221,271 +183,33 @@ cli.add_opt_with_arg() {
 
 
   # Print new spec line
-  printf '%s|%s|%s|%s|%s\n' 'opt_with_arg' "$short_form" "$long_form" "$env_var" "$help_message"
+  printf '%s|%s|%s|%s\n' 'opt_with_arg' "$opt_letter" "$env_var" "$help_message"
 }
 
-# description: |
-#   returns 0 if the given string is a valid short option name and 1 otherwise
-#   A valid short option string complies with the following rules:
-#   - starts with a single dash
-#   - is followed by a single uppercase or lowercase letter
-# inputs:
-#   stdin:
-#   args:
-#     1: "string to evaluate"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the string is a valid long option"
-#     1: "when the string is not a valid long option"
-#     2: "when no string was provided"
-# tags:
-#   - "cli parsing"
-__cli.is_valid_short_opt() ( 
-  local string
-  local -a required_args=( 'string' )
+bg.cli.add_arg() {
+  local arg_name
+  local -a required_args
+  required_args=( "arg_name" )
+
+  # Check required input arguments
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  local regex="^-[[:alpha:]]$"
-
-  # Regex is composed of the following expressions:
-  # ^-                matches a single dash at the beginning of the string 
-  # [[:alpha:]]$      matches a single letter at the end of the string
-  [[ "$string" =~ $regex ]]
-)
-
-# description: |
-#   returns 0 if the given string is a valid long option name and 1 otherwise
-#   A valid long option string complies with the following rules:
-#   - starts with double dashes ("--")
-#   - contains only dashes and alphanumeric characters
-#   - ends with an alphanumeric characters
-#   - has at least one alphanumeric character after the initial double dashes 
-#   - any dash after the initial double dashes is surrounded by alphanumeric
-#     characters on both sides
-# inputs:
-#   stdin:
-#   args:
-#     1: "string to evaluate"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the string is a valid long option"
-#     1: "when the string is not a valid long option"
-#     2: "when no string was provided"
-# tags:
-#   - "cli parsing"
-__cli.is_valid_long_opt() ( 
-  local string
-  local -a required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
+  # Validate that 'arg_name' is a valid variable name
+  if ! bg.str.is_valid_var_name "$arg_name"; then
+    echo "ERROR: '$arg_name' is not a valid variable name" >&2
+    return 1
   fi
 
-  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+$"
+  # Read lines from stdin and print to stdout
+  __bg.cli.stdin_to_stdout
 
-  # Regex is composed of the following expressions:
-  # ^--[[:alnum:]]+   match double dashes '--' at the beginning of the line, 
-  #                   followed by one or more alphanumeric chars
-  # (-[[:alnum:]]+)*  match 0 or more instances (*) of the expression between
-  #                   parentheses. The expr between parentheses will match
-  #                   any string that starts with a dash '-' followed by one
-  #                   or more (+) alphanumeric chars
-  # [[:alnum:]]+$     match one or more alphanumeric chars at the end of the
-  #                   line 
-  [[ "$string" =~ $regex ]]
-)
-
-__cli.is_valid_short_opt_token() {
-  local string
-  local -a required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  local regex="^-[[:alpha:]].*$"
-
-  # Regex is composed of the following expressions:
-  # ^-                matches a single dash at the beginning of the string 
-  # [[:alpha:]]$      matches a single letter at the end of the string
-  [[ "$string" =~ $regex ]]
+  # Print spec line
+  printf '%s|%s\n' 'arg' "$arg_name"
 }
 
-# description: |
-#   returns 0 if the given string is a valid long option name and 1 otherwise
-#   A valid long option string complies with the following rules:
-#   - starts with double dashes ("--")
-#   - contains only dashes and alphanumeric characters
-#   - ends with an alphanumeric characters
-#   - has at least one alphanumeric character after the initial double dashes 
-#   - any dash after the initial double dashes is surrounded by alphanumeric
-#     characters on both sides
-# inputs:
-#   stdin:
-#   args:
-#     1: "string to evaluate"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the string is a valid long option"
-#     1: "when the string is not a valid long option"
-#     2: "when no string was provided"
-# tags:
-#   - "cli parsing"
-__cli.is_valid_long_opt_token() ( 
-  local string
-  local -a required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  local regex="^--[[:alnum:]]+(-[[:alnum:]]+)*[[:alnum:]]+(=.*$|$)"
-
-  # Regex is composed of the following expressions:
-  # ^--[[:alnum:]]+   match double dashes '--' at the beginning of the line, 
-  #                   followed by one or more alphanumeric chars
-  # (-[[:alnum:]]+)*  match 0 or more instances (*) of the expression between
-  #                   parentheses. The expr between parentheses will match
-  #                   any string that starts with a dash '-' followed by one
-  #                   or more (+) alphanumeric chars
-  # [[:alnum:]]+      match one or more alphanumeric chars
-  # (=.*$|$)          match either an equal sign followed by any number of
-  #                   chars until the end of the line or the end of the line
-  [[ "$string" =~ $regex ]]
-)
-
-__cli.normalize_opt_tokens() {
-  local -a required_args=( "ra:input_array" "rwa:output_array" "ra:short_opts_with_args" "ra:long_opts_with_args" )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  local input_array_length
-  eval "input_array_length=\"\${#${input_array}[@]}\""
-
-  if (( input_array_length == 0 )); then
-    eval "${output_array}=( '--' )"
-    return 0
-  fi
-
-
-  # Store values of input_array into temporary array
-  #local input_array_ref="${input_array}[@]"
-  local input_array_ref="${input_array}[@]"
-  local -a tmp_in_arr 
-  echo "WORKING" >/dev/tty
-  #eval "tmp_in_arr=( \"\${${input_array}[@]}\")"
-  #echo "${input_array_ref}" >/dev/tty
-  #echo "${!input_array_ref}" >/dev/tty
-  #echo "WORKING" >/dev/tty
-  tmp_in_arr=( "${!input_array_ref}" )
-
-  # Create tmp_out_arr to store normalized options before splitting
-  # args and options
-  local -a tmp_out_arr 
-
-  # Create array to keep track of mapping index of old array -> index of new array
-  local -a mappings
-
-  # Add '--' after processing all options
-  #eval "${output_array}+=( '--' )"
-
-  local -i index
-  for index in "${!tmp_in_arr[@]}"; do
-
-    # Retrieve token from array
-    local elem="${tmp_in_arr[$index]}"
-
-    # Empty array to store normalized options
-    local -a normalized_options=()
-
-    # If token is a short option token, call __cli.normalize_short_opt_token
-    if __cli.is_valid_short_opt "${elem}"; then
-      __cli.normalize_short_opt_token "${elem}" "normalized_options" "$short_opts_with_args"
-
-      for normalized_option in "${normalized_options[@]}"; do
-        # Store normalized option in output array
-        tmp_out_arr+=( "${normalized_option}" )
-
-        # Store index of token in original input array into mappings array
-        mappings+=( "${index}" )
-      done
-    else
-    # else, insert element into output array as it is
-      tmp_out_arr+=( "${elem}" )
-    fi
-  done
-
-  # Split options and arguments from tmp_out_arr
-  local -i args_encountered=0
-  for token in "${tmp_out_arr[@]}"; do
-    eval "${output_array}+=( '${token}' )"
-  done
-}
-
-__cli.normalize_short_opt_token() {
-  # Check number of arguments
-  local -a required_args=( "token" "rwa:acc_arr" "ra:short_opts_with_arg_arr" )
-  if ! bg.in.require_args "$@"; then
-    return 2 
-  fi
-
-  # Remove '-' from token
-  token="${token#-}"
-
-  # Get first char from token
-  local first_letter
-  local rest_of_token
-  first_letter="${token:0:1}"
-
-  # If token only has one letter, append first letter to accumulator array and exit
-  local -i token_length="${#token}"
-  if ! (( token_length > 1 )); then
-    eval "$acc_arr+=( \"-\$first_letter\" )"
-  else
-    rest_of_token="${token:1}"
-    # If token has more than one letter, check if first letter expects arg
-    if bg.arr.is_member "$short_opts_with_arg_arr" "$first_letter";  then
-      eval "$acc_arr+=( \"-\$first_letter\" )"
-      eval "$acc_arr+=( \"\${rest_of_token}\" )"
-    # If first letter does not expect arg, append first letter to acc_arr and recurse
-    else
-      eval "$acc_arr+=( \"-\$first_letter\" )"
-      __cli.normalize_short_opt_token "-${rest_of_token}" "$acc_arr" "$short_opts_with_arg_arr"
-    fi
-  fi
-}
-
-__cli.normalize_long_opt_token() {
-  # Check number of arguments
-  local -a required_args=( "token" "rwa:acc_arr" )
-  if ! bg.in.require_args "$@"; then
-    return 2 
-  fi
-
-  # Check if token contains an equal sign
-  if [[ "$token" == *"="* ]]; then
-    # if it does, separate the option from the
-    # arg and append them to the accumulator array
-    # as separate elements
-    local option
-    local arg
-    option="${token%%=*}"
-    arg="${token#*=}"
-    eval "$acc_arr+=( \"\$option\" \"\$arg\" )"
-  else
-    # Otherwise, just append the option to the accumulator
-    # array
-    eval "$acc_arr+=( \"\$token\" )"
-  fi
-}
-
-cli.parse() {
+bg.cli.parse() {
   # Store all spec lines from stdin
   # into an array called 'spec_array'
   local -a spec_array=()
@@ -503,12 +227,15 @@ cli.parse() {
   # all arrays contains the data for a
   # record. Each record represents an
   # option spec.
-  local -a opt_long_form
-  local -a opt_short_form
-  local -a opt_env_var
-  local -a opt_help_message
-  local -a opt_help_summary
-  local -a opt_has_arg
+  local -a opt_letters=()
+  local -a opt_env_vars=()
+  local -a opt_help_messages=()
+  local -a opt_help_summaries=()
+  local -a opt_has_args=()
+
+  local getopts_spec=""
+
+
 
   for line_no in "${!spec_array[@]}"; do
     local line
@@ -523,7 +250,6 @@ cli.parse() {
       continue
     fi
 
-
     # Read line command (i.e. first word before the fist pipe char)
     read -d '|' line_command <<<"$line"
 
@@ -533,18 +259,17 @@ cli.parse() {
 
     case "$line_command" in
       opt)
-        local short_form
-        local long_form
+        local letter 
         local env_var
         local help_message
         local help_summary
-        IFS='|' read short_form long_form env_var help_message <<<"$line"
-        opt_long_form+=( "--$long_form" )
-        opt_short_form+=( "-$short_form" )
-        opt_env_var+=( "$env_var" )
-        opt_help_message+=( "$help_message" )
-        opt_has_arg+=( "false" )
-        opt_help_summary+=( "-$short_form, --$long_form" )
+        IFS='|' read letter env_var help_message <<<"$line"
+        opt_letters+=( "$letter" )
+        opt_env_vars+=( "$env_var" )
+        opt_help_messages+=( "$help_message" )
+        opt_has_args+=( "false" )
+        opt_help_summaries+=( "-$letter" )
+        getopts_spec="${getopts_spec}${letter}"
         ;;
         #help_summary_length="${#help_summary}" # extract
 
@@ -553,7 +278,17 @@ cli.parse() {
         #fi
         #n_opts=$((n_opts+1))
       opt_with_arg)
-        return 0
+        local letter 
+        local env_var
+        local help_message
+        local help_summary
+        IFS='|' read letter env_var help_message <<<"$line"
+        opt_letters+=( "$letter" )
+        opt_env_vars+=( "$env_var" )
+        opt_help_messages+=( "$help_message" )
+        opt_has_args+=( "true" )
+        opt_help_summaries+=( "-$letter $env_var" )
+        getopts_spec="${getopts_spec}${letter}:"
     esac
   done 
 
@@ -568,7 +303,7 @@ cli.parse() {
   # Find longest help summary so we can nicely align
   # auto-generated help message
   local -i max_help_summary_length=0
-  for help_summary in "${opt_help_summary[@]}"; do
+  for help_summary in "${opt_help_summaries[@]}"; do
     help_summary_length="${#help_summary}"
     if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then
       max_help_summary_length="${help_summary_length}"
@@ -577,7 +312,7 @@ cli.parse() {
 
   # Get number of option specs so we can iterate over them
   # when creating the help message
-  n_opt_specs="${#opt_short_form[@]}"
+  n_opt_specs="${#opt_letters[@]}"
 
   # Fill in help message template
   ## Emtpy IFS means no word splitting
@@ -586,60 +321,56 @@ cli.parse() {
   IFS= read -d '' help_message << EOF || true
 $routine_name
 
-Usage: $routine_name [options]
+Usage: $routine_name [OPTIONS]
 
+Options:
 $( for (( i=0; i<n_opt_specs; i++  ));
     do
-      printf "%${max_help_summary_length}s %s\n"\
-        "${opt_short_form[$i]}, ${opt_long_form[$i]}" \
-        "${opt_help_message[$i]}"
+      printf "  %-${max_help_summary_length}s %s\n"\
+        "${opt_help_summaries[$i]}" \
+        "${opt_help_messages[$i]}"
     done
 )
 EOF
 
-  # process options
-  local -i i=1
-  local -i n="${#}"
-  while [[ "$i" -le "$n" ]]; do
-    # check if arg is '--' and if it is,
-    # stop processing options
-    if [[ "${!i}" == "--" ]]; then
-      break
-    fi
 
-    # check if it's a short opt
-    local -i index
-    if __cli.is_valid_short_opt "${!i}"; then
-      if bg.arr.is_member 'opt_short_form' "${!i}"; then
-        # Find index of option in 'opt_short_form' array
-        index="$( bg.arr.index_of 'opt_short_form' "${!i}")"
-        eval -- "${opt_env_var[index]}=\"\""
-      elif [[ "${!i}" == "-h" ]]; then
-        # if '-h' is not declared in the spec, print help 
-        # message when encountered
-        echo "${help_message}" >&2 
+  # Process options
+  local OPT
+  local index
+  local env_var
+  while getopts ":${getopts_spec}" "OPT"; do
+    # Check if option was not in spec
+    if [[ "$OPT" == "?" ]]; then
+
+      # If option was '-h', print help message and exit
+      if [[ "$OPTARG" == "h" ]]; then
+        printf "%s" "$help_message"
+        return 0
       else
-        echo "ERROR: '${!i}' is not a valid option" >&2
+      # Otherwise, print error message and exit
+        echo "[ERROR]: '-$OPTARG' is not a valid option" >&2
         return 1
       fi
-
-    # check if it's a long opt
-    elif __cli.is_valid_long_opt "${!i}"; then
-      if bg.arr.is_member 'opt_long_form' "${!i}";  then
-        # Find index of option in 'opt_long_form' array
-        index="$( bg.arr.index_of 'opt_long_form' "${!i}" )"
-        eval -- "${opt_env_var[index]}=\"\""
-      else
-        echo "ERROR: '${!i}' is not a valid option" >&2
-        return 1
-      fi
-    else
-      # argument is not a long or short option, stop processing options
-      break
     fi
 
-    # Increment counter
-    (( i++ ))
+    # Print error if option that expected arg didn
+    # not get one
+    if [[ "$OPT" == ":" ]]; then
+      echo "[ERROR]: Option '-$OPTARG' expected an argument but none was provided" >&2
+      return 1
+    fi
+
+    # find index of opt in opt_letters array
+    index="$(bg.arr.index_of 'opt_letters' "$OPT")"
+
+    # find env var that corresponds to option
+    env_var="${opt_env_vars[$index]}"
+
+    # set env var
+    declare -g "$env_var"
+
+    # if OPTARG is set, assign its value to env var
+    eval "$env_var='$OPT_ARG'"
   done
 }
 
