@@ -1,4 +1,11 @@
 1. Implement more tests for cli.parse function with different specs
+    Things to test:
+      - add_arg works
+      - options with args work
+      - mix of opts and opts with args work
+      - mix of opts and args work
+      - mix of opts with args and args work
+      - mix of opts, opts with args and args work
 2. Implement bg.cli.add_name function to change the name of the cli in the help message
 3. Implement bg.cli.add_footer to add footer to help message
 4. Implement bg.cli.add_header to add header to help message
