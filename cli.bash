@@ -337,7 +337,7 @@ EOF
 
       # If option was '-h', print help message and exit
       if [[ "$OPTARG" == "h" ]]; then
-        printf "%s" "$help_message"
+        printf "%s" "$help_message" >&2
         return 0
       else
       # Otherwise, print error message and exit

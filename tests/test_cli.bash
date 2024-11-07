@@ -346,6 +346,25 @@ parse_with_one_opt() {
   )
 }
 
+test_cli.parse:parse_with_one_opt_help_message() {
+  tst.create_buffer_files
+  parse_with_one_opt -h >"$stdout_file" 2>"$stderr_file"
+ ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  local expected_help_message=""
+  IFS= read -d '' expected_help_message << EOF || true 
+parse_with_one_opt
+
+Usage: parse_with_one_opt [OPTIONS]
+
+Options:
+  -f help message
+EOF
+  assert_equals "$( printf '%s' "$expected_help_message")" "$(< "$stderr_file")" "stderr should contain an error message"
+  #assert_equals "$expected_help_message" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
 test_cli.parse:parse_with_one_opt1() {
   set -euo pipefail
   tst.create_buffer_files
