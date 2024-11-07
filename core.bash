@@ -437,10 +437,10 @@ core.clear_vars_with_prefix() {
 #   1 if the given value does not exist in the array with the given name
 #   2 if there is no array in the environment with the given name
 ################################################################################
-core.in_array() ( 
+bg.arr.is_member() ( 
   local value
   local array_name
-  local -a required_args=( 'value' 'ra:array_name' )
+  local -a required_args=( 'ra:array_name' 'value' )
   if ! core.require_args "$@"; then
     return 2
   fi

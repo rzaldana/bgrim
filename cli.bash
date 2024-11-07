@@ -450,7 +450,7 @@ __cli.normalize_short_opt_token() {
   else
     rest_of_token="${token:1}"
     # If token has more than one letter, check if first letter expects arg
-    if core.in_array "$first_letter" "$short_opts_with_arg_arr"; then
+    if bg.arr.is_member "$short_opts_with_arg_arr" "$first_letter";  then
       eval "$acc_arr+=( \"-\$first_letter\" )"
       eval "$acc_arr+=( \"\${rest_of_token}\" )"
     # If first letter does not expect arg, append first letter to acc_arr and recurse
@@ -610,7 +610,7 @@ EOF
     # check if it's a short opt
     local -i index
     if __cli.is_valid_short_opt "${!i}"; then
-      if core.in_array "${!i}" 'opt_short_form'; then
+      if bg.arr.is_member 'opt_short_form' "${!i}"; then
         # Find index of option in 'opt_short_form' array
         index="$( core.index_of "${!i}" 'opt_short_form' )"
         eval -- "${opt_env_var[index]}=\"\""
@@ -625,7 +625,7 @@ EOF
 
     # check if it's a long opt
     elif __cli.is_valid_long_opt "${!i}"; then
-      if core.in_array "${!i}" 'opt_long_form'; then
+      if bg.arr.is_member 'opt_long_form' "${!i}";  then
         # Find index of option in 'opt_long_form' array
         index="$( core.index_of "${!i}" 'opt_long_form' )"
         eval -- "${opt_env_var[index]}=\"\""

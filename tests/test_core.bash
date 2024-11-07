@@ -223,18 +223,18 @@ test_is_var_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_ar
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_in_array_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
+test_arr.is_member_returns_0_when_the_given_value_is_in_the_array_with_the_given_name() {
   set -euo pipefail
   local -a test_array=( "val1" "val2" "val3" ) 
-  stdout_and_stderr="$(core.in_array "val2" "test_array" 2>&1)"
+  stdout_and_stderr="$(bg.arr.is_member "test_array" "val2" 2>&1)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when value is present in array with given name"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_in_array_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_name() {
+test_arr.is_member_returns_1_when_the_given_value_is_not_in_the_array_with_the_given_name() {
   local -a test_array=( "val1" "val2" "val3" ) 
-  stdout_and_stderr="$(core.in_array "val4" "test_array" 2>&1)"
+  stdout_and_stderr="$(bg.arr.is_member "test_array" "val4" 2>&1)"
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when value is not present in array with given name"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
