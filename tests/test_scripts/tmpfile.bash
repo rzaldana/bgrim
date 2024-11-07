@@ -23,8 +23,8 @@ tempfile_name_file2="$(mktemp)"
 declare tmpfile1
 declare tmpfile2
 
-core.tmpfile "tmpfile1"
-core.tmpfile "tmpfile2"
+bg.tmpfile.new "tmpfile1"
+bg.tmpfile.new "tmpfile2"
 
 # Write name of tempfile to tempfile_name_file
 echo "$tmpfile1" >"$tempfile_name_file1"

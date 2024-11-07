@@ -298,7 +298,7 @@ bg.str.is_valid_var_name() (
 # tags:
 #   - "changes env"
 ################################################################################
-core.clear_shell_opts() {
+bg.env.clear_shell_opts() {
   # Clear all options set with the 'set' built-in
   while read -r option_name option_status; do
     set +o "${option_name}" >/dev/null 2>&1
@@ -483,7 +483,7 @@ bg.arr.is_member() (
 #   1: if no function with the given name exists in the environment 
 #   2: if no arguments are provided 
 ################################################################################
-core.is_function() ( 
+bg.func.is_declared() ( 
   local function_name
   local -a required_args=( 'function_name' )
   if ! core.require_args "$@"; then
@@ -758,7 +758,7 @@ bg.trap.add() {
 # dependencies:
 # tags:
 #   - "error_handling" 
-core.tmpfile() {
+bg.tmpfile.new() {
   local filename_var
   local -a required_args=( 'filename_var' )
   if ! core.require_args "$@"; then

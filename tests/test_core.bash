@@ -56,7 +56,7 @@ test_str.is_valid_var_name_returns_2_when_given_no_args() {
     "stderr should contain error message"
 }
 
-test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environment() {
+test_env.clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environment() {
   # Set a few specific options
   set -euo pipefail
   set -o vi
@@ -66,7 +66,7 @@ test_clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environm
 
   # Run function 
   ret_code=0
-  core.clear_shell_opts >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
+  bg.env.clear_shell_opts >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
 
   # Stderr and stdout are empty
   assert_equals "" "$(cat "$stderr_file")" "stderr should be empty"
@@ -240,7 +240,7 @@ test_arr.is_member_returns_1_when_the_given_value_is_not_in_the_array_with_the_g
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
+test_func.is_declared_returns_0_when_given_the_name_of_a_function_in_the_env() {
   set -euo pipefail
   local stdout_and_stderr
 
@@ -249,17 +249,17 @@ test_is_function_returns_0_when_given_the_name_of_a_function_in_the_env() {
     echo "test" 
   }
 
-  stdout_and_stderr="$(core.is_function test_fn)"
+  stdout_and_stderr="$(bg.func.is_declared test_fn)"
   ret_code="$?"
   assert_equals "0" "$ret_code" "is_function should return 0 when the given fn is defined"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_function_returns_1_when_the_given_name_does_not_refer_to_a_function() {
+test_func.is_declared_returns_1_when_the_given_name_does_not_refer_to_a_function() {
   local stdout_and_stderr
   local test_fn
 
-  stdout_and_stderr="$(core.is_function test_fn)"
+  stdout_and_stderr="$(bg.func.is_declared test_fn)"
   ret_code="$?"
   assert_equals "1" "$ret_code" "is_function should return 1 when the given fn is not defined"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -595,13 +595,13 @@ test_trap.add_returns_1_and_error_message_if_there_is_an_error_while_setting_the
   assert_equals "1" "$ret_code" "should return 1 when trap is not set"
 }
 
-test_tmpfile_fails_when_filename_var_is_not_a_valid_var_name() {
+test_tmpfile.new_fails_when_filename_var_is_not_a_valid_var_name() {
   local stdout_file
   local stderr_file
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
   # shellcheck disable=SC2016
-  core.tmpfile '$myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile.new '$myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "return code should be 1 filename_var is not a valid var name"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -612,11 +612,11 @@ test_trap.add_can_set_two_traps() {
   ./test_scripts/trap.bash
 }
 
-test_tmpfile_creates_two_temporary_files() {
+test_tmpfile.new_creates_two_temporary_files() {
   ./test_scripts/tmpfile.bash
 }
 
-test_tmpfile_invokes_mktemp_and_trap_function() {
+test_tmpfile.new_invokes_mktemp_and_trap_function() {
   set -euo pipefail
   local stdout_file
   local stderr_file
@@ -641,7 +641,7 @@ test_tmpfile_invokes_mktemp_and_trap_function() {
 
   __BG_MKTEMP="fake_mktemp"
 
-  core.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile.new 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals \
     "$(printf "%s\n%s" "1:rm -f '$(< "$tmpfile_name_file")'" "2:EXIT")" \
@@ -653,7 +653,7 @@ test_tmpfile_invokes_mktemp_and_trap_function() {
 }
 
 
-test_tmpfile_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand() {
+test_tmpfile.new_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand() {
   set -euo pipefail
   local stdout_file
   local stderr_file
@@ -677,7 +677,7 @@ test_tmpfile_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand
 
   __BG_MKTEMP="fake_mktemp"
 
-  core.tmpfile 'myfilename' >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile.new 'myfilename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals \
     "$(printf "%s\n%s" "1:rm -f '$(< "$tmpfile_name_file")'" "2:EXIT")" \
@@ -689,7 +689,7 @@ test_tmpfile_stores_tmpfilen_name_in_var_even_when_var_is_not_defined_beforehand
 }
 
 
-test_tmpfile_returns_1_if_mktemp_fails() {
+test_tmpfile.new_returns_1_if_mktemp_fails() {
   local stdout_file
   local stderr_file
   local filename
@@ -709,7 +709,7 @@ test_tmpfile_returns_1_if_mktemp_fails() {
 
   __BG_MKTEMP="fake_mktemp"
 
-  core.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile.new 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "${filename:-}" "'filename' var should be empty"
@@ -718,7 +718,7 @@ test_tmpfile_returns_1_if_mktemp_fails() {
 }
 
 
-test_tmpfile_returns_1_if_trap_fails() {
+test_tmpfile.new_returns_1_if_trap_fails() {
   local stdout_file
   local stderr_file
   local filename
@@ -737,7 +737,7 @@ test_tmpfile_returns_1_if_trap_fails() {
 
   __BG_MKTEMP="fake_mktemp"
 
-  core.tmpfile 'filename' >"$stdout_file" 2>"$stderr_file"
+  bg.tmpfile.new 'filename' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "${filename:-}" "'filename' var should be empty"
