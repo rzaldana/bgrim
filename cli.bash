@@ -17,7 +17,7 @@ _cli.canonicalize_opts() {
   fi
 
   # Check if output array is readonly
-  if core.is_var_readonly "$output_array"; then
+  if bg.var.is_readonly "$output_array"; then
     printf \
       "ERROR: '%s' is a readonly variable\n" \
       "$output_array" \
@@ -26,7 +26,7 @@ _cli.canonicalize_opts() {
   fi
 
   # Check if output array is a valid variable name
-  if ! core.is_valid_var_name "$output_array"; then
+  if ! bg.str.is_valid_var_name "$output_array"; then
     printf \
       "ERROR: '%s' is not a valid variable name\n" \
       "$output_array" \
@@ -40,7 +40,7 @@ _cli.canonicalize_opts() {
 
   # Check if input array exists
   # shellcheck disable=SC2154
-  if ! core.is_var_array "$input_array"; then
+  if ! bg.var.is_array "$input_array"; then
     printf \
       "ERROR: array '%s' not found in execution environment\n" \
       "$input_array" \
@@ -127,12 +127,12 @@ cli.add_opt() {
     return 1
   fi
 
-  if ! core.is_valid_var_name "$env_var"; then
+  if ! bg.str.is_valid_var_name "$env_var"; then
     echo "ERROR: '$env_var' is not a valid variable name" >&2
     return 1
   fi
 
-  if core.is_var_readonly "$env_var"; then
+  if bg.var.is_readonly "$env_var"; then
     echo "ERROR: '$env_var' is a readonly variable" >&2
     return 1
   fi
@@ -195,12 +195,12 @@ cli.add_opt_with_arg() {
     return 1
   fi
 
-  if ! core.is_valid_var_name "$env_var"; then
+  if ! bg.str.is_valid_var_name "$env_var"; then
     echo "ERROR: '$env_var' is not a valid variable name" >&2
     return 1
   fi
 
-  if core.is_var_readonly "$env_var"; then
+  if bg.var.is_readonly "$env_var"; then
     echo "ERROR: '$env_var' is a readonly variable" >&2
     return 1
   fi

@@ -286,7 +286,7 @@ test_cli_parse_with_one_opt_and_no_args() {
   parse_with_one_opt >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_fail "core.is_var_declared 'myflag'" "var 'myflag' should not be set"
+  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
@@ -297,7 +297,7 @@ test_cli_parse_with_one_opt_and_one_short_arg() {
   parse_with_one_opt -f >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
-  assert "core.is_var_declared 'myflag'" "var 'myflag' should be set"
+  assert "bg.var.is_declared 'myflag'" "var 'myflag' should be set"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
@@ -310,7 +310,7 @@ test_cli_parse_with_one_opt_and_invalid_opt() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
-  assert_fail "core.is_var_declared 'myflag'" "var 'myflag' should not be set"
+  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
 }
 
 test_cli_parse_with_one_opt_and_invalid_long_arg() {
@@ -320,7 +320,7 @@ test_cli_parse_with_one_opt_and_invalid_long_arg() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "ERROR: '--invalid' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
-  assert_fail "core.is_var_declared 'myflag'" "var 'myflag' should not be set"
+  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
 }
 
 
@@ -369,7 +369,7 @@ test_cli_parse_with_one_opt_and_one_arg_with_opt() {
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-  assert "core.is_var_declared 'myflag'" "var 'myflag' should be set"
+  assert "bg.var.is_declared 'myflag'" "var 'myflag' should be set"
   assert_equals "" "$myflag" "'myflag' should contain an empty string"
 }
 
@@ -391,7 +391,7 @@ EOF
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "$( printf "%s" "${help_message}")" \
     "$(< "$stderr_file")" "stderr should contain help message"
-  assert_fail "core.is_var_declared 'myflag'" "var 'myflag' should NOT be set"
+  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should NOT be set"
   #assert_equals "" "$myflag" "'myflag' should contain an empty string"
 }
 
@@ -411,7 +411,7 @@ test_cli_parse_with_one_opt_with_arg_and_no_args() {
   parse_with_one_opt_with_arg >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_fail "core.is_var_declared 'myflag'" "var 'myflag' should not be set"
+  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
@@ -422,7 +422,7 @@ test_cli_parse_with_one_opt_with_arg_and_no_args() {
 #  parse_with_one_opt -f >"$stdout_file" 2>"$stderr_file"
 #  ret_code="$?"
 #  assert_equals "1" "$ret_code" "should return exit code 1"
-#  assert_fail "core.is_var_declared 'myflag'" "var 'myflag' should not be set"
+#  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
 #  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
 #  assert_equals "ERROR: option '-f' requires an argument" "$(< "$stderr_file")" "stderr should contain an error message"
 #}

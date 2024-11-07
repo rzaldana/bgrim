@@ -76,7 +76,7 @@ export __BG_MKTEMP="mktemp"
 #   0 if the given name refers to an existing array variable
 #   1 otherwise
 ################################################################################
-core.is_var_array() ( 
+bg.var.is_array() ( 
   local array_name="${1:-}"  
   local re="declare -a"
   local array_attributes
@@ -160,7 +160,7 @@ core.require_args() {
   calling_function="${FUNCNAME[1]}"
 
   # Fail if required_args array is not set 
-  if ! core.is_var_array 'required_args'; then
+  if ! bg.var.is_array 'required_args'; then
     echo "ERROR: require_args: 'required_args' array not found" >&2
     return 2
   fi
@@ -211,29 +211,29 @@ core.require_args() {
 
         case "${type_prefix}" in
           "ra")
-            if ! core.is_var_array "$provided_arg"; then
+            if ! bg.var.is_array "$provided_arg"; then
               echo "ERROR: $calling_function: array variable with name '$provided_arg' does not exist" >&2
               return 1 
             fi
 
-            if ! core.is_var_set "$provided_arg"; then
+            if ! bg.var.is_set "$provided_arg"; then
               echo "ERROR: $calling_function: array variable with name '$provided_arg' is not set" >&2
               return 1
             fi
             ;;
 
           "rwa")
-            if ! core.is_var_array "$provided_arg"; then
+            if ! bg.var.is_array "$provided_arg"; then
               echo "ERROR: $calling_function: array variable with name '$provided_arg' does not exist" >&2
               return 1 
             fi
 
-            if ! core.is_var_set "$provided_arg"; then
+            if ! bg.var.is_set "$provided_arg"; then
               echo "ERROR: $calling_function: array variable with name '$provided_arg' is not set" >&2
               return 1
             fi
 
-            if core.is_var_readonly "$provided_arg"; then
+            if bg.var.is_readonly "$provided_arg"; then
               echo "ERROR: $calling_function: array variable with name '$provided_arg' is read-only" >&2
               return 1
             fi
@@ -268,7 +268,7 @@ core.require_args() {
 #   0 if the given string is a valid variable name 
 #   1 otherwise
 ################################################################################
-core.is_valid_var_name() ( 
+bg.str.is_valid_var_name() ( 
   local var_name
   local -a required_args=( "var_name" )
   if ! core.require_args "$@"; then
@@ -386,7 +386,7 @@ core.clear_vars_with_prefix() {
     && return 1
 
   # Check that prefix is a valid variable name
-  if ! core.is_valid_var_name "$prefix"; then \
+  if ! bg.str.is_valid_var_name "$prefix"; then \
     printf '%s\n' "ERROR: '$prefix' is not a valid variable prefix" >&2
     return 1
   fi
@@ -446,7 +446,7 @@ bg.arr.is_member() (
   fi
 
   # Check if array exists
-  if ! core.is_var_array "$array_name"; then
+  if ! bg.var.is_array "$array_name"; then
     echo "The array with name '$array_name' does not exist" >&2
     return 2
   fi
@@ -515,7 +515,7 @@ core.is_function() (
 # tags:
 #   - "syntax_sugar"
 ################################################################################
-core.is_valid_command() ( 
+bg.str.is_valid_command() ( 
   local command_name
   local -a required_args=( 'command_name' )
   if ! core.require_args "$@"; then
@@ -548,7 +548,7 @@ core.is_valid_command() (
 # tags:
 #   - "option decorators"
 ################################################################################
-core.is_valid_shell_opt() ( 
+bg.str.is_valid_shell_opt() ( 
   local opt_name
   local opt_name_iterator
   local opt_value
@@ -585,7 +585,7 @@ core.is_valid_shell_opt() (
 # tags:
 #   - "option decorators"
 ################################################################################
-core.is_valid_bash_opt() ( 
+bg.str.is_valid_bash_opt() ( 
   local opt_name
   local opt_name_iterator
   local opt_value
@@ -766,7 +766,7 @@ core.tmpfile() {
   fi
 
   # Validate that filename_var is a valid variable name
-  if ! core.is_valid_var_name "$filename_var"; then
+  if ! bg.str.is_valid_var_name "$filename_var"; then
     echo "ERROR: '$filename_var' is not a valid variable name" >&2
     return 1
   fi
@@ -799,7 +799,7 @@ core.tmpfile() {
 #     1: "when the variable is not readonly or unset"
 # tags:
 #   - "cli parsing"
-core.is_var_readonly() ( 
+bg.var.is_readonly() ( 
   local var_name
   local -a required_args=( 'var_name' )
   if ! core.require_args "$@"; then
@@ -834,7 +834,7 @@ core.is_var_readonly() (
 #     1: "when the variable is not set 
 # tags:
 # - "utility"
-core.is_var_declared() ( 
+bg.var.is_declared() ( 
   local var_name
   local -a required_args=( "var_name" )
   if ! core.require_args "$@"; then
@@ -860,14 +860,14 @@ core.is_var_declared() (
 #     1: "when the variable is not set 
 # tags:
 # - "utility"
-core.is_var_set() ( 
+bg.var.is_set() ( 
   local var_name
   local -a required_args=( "var_name" )
   if ! core.require_args "$@"; then
     return 2 
   fi
 
-  if ! core.is_var_declared "$var_name"; then
+  if ! bg.var.is_declared "$var_name"; then
     return 1
   fi
 
@@ -902,12 +902,12 @@ bg.arr.from_stdin() {
   fi
 
   # Validate args
-  if ! core.is_valid_var_name "$array_name"; then
+  if ! bg.str.is_valid_var_name "$array_name"; then
     echo "ERROR: '$array_name' is not a valid variable name" >&2
     return 1
   fi
 
-  if core.is_var_readonly "$array_name"; then
+  if bg.var.is_readonly "$array_name"; then
     echo "ERROR: '$array_name' is a readonly variable" >&2
     return 1
   fi
@@ -984,7 +984,7 @@ core.index_of() {
 
   # Check if array exists
   # shellcheck disable=SC2031
-  if ! core.is_var_array "${array_name}"; then
+  if ! bg.var.is_array "${array_name}"; then
     # shellcheck disable=SC2031
     printf \
       "ERROR: array '%s' not found in execution environment" \

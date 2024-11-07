@@ -11,47 +11,47 @@ setup_suite() {
   tst.source_lib_from_root "core.bash"
 }
 
-test_is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
+test_str.is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
   set -euo pipefail
   ret_code=0
-  stdout_and_stderr="$(core.is_valid_var_name "my_func" 2>&1)"  || ret_code="$?"
+  stdout_and_stderr="$(bg.str.is_valid_var_name "my_func" 2>&1)"  || ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when given alphanumeric and underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_valid_var_name_returns_0_when_the_given_string_contains_a_single_letter() {
+test_str.is_valid_var_name_returns_0_when_the_given_string_contains_a_single_letter() {
   set -euo pipefail
   ret_code=0
-  stdout_and_stderr="$(core.is_valid_var_name "a" 2>&1)"  || ret_code="$?"
+  stdout_and_stderr="$(bg.str.is_valid_var_name "a" 2>&1)"  || ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when given a single letter"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
+test_str.is_valid_var_name_returns_1_when_the_given_string_contains_non_alphanumeric_or_underscore_chars() {
   set -euo pipefail
   ret_code=0
-  stdout_and_stderr="$(core.is_valid_var_name "my.func" 2>&1)" || ret_code="$?"
+  stdout_and_stderr="$(bg.str.is_valid_var_name "my.func" 2>&1)" || ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
+test_str.is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number() {
   set -euo pipefail
   ret_code=0
-  stdout_and_stderr="$(core.is_valid_var_name "1my_func" 2>&1)" || ret_code="$?"
+  stdout_and_stderr="$(bg.str.is_valid_var_name "1my_func" 2>&1)" || ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when given non-alphanum or underscore chars"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_valid_var_name_returns_2_when_given_no_args() {
+test_str.is_valid_var_name_returns_2_when_given_no_args() {
   set -euo pipefail
   ret_code=0
   tst.create_buffer_files
-  core.is_valid_var_name >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
+  bg.str.is_valid_var_name >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout shouldb be empty"
   assert_equals \
-    "ERROR: core.is_valid_var_name: argument 1 (var_name) is required but was not provided" \
+    "ERROR: bg.str.is_valid_var_name: argument 1 (var_name) is required but was not provided" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -198,26 +198,26 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
 #}
 
 
-test_is_var_array_returns_0_if_there_is_an_array_variable_with_the_given_name_and_the_variable_is_set() {
+test_var.is_array_returns_0_if_there_is_an_array_variable_with_the_given_name_and_the_variable_is_set() {
   local -a my_test_array
   set -euo pipefail
-  stdout_and_stderr="$(core.is_var_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(bg.var.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "0" "$ret_code" "function call should return 0 when an array with that name exists"
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_var_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
-  stdout_and_stderr="$(core.is_var_array "my_test_array" 2>&1)" 
+test_var.is_array_returns_1_if_there_is_no_set_variable_with_the_given_name() {
+  stdout_and_stderr="$(bg.var.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when no variable with the given name is set" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_var_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array() {
+test_var.is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_array() {
   # shellcheck disable=SC2034
   local my_test_array="test_val"
-  stdout_and_stderr="$(core.is_var_array "my_test_array" 2>&1)" 
+  stdout_and_stderr="$(bg.var.is_array "my_test_array" 2>&1)" 
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when variable with given name is not an array" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
@@ -265,80 +265,80 @@ test_is_function_returns_1_when_the_given_name_does_not_refer_to_a_function() {
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_is_valid_command_returns_0_if_its_first_arg_is_a_function() {
+test_str.is_valid_command_returns_0_if_its_first_arg_is_a_function() {
   set -euo pipefail
   local stdout_and_stderr
   test_fn() {
     # shellcheck disable=SC2317
     return 0
   }
-  stdout_and_stderr="$(core.is_valid_command test_fn arg1)"
+  stdout_and_stderr="$(bg.str.is_valid_command test_fn arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
 
-test_is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
+test_str.is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
   set -euo pipefail
   local stdout_and_stderr
-  stdout_and_stderr="$(core.is_valid_command set arg1)"
+  stdout_and_stderr="$(bg.str.is_valid_command set arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
+test_str.is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
   set -euo pipefail
   local stdout_and_stderr
-  stdout_and_stderr="$(core.is_valid_command ls arg1)"
+  stdout_and_stderr="$(bg.str.is_valid_command ls arg1)"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
+test_str.is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
   local stdout_and_stderr
-  stdout_and_stderr="$(core.is_valid_command "{" "ls;" "}")"
+  stdout_and_stderr="$(bg.str.is_valid_command "{" "ls;" "}")"
   ret_code="$?"
   assert_equals "" "$stdout_and_stderr"
   assert_equals "1" "$ret_code"
 }
 
-test_is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
+test_str.is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
   set -euo pipefail
   local test_opt="pipefail"
   local stdout_and_stderr
-  stdout_and_stderr="$( core.is_valid_shell_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.str.is_valid_shell_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
 
-test_is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
+test_str.is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
   local test_opt="pipefai"
   local stdout_and_stderr
-  stdout_and_stderr="$( core.is_valid_shell_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.str.is_valid_shell_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
+test_str.is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
   set -euo pipefail
   local test_opt="cdspell"
   local stdout_and_stderr
-  stdout_and_stderr="$( core.is_valid_bash_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.str.is_valid_bash_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
+test_str.is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
   local test_opt="dspell"
   local stdout_and_stderr
-  stdout_and_stderr="$( core.is_valid_bash_opt "$test_opt" )"
+  stdout_and_stderr="$( bg.str.is_valid_bash_opt "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
@@ -900,41 +900,41 @@ test_tmpfile_returns_1_if_trap_fails() {
 #  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 #}
 
-test_is_var_readonly_returns_1_if_variable_is_unset() {
+test_arr.is_var_readonly_returns_1_if_variable_is_unset() {
   tst.create_buffer_files
-  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_readonly_returns_1_if_variable_is_set_but_not_readonly() {
+test_arr.is_var_readonly_returns_1_if_variable_is_set_but_not_readonly() {
   tst.create_buffer_files
   declare myvar
-  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_readonly_returns_0_if_variable_is_readonly() {
+test_arr.is_var_readonly_returns_0_if_variable_is_readonly() {
   set -euo pipefail
   tst.create_buffer_files
   declare -r myvar
-  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes() {
+test_arr.is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes() {
   set -euo pipefail
   tst.create_buffer_files
   declare -ra myvar
-  core.is_var_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1238,105 +1238,105 @@ test_require_args_places_args_with_spaces_in_correct_variable() {
 }
 
 
-test_is_var_declared_returns_0_if_a_variable_is_declared() {
+test_var.is_declared_returns_0_if_a_variable_is_declared() {
   set -euo pipefail
   tst.create_buffer_files
   local myvar
-  core.is_var_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_declared_returns_1_if_a_variable_is_undeclared_and_nounset_is_set() {
+test_var.is_declared_returns_1_if_a_variable_is_undeclared_and_nounset_is_set() {
   tst.create_buffer_files
   set -u
-  core.is_var_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_declared_returns_1_if_a_variable_is_undeclared() {
+test_var.is_declared_returns_1_if_a_variable_is_undeclared() {
   tst.create_buffer_files
   unset myvar
-  core.is_var_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_declared 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_declared_returns_2_and_error_message_if_no_args_are_provided() {
+test_var.is_declared_returns_2_and_error_message_if_no_args_are_provided() {
   tst.create_buffer_files
   unset myvar
-  core.is_var_declared >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_declared >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
 }
 
-test_is_var_set_returns_2_and_error_message_if_no_args_are_provided() {
+test_var.is_set_returns_2_and_error_message_if_no_args_are_provided() {
   tst.create_buffer_files
   unset myvar
-  core.is_var_set >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_set >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
 }
 
-test_is_var_set_returns_1_if_a_variable_is_undeclared() {
+test_var.is_set_returns_1_if_a_variable_is_undeclared() {
   tst.create_buffer_files
   unset myvar
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_set_returns_0_if_a_variable_is_declared_and_set() {
+test_var.is_set_returns_0_if_a_variable_is_declared_and_set() {
   tst.create_buffer_files
   unset myvar
   local myvar=
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_set_returns_1_if_a_variable_is_declared_but_unset() {
+test_var.is_set_returns_1_if_a_variable_is_declared_but_unset() {
   tst.create_buffer_files
   unset myvar
   local myvar
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_set_returns_0_if_an_integer_variable_is_declared_and_set() {
+test_var.is_set_returns_0_if_an_integer_variable_is_declared_and_set() {
   tst.create_buffer_files
   unset myvar
   local -i myvar=0
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_is_var_set_returns_1_if_an_integer_variable_is_declared_but_unset() {
+test_var.is_set_returns_1_if_an_integer_variable_is_declared_but_unset() {
   tst.create_buffer_files
   unset myvar
   local -i myvar
-  core.is_var_set 'myvar' >"$stdout_file" 2>"$stderr_file"
+  bg.var.is_set 'myvar' >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
