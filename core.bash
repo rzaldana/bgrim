@@ -693,7 +693,9 @@ bg.trap.clear_all() {
 #  fi
 #}
 
-
+################################################################################
+# ARRAY FUNCTIONS
+################################################################################
 
 ################################################################################
 # Checks if the given value exists in the array with the given name 
@@ -733,6 +735,120 @@ bg.arr.is_member() (
   done
   return 1
 )
+
+# description: |
+#   reads lines from stdin and stores each line as an element
+#   of the array whose name is provided in the first arg.
+#   Lines are assumed to be separated by newlines
+# inputs:
+#   stdin: elements to store in array
+#   args:
+#     1: "array name"
+# outputs:
+#   stdout:
+#   stderr: |
+#     error message when array name is missing or array is readonly 
+#   return_code:
+#     0: "when lines were successfully stored in array"
+#     1: "when an error ocurred"
+# tags:
+#   - "cli parsing"
+bg.arr.from_stdin() {
+  local array_name
+  local -a required_args=( 'rwa:array_name' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  # Validate args
+  if ! bg.str.is_valid_var_name "$array_name"; then
+    echo "ERROR: '$array_name' is not a valid variable name" >&2
+    return 1
+  fi
+
+  if bg.var.is_readonly "$array_name"; then
+    echo "ERROR: '$array_name' is a readonly variable" >&2
+    return 1
+  fi
+
+  # Empty array
+  eval "${array_name}=()"
+
+  # Read lines from stdin
+  while IFS= read -r line; do
+    eval "${array_name}+=( \"\${line}\")"
+  done
+}
+
+# description: |
+#   Takes a string and the name of an array and prints 
+#   the index of the string in the array, if the string
+#   is an item an array. If the string is not a member
+#   of the array or if the provided array name does not
+#   refer to an existing array in the function's execution
+#   environment, it returns 1 and prints an error message
+#   to stderr
+# inputs:
+#   stdin: null 
+#   args:
+#     1: "array_name"
+#     2: "item"
+# outputs:
+#   stdout: index of the provded item in the array
+#   stderr: |
+#     error message if validation of arguments fails,
+#     if the given item is not a member of the array
+#     or if the array does not exist 
+#   return_code:
+#     0: "when the item was found in the array"
+#     1: "when an error ocurred"
+# tags:
+#   - "arrays"
+bg.arr.index_of() {
+  local array_name
+  local item
+
+  # Check number of arguments
+  local -a required_args=( "ra:array_name" "item" )
+  if ! bg.in.require_args "$@"; then
+    return 2 
+  fi
+
+  # Check if array exists
+  # shellcheck disable=SC2031
+  if ! bg.var.is_array "${array_name}"; then
+    # shellcheck disable=SC2031
+    printf \
+      "ERROR: array '%s' not found in execution environment" \
+      "${array_name}" \
+      >&2
+    return 1
+  fi
+
+
+  local -i array_length
+  # shellcheck disable=SC2031
+  eval "array_length=\"\${#${array_name}[@]}\""
+
+  local current_item
+  local -i index="-1"
+  for ((index=0; index<array_length; index++)); do
+    # shellcheck disable=SC2031
+    eval "current_item=\${${array_name}[$index]}" 
+    if [[ "$current_item" == "$item" ]]; then
+      printf "%s" "$index"
+      return 0
+    fi
+  done
+
+  # shellcheck disable=SC2031
+  printf \
+    "ERROR: item '%s' not found in array with name '%s'" \
+    "$item" \
+    "$array_name" \
+    >&2
+  return 1
+}
 
 ################################################################################
 # Description: Checks if a function with the given name exists
@@ -909,119 +1025,4 @@ bg.tmpfile.new() {
 
 
 
-# description: |
-#   reads lines from stdin and stores each line as an element
-#   of the array whose name is provided in the first arg.
-#   Lines are assumed to be separated by newlines
-# inputs:
-#   stdin: elements to store in array
-#   args:
-#     1: "array name"
-# outputs:
-#   stdout:
-#   stderr: |
-#     error message when array name is missing or array is readonly 
-#   return_code:
-#     0: "when lines were successfully stored in array"
-#     1: "when an error ocurred"
-# tags:
-#   - "cli parsing"
-bg.arr.from_stdin() {
-  local array_name
-  local -a required_args=( 'rwa:array_name' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # Validate args
-  if ! bg.str.is_valid_var_name "$array_name"; then
-    echo "ERROR: '$array_name' is not a valid variable name" >&2
-    return 1
-  fi
-
-  if bg.var.is_readonly "$array_name"; then
-    echo "ERROR: '$array_name' is a readonly variable" >&2
-    return 1
-  fi
-
-  # Empty array
-  eval "${array_name}=()"
-
-  # Read lines from stdin
-  while IFS= read -r line; do
-    eval "${array_name}+=( \"\${line}\")"
-  done
-}
-
-
-
-# description: |
-#   Takes a string and the name of an array and prints 
-#   the index of the string in the array, if the string
-#   is an item an array. If the string is not a member
-#   of the array or if the provided array name does not
-#   refer to an existing array in the function's execution
-#   environment, it returns 1 and prints an error message
-#   to stderr
-# inputs:
-#   stdin: null 
-#   args:
-#     1: "item"
-#     2: "array_name"
-# outputs:
-#   stdout: index of the provded item in the array
-#   stderr: |
-#     error message if validation of arguments fails,
-#     if the given item is not a member of the array
-#     or if the array does not exist 
-#   return_code:
-#     0: "when the item was found in the array"
-#     1: "when an error ocurred"
-# tags:
-#   - "arrays"
-bg.arr.index_of() {
-  local array_name
-  local item
-
-  # Check number of arguments
-  local -a required_args=( "ra:array_name" "item" )
-  if ! bg.in.require_args "$@"; then
-    return 2 
-  fi
-
-  # Check if array exists
-  # shellcheck disable=SC2031
-  if ! bg.var.is_array "${array_name}"; then
-    # shellcheck disable=SC2031
-    printf \
-      "ERROR: array '%s' not found in execution environment" \
-      "${array_name}" \
-      >&2
-    return 1
-  fi
-
-
-  local -i array_length
-  # shellcheck disable=SC2031
-  eval "array_length=\"\${#${array_name}[@]}\""
-
-  local current_item
-  local -i index="-1"
-  for ((index=0; index<array_length; index++)); do
-    # shellcheck disable=SC2031
-    eval "current_item=\${${array_name}[$index]}" 
-    if [[ "$current_item" == "$item" ]]; then
-      printf "%s" "$index"
-      return 0
-    fi
-  done
-
-  # shellcheck disable=SC2031
-  printf \
-    "ERROR: item '%s' not found in array with name '%s'" \
-    "$item" \
-    "$array_name" \
-    >&2
-  return 1
-}
 
