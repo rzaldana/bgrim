@@ -91,6 +91,99 @@ bg.var.is_array() (
 )
 
 # description: |
+#   returns 0 if the given string is a readonly variable
+#   returns 1 if the variable is not readonly or is unset
+# inputs:
+#   stdin:
+#   args:
+#     1: "variable name"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the variable is readonly"
+#     1: "when the variable is not readonly or unset"
+# tags:
+#   - "cli parsing"
+bg.var.is_readonly() ( 
+  local var_name
+  local -a required_args=( 'var_name' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  local re="^declare -[a-z]*r[a-z]* "
+  local var_attributes
+  var_attributes="$(declare -p "$var_name" 2>/dev/null)" \
+    || return 1
+
+  if [[ "$var_attributes" =~ $re ]]; then
+    return 0
+  else
+    return 1
+  fi
+)
+
+
+# description: |
+#   returns 0 if the given variable name refers to a declared variable 
+#   returns 1 if the given variable name is not declared in the execution context 
+# inputs:
+#   stdin:
+#   args:
+#     1: "variable name"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the variable is set"
+#     1: "when the variable is not set 
+# tags:
+# - "utility"
+bg.var.is_declared() ( 
+  local var_name
+  local -a required_args=( "var_name" )
+  if ! bg.in.require_args "$@"; then
+    return 2 
+  fi
+  declare -p "$var_name" 1>/dev/null 2>&1
+)
+
+# description: |
+#   returns 0 if the given variable name refers to a variable that's declared and
+#   has a set value (even if it's an empty string or empty array). returns 1 if 
+#   the given variable name is not declared or is declared but does not have a
+#   set value.
+# inputs:
+#   stdin:
+#   args:
+#     1: "variable name"
+# outputs:
+#   stdout:
+#   stderr: error message when string was not provided
+#   return_code:
+#     0: "when the variable is set"
+#     1: "when the variable is not set 
+# tags:
+# - "utility"
+bg.var.is_set() ( 
+  local var_name
+  local -a required_args=( "var_name" )
+  if ! bg.in.require_args "$@"; then
+    return 2 
+  fi
+
+  if ! bg.var.is_declared "$var_name"; then
+    return 1
+  fi
+
+  regex='^declare -[a-zA-Z-]+ [a-zA-Z_][a-zA-Z0-9_]*\=.+$'
+  if ! [[ "$( declare -p "$var_name" )" =~ $regex ]]; then
+    return 1 
+  fi
+)
+
+# description: |
 #   This function is meant to ensure that a function receives all the arguments
 #   it expects. It expects an array called 'required_args' to be set in its
 #   environment and it takes all the arguments that a function receives as its
@@ -784,98 +877,6 @@ bg.tmpfile.new() {
 
 
 
-# description: |
-#   returns 0 if the given string is a readonly variable
-#   returns 1 if the variable is not readonly or is unset
-# inputs:
-#   stdin:
-#   args:
-#     1: "variable name"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the variable is readonly"
-#     1: "when the variable is not readonly or unset"
-# tags:
-#   - "cli parsing"
-bg.var.is_readonly() ( 
-  local var_name
-  local -a required_args=( 'var_name' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  local re="^declare -[a-z]*r[a-z]* "
-  local var_attributes
-  var_attributes="$(declare -p "$var_name" 2>/dev/null)" \
-    || return 1
-
-  if [[ "$var_attributes" =~ $re ]]; then
-    return 0
-  else
-    return 1
-  fi
-)
-
-
-# description: |
-#   returns 0 if the given variable name refers to a declared variable 
-#   returns 1 if the given variable name is not declared in the execution context 
-# inputs:
-#   stdin:
-#   args:
-#     1: "variable name"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the variable is set"
-#     1: "when the variable is not set 
-# tags:
-# - "utility"
-bg.var.is_declared() ( 
-  local var_name
-  local -a required_args=( "var_name" )
-  if ! bg.in.require_args "$@"; then
-    return 2 
-  fi
-  declare -p "$var_name" 1>/dev/null 2>&1
-)
-
-# description: |
-#   returns 0 if the given variable name refers to a variable that's declared and
-#   has a set value (even if it's an empty string or empty array). returns 1 if 
-#   the given variable name is not declared or is declared but does not have a
-#   set value.
-# inputs:
-#   stdin:
-#   args:
-#     1: "variable name"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the variable is set"
-#     1: "when the variable is not set 
-# tags:
-# - "utility"
-bg.var.is_set() ( 
-  local var_name
-  local -a required_args=( "var_name" )
-  if ! bg.in.require_args "$@"; then
-    return 2 
-  fi
-
-  if ! bg.var.is_declared "$var_name"; then
-    return 1
-  fi
-
-  regex='^declare -[a-zA-Z-]+ [a-zA-Z_][a-zA-Z0-9_]*\=.+$'
-  if ! [[ "$( declare -p "$var_name" )" =~ $regex ]]; then
-    return 1 
-  fi
-)
 
 # description: |
 #   reads lines from stdin and stores each line as an element
