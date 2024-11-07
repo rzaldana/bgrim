@@ -941,11 +941,11 @@ test_is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes(
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
+test_arr.from_stdin_stores_a_single_line_from_stdin_into_new_array_array_name() {
   set -euo pipefail
   tst.create_buffer_files
   local -a myarray=()
-  core.to_array myarray >"$stdout_file" 2>"$stderr_file" <<<'just a line'
+  bg.arr.from_stdin myarray >"$stdout_file" 2>"$stderr_file" <<<'just a line'
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -957,11 +957,11 @@ test_to_array_stores_a_single_line_from_stdin_into_new_array_array_name() {
 }
 
 
-test_to_array_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
+test_arr.from_stdin_stores_more_than_one_line_from_stdin_into_new_array_array_name() {
   set -euo pipefail
   tst.create_buffer_files
   local -a myarray=()
-  core.to_array myarray >"$stdout_file" 2>"$stderr_file" \
+  bg.arr.from_stdin myarray >"$stdout_file" 2>"$stderr_file" \
     <<<"$(printf "%s\n %s" "line 1" "line 2")"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"

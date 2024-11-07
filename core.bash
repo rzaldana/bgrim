@@ -894,7 +894,7 @@ core.is_var_set() (
 #     1: "when an error ocurred"
 # tags:
 #   - "cli parsing"
-core.to_array() {
+bg.arr.from_stdin() {
   local array_name
   local -a required_args=( 'rwa:array_name' )
   if ! core.require_args "$@"; then
