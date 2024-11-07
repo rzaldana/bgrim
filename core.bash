@@ -972,12 +972,12 @@ core.get_parent_routine_name() {
 #     1: "when an error ocurred"
 # tags:
 #   - "arrays"
-core.index_of() {
-  local item
+bg.arr.index_of() {
   local array_name
+  local item
 
   # Check number of arguments
-  local -a required_args=( "item" "ra:array_name" )
+  local -a required_args=( "ra:array_name" "item" )
   if ! core.require_args "$@"; then
     return 2 
   fi

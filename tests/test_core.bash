@@ -1383,11 +1383,11 @@ test_get_parent_routine_name_returns_name_of_script_if_currently_executing_func_
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-test_index_of_returns_error_if_item_not_found_in_array() {
+test_arr.index_of_returns_error_if_item_not_found_in_array() {
   set -uo pipefail
   local -a myarray=( "first" "second" "third" )
   tst.create_buffer_files
-  core.index_of "fourth" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  bg.arr.index_of 'myarray' "fourth" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1397,11 +1397,11 @@ test_index_of_returns_error_if_item_not_found_in_array() {
 }
 
 
-test_index_of_returns_the_index_of_the_provided_item_in_the_provided_array() {
+test_arr.index_of_returns_the_index_of_the_provided_item_in_the_provided_array() {
   set -euo pipefail
   local -a myarray=( "first" "second" "third" )
   tst.create_buffer_files
-  core.index_of "second" 'myarray' >"$stdout_file" 2>"$stderr_file"
+  bg.arr.index_of 'myarray' "second" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "1" "$(< "$stdout_file" )" "stdout should contain '1'"

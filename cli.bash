@@ -612,7 +612,7 @@ EOF
     if __cli.is_valid_short_opt "${!i}"; then
       if bg.arr.is_member 'opt_short_form' "${!i}"; then
         # Find index of option in 'opt_short_form' array
-        index="$( core.index_of "${!i}" 'opt_short_form' )"
+        index="$( bg.arr.index_of 'opt_short_form' "${!i}")"
         eval -- "${opt_env_var[index]}=\"\""
       elif [[ "${!i}" == "-h" ]]; then
         # if '-h' is not declared in the spec, print help 
@@ -627,7 +627,7 @@ EOF
     elif __cli.is_valid_long_opt "${!i}"; then
       if bg.arr.is_member 'opt_long_form' "${!i}";  then
         # Find index of option in 'opt_long_form' array
-        index="$( core.index_of "${!i}" 'opt_long_form' )"
+        index="$( bg.arr.index_of 'opt_long_form' "${!i}" )"
         eval -- "${opt_env_var[index]}=\"\""
       else
         echo "ERROR: '${!i}' is not a valid option" >&2
