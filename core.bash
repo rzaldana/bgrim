@@ -373,7 +373,7 @@ bg.trap.clear_all() {
 # tags:
 #   - "changes env"
 ################################################################################
-core.clear_vars_with_prefix() {
+bg.env.clear_vars_with_prefix() {
   local -a required_args=( 'prefix' )
   local prefix
   if ! core.require_args "$@"; then

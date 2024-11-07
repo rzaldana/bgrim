@@ -132,7 +132,7 @@ test_trap.clear_all_clears_all_traps_set_in_the_current_and_parent_environment()
   
 }
 
-test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
+test_env.clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
   set -euo pipefail
   tst.create_buffer_files
 
@@ -140,7 +140,7 @@ test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
   PREFIX_MY_VAR="my value"
   export PREFIX_ENV_VAR="env value"
   local PREFIX_LOCAL_VAR="local value"
-  core.clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
+  bg.env.clear_vars_with_prefix "PREFIX_" 2>"$stderr_file" >"$stdout_file"
   exit_code="$?"
 
   local was_prefix_var_empty
@@ -159,7 +159,7 @@ test_clear_vars_with_prefix_unsets_all_vars_with_the_given_prefix() {
   assert_equals "" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"
 }
 
-test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
+test_env.clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
   set -euo pipefail
   tst.create_buffer_files
 
@@ -167,7 +167,7 @@ test_clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name() {
   PREFIX_MY_VAR='my value'
   export PREFIX_ENV_VAR="env value"
   local PREFIX_LOCAL_VAR="local value"
-  core.clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
+  bg.env.clear_vars_with_prefix '*' 2>"$stderr_file" >"$stdout_file" \
     || exit_code="$?"
   assert_equals "1" "$exit_code"
   assert_equals "" "$(< "$stdout_file")"
