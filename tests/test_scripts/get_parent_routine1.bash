@@ -10,4 +10,4 @@ PATH="$SCRIPT_DIR/../lib:$PATH" source tst.bash
 # Source library to be tested
 tst.source_lib_from_root "core.bash"
 
-core.get_parent_routine_name
+bg.env.get_parent_routine_name

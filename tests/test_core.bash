@@ -344,34 +344,34 @@ test_str.is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_shell_opt_set_returns_0_if_the_given_option_is_set() {
+test_env.is_shell_opt_set_returns_0_if_the_given_option_is_set() {
   set -euo pipefail
   local test_opt="pipefail"
   local stdout_and_stderr
   set -o "$test_opt" 
-  stdout_and_stderr="$( core.is_shell_opt_set "$test_opt" )"
+  stdout_and_stderr="$( bg.env.is_shell_opt_set "$test_opt" )"
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_shell_opt_set_returns_1_if_the_given_option_is_not_set() {
+test_env.is_shell_opt_set_returns_1_if_the_given_option_is_not_set() {
   local test_opt="pipefail"
   local stdout_and_stderr
   set +o "$test_opt" 
-  stdout_and_stderr="$( core.is_shell_opt_set "$test_opt" )"
+  stdout_and_stderr="$( bg.env.is_shell_opt_set "$test_opt" )"
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$stdout_and_stderr"
 }
 
-test_is_shell_opt_set_returns_2_if_the_given_option_is_not_valid() {
+test_env.is_shell_opt_set_returns_2_if_the_given_option_is_not_valid() {
   local test_opt="ipefail"
   local stdout
   local stderr_file
   stderr_file="$(mktemp)"
   tst.rm_on_exit "$stderr_file"
-  stdout="$( core.is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
+  stdout="$( bg.env.is_shell_opt_set "$test_opt" 2>"$stderr_file" )"
   ret_code="$?"
   assert_equals "2" "$ret_code"
   assert_equals "" "$stdout"
@@ -974,9 +974,9 @@ test_arr.from_stdin_stores_more_than_one_line_from_stdin_into_new_array_array_na
   assert_equals "${myarray[1]}" ' line 2' "element 1 should contain string ' line 2'"
 }
 
-test_require_args_returns_2_if_required_args_array_is_not_set() {
+testin.require_args_returns_2_if_required_args_array_is_not_set() {
   tst.create_buffer_files
-  core.require_args >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -986,10 +986,10 @@ test_require_args_returns_2_if_required_args_array_is_not_set() {
     "stderr should contain an error message"
 }
 
-test_require_args_returns_2_if_required_args_array_is_empty() {
+testin.require_args_returns_2_if_required_args_array_is_empty() {
   tst.create_buffer_files
   local -a required_args=()
-  core.require_args >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -999,10 +999,10 @@ test_require_args_returns_2_if_required_args_array_is_empty() {
     "stderr should contain an error message"
 }
 
-test_require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() {
+testin.require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() {
   tst.create_buffer_files
   local -a required_args=( "ARG" )
-  core.require_args >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1012,11 +1012,11 @@ test_require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() 
     "stderr should contain an error message"
 }
 
-test_require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
+testin.require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
   set -euo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG" )
-  core.require_args "val1" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "val1" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1027,10 +1027,10 @@ test_require_args_returns_0_if_only_one_arg_is_required_and_its_provided() {
   assert_equals "val1" "$ARG" "variable 'ARG' should contain value of argument"
 }
 
-test_require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() {
+testin.require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() {
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ARG2" )
-  core.require_args "myvalue" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "myvalue" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1040,11 +1040,11 @@ test_require_args_returns_1_if_two_args_are_required_but_only_one_is_provided() 
     "stderr should contain an error message"
 }
 
-test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided() {
+testin.require_args_returns_0_if_two_args_are_required_and_two_args_are_provided() {
   set -euo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ARG2" )
-  core.require_args "myvalue1" "myvalue2" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "myvalue1" "myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1056,12 +1056,12 @@ test_require_args_returns_0_if_two_args_are_required_and_two_args_are_provided()
   assert_equals "$ARG2" "myvalue2" "variable 'ARG2' should contain value of argument"
 }
 
-test_require_args_returns_0_if_three_args_are_required_and_three_args_are_provided() {
+testin.require_args_returns_0_if_three_args_are_required_and_three_args_are_provided() {
   set -euo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ra:myarray" "ARG2" )
   local -a new_array=()
-  core.require_args "myvalue1" "new_array" "myvalue2" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "myvalue1" "new_array" "myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1074,12 +1074,12 @@ test_require_args_returns_0_if_three_args_are_required_and_three_args_are_provid
   assert_equals "$myarray" "new_array" "variable 'myarray' should contain value of argument"
 }
 
-test_require_args_returns_1_if_three_args_are_required_and_three_args_are_provided_but_arr_is_invalid() {
+testin.require_args_returns_1_if_three_args_are_required_and_three_args_are_provided_but_arr_is_invalid() {
   set -uo pipefail
   tst.create_buffer_files
   local -a required_args=( "ARG1" "ra:myarray" "ARG2" )
   local -a new_array
-  core.require_args "myvalue1" "new_array" "myvalue2" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "myvalue1" "new_array" "myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1089,10 +1089,10 @@ test_require_args_returns_1_if_three_args_are_required_and_three_args_are_provid
     "stderr should contain an error message"
 }
 
-test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_name() {
+testin.require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_name() {
   tst.create_buffer_files
   local -a required_args=( "var()" "ARG2" )
-  core.require_args "myvalue1 myvalue2" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "myvalue1 myvalue2" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
@@ -1102,10 +1102,10 @@ test_require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variable_
     "stderr should contain an error message"
 }
 
-test_require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_string_is_provided() {
+testin.require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_string_is_provided() {
   tst.create_buffer_files
   local -a required_args=( "ra:myarray" )
-  core.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1115,11 +1115,11 @@ test_require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_stri
     "stderr should contain an error message"
 }
 
-test_require_args_returns_1_if_readable_array_arg_is_required_but_unset_array_variable_is_provided() {
+testin.require_args_returns_1_if_readable_array_arg_is_required_but_unset_array_variable_is_provided() {
   tst.create_buffer_files
   local -a an_array
   local -a required_args=( "ra:myarray" )
-  core.require_args "an_array" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "an_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1129,22 +1129,22 @@ test_require_args_returns_1_if_readable_array_arg_is_required_but_unset_array_va
     "stderr should contain an error message"
 }
 
-test_require_args_returns_0_if_readable_array_arg_is_required_and_set_array_variable_is_provided() {
+testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_array_variable_is_provided() {
   tst.create_buffer_files
   local -a another_array=()
   local -a required_args=( "ra:myarray")
-  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-test_require_args_returns_0_if_readable_array_arg_is_required_and_set_readonly_array_variable_is_provided() {
+testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_readonly_array_variable_is_provided() {
   tst.create_buffer_files
   local -ra another_array=()
   local -a required_args=( "ra:myarray")
-  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1152,10 +1152,10 @@ test_require_args_returns_0_if_readable_array_arg_is_required_and_set_readonly_a
 }
 
 
-test_require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_string_is_provided() {
+testin.require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_string_is_provided() {
   tst.create_buffer_files
   local -a required_args=( "rwa:myarray" )
-  core.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "nonarray" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1165,11 +1165,11 @@ test_require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_str
     "stderr should contain an error message"
 }
 
-test_require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_array_variable_is_provided() {
+testin.require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_array_variable_is_provided() {
   tst.create_buffer_files
   local -a an_array
   local -a required_args=( "rwa:myarray" )
-  core.require_args "an_array" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "an_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1179,11 +1179,11 @@ test_require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_array_v
     "stderr should contain an error message"
 }
 
-test_require_args_returns_1_if_readable_array_arg_is_required_and_set_read_only_array_variable_is_provided() {
+testin.require_args_returns_1_if_readable_array_arg_is_required_and_set_read_only_array_variable_is_provided() {
   tst.create_buffer_files
   local -ra another_array=()
   local -a required_args=( "rwa:myarray")
-  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1193,21 +1193,21 @@ test_require_args_returns_1_if_readable_array_arg_is_required_and_set_read_only_
     "stderr should contain an error message"
 }
 
-test_require_args_returns_0_if_readable_array_arg_is_required_and_set_writable_array_variable_is_provided() {
+testin.require_args_returns_0_if_readable_array_arg_is_required_and_set_writable_array_variable_is_provided() {
   tst.create_buffer_files
   local -a another_array=()
   local -a required_args=( "rwa:myarray")
-  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-test_require_args_returns_1_if_invalid_prefix_is_provided() { 
+testin.require_args_returns_1_if_invalid_prefix_is_provided() { 
   tst.create_buffer_files
   local -a required_args=( "dwa:myarray")
-  core.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
+  bg.in.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
@@ -1217,13 +1217,13 @@ test_require_args_returns_1_if_invalid_prefix_is_provided() {
     "stderr should contain an error message"
 }
 
-test_require_args_places_args_with_spaces_in_correct_variable() {
+testin.require_args_places_args_with_spaces_in_correct_variable() {
   set -euo pipefail
   local var1
   local var2
   test_func(){
     local -a required_args=( "var1" "var2" )
-    if ! core.require_args "$@"; then
+    if ! bg.in.require_args "$@"; then
       return 2
     fi
   }
@@ -1343,12 +1343,12 @@ test_var.is_set_returns_1_if_an_integer_variable_is_declared_but_unset() {
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_get_parent_routine_name_returns_name_of_parent_of_currently_executing_func_if_within_nested_func() {
+test_env.get_parent_routine_name_returns_name_of_parent_of_currently_executing_func_if_within_nested_func() {
   set -euo pipefail
   tst.create_buffer_files
 
   test_func1() {
-    core.get_parent_routine_name
+    bg.env.get_parent_routine_name
   }
 
   test_func2() {
@@ -1363,7 +1363,7 @@ test_get_parent_routine_name_returns_name_of_parent_of_currently_executing_func_
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
-test_get_parent_routine_name_returns_name_of_script_if_executing_at_top_level() {
+test_env.get_parent_routine_name_returns_name_of_script_if_executing_at_top_level() {
   set -euo pipefail
   tst.create_buffer_files
   ./test_scripts/get_parent_routine1.bash >"$stdout_file" 2>"$stderr_file" 

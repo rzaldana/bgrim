@@ -13,7 +13,7 @@ tst.source_lib_from_root "core.bash"
 
 
 func1() {
-  core.get_parent_routine_name
+  bg.env.get_parent_routine_name
 }
 
 func1

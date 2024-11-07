@@ -12,7 +12,7 @@ cli.init() {
 
 _cli.canonicalize_opts() {
   local -a required_args=( "input_array" "output_array" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
@@ -112,7 +112,7 @@ _cli.canonicalize_opts() {
 cli.add_opt() {
   # Check number of arguments
   local -a required_args=( "short_form" "long_form" "env_var" "help_message" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
@@ -180,7 +180,7 @@ cli.add_opt() {
 cli.add_opt_with_arg() {
   # Check number of arguments
   local -a required_args=( "short_form" "long_form" "env_var" "help_message" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
@@ -245,7 +245,7 @@ cli.add_opt_with_arg() {
 __cli.is_valid_short_opt() ( 
   local string
   local -a required_args=( 'string' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -282,7 +282,7 @@ __cli.is_valid_short_opt() (
 __cli.is_valid_long_opt() ( 
   local string
   local -a required_args=( 'string' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -303,7 +303,7 @@ __cli.is_valid_long_opt() (
 __cli.is_valid_short_opt_token() {
   local string
   local -a required_args=( 'string' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -340,7 +340,7 @@ __cli.is_valid_short_opt_token() {
 __cli.is_valid_long_opt_token() ( 
   local string
   local -a required_args=( 'string' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -361,7 +361,7 @@ __cli.is_valid_long_opt_token() (
 
 __cli.normalize_opt_tokens() {
   local -a required_args=( "ra:input_array" "rwa:output_array" "ra:short_opts_with_args" "ra:long_opts_with_args" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -431,7 +431,7 @@ __cli.normalize_opt_tokens() {
 __cli.normalize_short_opt_token() {
   # Check number of arguments
   local -a required_args=( "token" "rwa:acc_arr" "ra:short_opts_with_arg_arr" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
@@ -464,7 +464,7 @@ __cli.normalize_short_opt_token() {
 __cli.normalize_long_opt_token() {
   # Check number of arguments
   local -a required_args=( "token" "rwa:acc_arr" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
@@ -563,7 +563,7 @@ cli.parse() {
   ################################################################################
   # Get routine name to be displayed in help message
   local routine_name
-  routine_name="$(core.get_parent_routine_name)"
+  routine_name="$(bg.env.get_parent_routine_name)"
 
   # Find longest help summary so we can nicely align
   # auto-generated help message

@@ -126,7 +126,7 @@ bg.var.is_array() (
 #       myfunc() {
 #         local arg1 arg2
 #         required_args=( arg1 arg2 )
-#         if ! core.require_args "$@" ; then
+#         if ! bg.in.require_args "$@" ; then
 #           return 2
 #         fi
 #
@@ -154,7 +154,7 @@ bg.var.is_array() (
 #       ================================================
 #       ERROR: myfunc: argument 2 (arg2) is required but was not provided
 #       return code: 2
-core.require_args() {
+bg.in.require_args() {
 
   local calling_function
   calling_function="${FUNCNAME[1]}"
@@ -271,7 +271,7 @@ core.require_args() {
 bg.str.is_valid_var_name() ( 
   local var_name
   local -a required_args=( "var_name" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -376,7 +376,7 @@ bg.trap.clear_all() {
 bg.env.clear_vars_with_prefix() {
   local -a required_args=( 'prefix' )
   local prefix
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -441,7 +441,7 @@ bg.arr.is_member() (
   local value
   local array_name
   local -a required_args=( 'ra:array_name' 'value' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -486,7 +486,7 @@ bg.arr.is_member() (
 bg.func.is_declared() ( 
   local function_name
   local -a required_args=( 'function_name' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -518,7 +518,7 @@ bg.func.is_declared() (
 bg.str.is_valid_command() ( 
   local command_name
   local -a required_args=( 'command_name' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -554,7 +554,7 @@ bg.str.is_valid_shell_opt() (
   local opt_value
 
   local -a required_args=( 'opt_name' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -590,7 +590,7 @@ bg.str.is_valid_bash_opt() (
   local opt_name_iterator
   local opt_value
   local -a required_args=( 'opt_name' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -620,14 +620,14 @@ bg.str.is_valid_bash_opt() (
 # tags:
 #   - "option decorators"
 ################################################################################
-core.is_shell_opt_set() ( 
+bg.env.is_shell_opt_set() ( 
   local opt_name
   local opt_name_iterator
   local opt_value
   local is_valid_opt=""
 
   local -a required_args=( 'opt_name' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -666,7 +666,7 @@ core.is_shell_opt_set() (
 bg.trap.get() ( 
   local signal_spec
   local -a required_args=( 'signal_spec' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -719,7 +719,7 @@ bg.trap.add() {
   local trap_command
   local signal_spec
   local -a required_args=( 'trap_command' 'signal_spec' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -761,7 +761,7 @@ bg.trap.add() {
 bg.tmpfile.new() {
   local filename_var
   local -a required_args=( 'filename_var' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -802,7 +802,7 @@ bg.tmpfile.new() {
 bg.var.is_readonly() ( 
   local var_name
   local -a required_args=( 'var_name' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -837,7 +837,7 @@ bg.var.is_readonly() (
 bg.var.is_declared() ( 
   local var_name
   local -a required_args=( "var_name" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
   declare -p "$var_name" 1>/dev/null 2>&1
@@ -863,7 +863,7 @@ bg.var.is_declared() (
 bg.var.is_set() ( 
   local var_name
   local -a required_args=( "var_name" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
@@ -897,7 +897,7 @@ bg.var.is_set() (
 bg.arr.from_stdin() {
   local array_name
   local -a required_args=( 'rwa:array_name' )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2
   fi
 
@@ -926,7 +926,7 @@ bg.arr.from_stdin() {
 #   Returns the name of the parent routine of the
 #   currently executing function, where the currently
 #   executing function is the function that called
-#   core.get_parent_routine_name
+#   bg.env.get_parent_routine_name
 # inputs:
 #   stdin: null 
 #   args: null
@@ -937,7 +937,7 @@ bg.arr.from_stdin() {
 #     0: "always" 
 # tags:
 #   - "std"
-core.get_parent_routine_name() {
+bg.env.get_parent_routine_name() {
   # If calling function is running at top-level
   # or if calling routine is the top-level 'main'
   # routine, return the name of the script
@@ -978,7 +978,7 @@ bg.arr.index_of() {
 
   # Check number of arguments
   local -a required_args=( "ra:array_name" "item" )
-  if ! core.require_args "$@"; then
+  if ! bg.in.require_args "$@"; then
     return 2 
   fi
 
