@@ -271,12 +271,6 @@ bg.cli.parse() {
         opt_help_summaries+=( "-$letter" )
         getopts_spec="${getopts_spec}${letter}"
         ;;
-        #help_summary_length="${#help_summary}" # extract
-
-        #if [[ "${help_summary_length}" -gt "${max_help_summary_length}" ]]; then # extract
-        #  max_help_summary_length="${help_summary_length}" # extract
-        #fi
-        #n_opts=$((n_opts+1))
       opt_with_arg)
         local letter 
         local env_var
@@ -333,7 +327,6 @@ $( for (( i=0; i<n_opt_specs; i++  ));
 )
 EOF
 
-
   # Process options
   local OPT
   local index
@@ -348,12 +341,13 @@ EOF
         return 0
       else
       # Otherwise, print error message and exit
-        echo "[ERROR]: '-$OPTARG' is not a valid option" >&2
+        echo "ERROR: '-$OPTARG' is not a valid option" >&2
         return 1
       fi
     fi
 
-    # Print error if option that expected arg didn
+
+    # Print error if option that expected arg did
     # not get one
     if [[ "$OPT" == ":" ]]; then
       echo "[ERROR]: Option '-$OPTARG' expected an argument but none was provided" >&2
@@ -366,11 +360,27 @@ EOF
     # find env var that corresponds to option
     env_var="${opt_env_vars[$index]}"
 
+
     # set env var
     declare -g "$env_var"
 
+
     # if OPTARG is set, assign its value to env var
-    eval "$env_var='$OPT_ARG'"
+    if bg.var.is_set 'OPT_ARG'; then
+      eval "$env_var='$OPT_ARG'"
+    fi
   done
+  
+  # Remove all processed options from args array
+  shift $(( OPTIND - 1 ))
+
+  # If there are extra args, error out 
+  local -i n_args
+  n_args="${#@}"
+
+  if (( n_args > 0 )); then
+    echo "ERROR: Unexpected command line argument: '$1'" >&2
+    return 1
+  fi
 }
 
