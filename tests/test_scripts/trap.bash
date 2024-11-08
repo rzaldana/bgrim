@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-# Source library
-. ../../bgrim.bash
+# Get the directory of the script that's currently running
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Source test library
+# shellcheck source=./lib/tst.bash
+PATH="$SCRIPT_DIR/../lib:$PATH" source tst.bash
+
+# Source library to be tested
+tst.source_lib_from_root "bgrim.bash"
 
 # Create temporary file
 tmpfile="$(mktemp)"
@@ -9,8 +16,8 @@ tmpfile="$(mktemp)"
 trap "rm -f '$tmpfile'" 'EXIT'
 
 (
-  bg.trap "echo 'heey' >'$tmpfile'" EXIT
-  bg.trap "echo 'wohoo'>>'$tmpfile'" EXIT
+  bg.trap.add "echo 'heey' >'$tmpfile'" EXIT
+  bg.trap.add "echo 'wohoo'>>'$tmpfile'" EXIT
 )
 
 # Check contents of tmpfile

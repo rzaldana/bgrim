@@ -2,8 +2,15 @@
 
 set -euo pipefail
 
-# Source library
-. ../../bgrim.bash
+# Get the directory of the script that's currently running
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Source test library
+# shellcheck source=./lib/tst.bash
+PATH="$SCRIPT_DIR/../lib:$PATH" source tst.bash
+
+# Source library to be tested
+tst.source_lib_from_root "bgrim.bash"
 
 # file to store name of temporary file
 tempfile_name_file1="$(mktemp)"
@@ -16,8 +23,8 @@ tempfile_name_file2="$(mktemp)"
 declare tmpfile1
 declare tmpfile2
 
-bg.tmpfile "tmpfile1"
-bg.tmpfile "tmpfile2"
+bg.tmpfile.new "tmpfile1"
+bg.tmpfile.new "tmpfile2"
 
 # Write name of tempfile to tempfile_name_file
 echo "$tmpfile1" >"$tempfile_name_file1"
