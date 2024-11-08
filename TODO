@@ -1,3 +1,7 @@
+1. Implement bg.arr.length, which takes the name of an array and returns its length
+2. Use bg.arr.length to implement bg.arr.verbalize (print an empty string when given an empty arr)
+3. use bg.arr.verbalize to write error message of __bg.fmt.fmt when given an invalid formatting
+
 0. Refactor format functions to have a central format function with many wrapper functions 
       (also rename to bg.fmt._)
 1. Change order of log level and script name in log function

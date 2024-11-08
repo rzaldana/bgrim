@@ -916,6 +916,38 @@ bg.arr.index_of() {
   return 1
 }
 
+# description: |
+#   Takes the name of an array and prints the array's
+#   elements to stdout as a list of quote-delimited,
+#   comma-separated words with the last word separated
+#   by the word "and". Useful for output messages
+#   that print array items
+# inputs:
+#   stdin: null 
+#   args:
+#     1: "array_name"
+# outputs:
+#   stdout: verbalized list of array items 
+#   stderr: |
+#     error message if validation of arguments fails
+#     or if the array does not exist 
+#   return_code:
+#     0: "when the array was properly verbalized"
+#     1: "when an error ocurred"
+#     2: "when argument validation failed"
+# tags:
+#   - "arrays"
+#bg.arr.verbalize() {
+#  local array_name
+#
+#  # Check number of arguments
+#  local -a required_args=( "ra:array_name" )
+#  if ! bg.in.require_args "$@"; then
+#    return 2 
+#  fi
+#
+#}
+
 ################################################################################
 # Description: Checks if a function with the given name exists
 # Globals:
@@ -1537,6 +1569,33 @@ EOF
 ################################################################################
 # OUTPUT FUNCTIONS
 ################################################################################
+__bg.fmt.fmt() {
+  local format
+  local string
+  required_args=( 'format' 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  # Format constants
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
+  local __BG_FORMAT_BLACK="${__BG_FORMAT_BLACK:-\e[0;30m}"
+  local __BG_FORMAT_RED="${__BG_FORMAT_RED:-\e[0;31m}"
+  local __BG_FORMAT_GREEN="${__BG_FORMAT_GREEN:-\e[0;32m}"
+  local __BG_FORMAT_YELLOW="${__BG_FORMAT_YELLOW:-\e[0;33m}"
+  local __BG_FORMAT_BLUE="${__BG_FORMAT_BLUE:-\e[0;34m}"
+  local __BG_FORMAT_MAGENTA="${__BG_FORMAT_MAGENTA:-\e[0;35m}"
+  local __BG_FORMAT_CYAN="${__BG_FORMAT_CYAN:-\e[0;36m}"
+  local __BG_FORMAT_WHITE="${__BG_FORMAT_WHITE:-\e[0;37m}"
+  local __BG_FORMAT_BOLD="${__BG_FORMAT_BOLD:-\e[1m}"
+
+  local format_var
+  format_var="__BG_FORMAT_${format}"
+  
+  printf "${!format_var}%s${__BG_FORMAT_BLANK}\n" "$string"
+
+}
+
 bg.out.format_black() {
   local __BG_FORMAT_BLACK="${__BG_FORMAT_BLACK:-\e[0;30m}"
   local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
