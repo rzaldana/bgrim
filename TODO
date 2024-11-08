@@ -1,14 +1,17 @@
-1. Implement more tests for cli.parse function with different specs
+0. Refactor format functions to have a central format function with many wrapper functions 
+      (also rename to bg.fmt._)
+1. Change order of log level and script name in log function
+2. Introduce colors for log messages
+3. Implement stack trace mode (Look at https://github.com/elibs/ebash for error-handling inspo)
+4. Implement more tests for cli.parse function with different specs
     Things to test:
-      - add_arg works
-      - options with args work
       - mix of opts and opts with args work
       - mix of opts and args work
       - mix of opts with args and args work
       - mix of opts, opts with args and args work
-2. Implement bg.cli.add_name function to change the name of the cli in the help message
-3. Implement bg.cli.add_footer to add footer to help message
-4. Implement bg.cli.add_header to add header to help message
-5. Implement bg.cli.help_message to override auto-generated help message
-6. Implement bash native replacement for basename and substitute it in bg.get_parent_routine_name
-
+5. Implement bg.cli.add_name function to change the name of the cli in the help message
+6. Implement bg.cli.add_footer to add footer to help message
+7. Implement bg.cli.add_header to add header to help message
+8. Implement bg.cli.help_message to override auto-generated help message
+9. Implement bash native replacement for basename and substitute it in bg.get_parent_routine_name
+10. Add documentation to functions that don't have it
