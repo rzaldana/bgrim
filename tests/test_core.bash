@@ -8,7 +8,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
-  tst.source_lib_from_root "core.bash"
+  tst.source_lib_from_root "bgrim.bash"
 }
 
 test_str.is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
