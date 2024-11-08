@@ -1404,7 +1404,7 @@ bg.cli.parse() {
   ## -d '' means read until end of file 
   local help_message
   IFS= read -d '' help_message << EOF || true
-$routine_name
+$(bg.out.format_bold "$routine_name")
 $( if bg.var.is_set 'description'; then printf "\n%s" "$description"; fi)
 $( if bg.var.is_set 'description'; then
      printf '\n%s' "Usage: $usage_string" 
@@ -1448,7 +1448,7 @@ EOF
         return 0
       else
       # Otherwise, print error message and exit
-        echo "ERROR: '-$OPTARG' is not a valid option" >&2
+      echo "ERROR: '-$OPTARG' is not a valid option" >&2
         return 1
       fi
     fi
@@ -1514,139 +1514,156 @@ EOF
 ################################################################################
 # OUTPUT FUNCTIONS
 ################################################################################
-bg.out.color_black() {
-  local __BG_COLOR_BLACK="${__BG_COLOR_BLACK:-\e[0;30m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+bg.out.format_black() {
+  local __BG_FORMAT_BLACK="${__BG_FORMAT_BLACK:-\e[0;30m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_BLACK=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_BLACK=""
+    __BG_FORMAT_BLANK=""
   fi
     
-  printf "${__BG_COLOR_BLACK}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_BLACK}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.out.color_red() {
-  local __BG_COLOR_RED="${__BG_COLOR_RED:-\e[0;31m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+bg.out.format_red() {
+  local __BG_FORMAT_RED="${__BG_FORMAT_RED:-\e[0;31m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_RED=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_RED=""
+    __BG_FORMAT_BLANK=""
   fi
     
-  printf "${__BG_COLOR_RED}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_RED}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.out.color_green() {
+bg.out.format_green() {
   # red constant
-  local __BG_COLOR_GREEN="${__BG_COLOR_GREEN:-\e[0;32m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local __BG_FORMAT_GREEN="${__BG_FORMAT_GREEN:-\e[0;32m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_GREEN=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_GREEN=""
+    __BG_FORMAT_BLANK=""
   fi
 
-  printf "${__BG_COLOR_GREEN}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_GREEN}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.out.color_yellow() {
-  local __BG_COLOR_YELLOW="${__BG_COLOR_YELLOW:-\e[0;33m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+bg.out.format_yellow() {
+  local __BG_FORMAT_YELLOW="${__BG_FORMAT_YELLOW:-\e[0;33m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_YELLOW=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_YELLOW=""
+    __BG_FORMAT_BLANK=""
   fi
 
-  printf "${__BG_COLOR_YELLOW}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_YELLOW}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.out.color_blue() {
-  local __BG_COLOR_BLUE="${__BG_COLOR_BLUE:-\e[0;34m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+bg.out.format_blue() {
+  local __BG_FORMAT_BLUE="${__BG_FORMAT_BLUE:-\e[0;34m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_BLUE=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_BLUE=""
+    __BG_FORMAT_BLANK=""
   fi
 
-  printf "${__BG_COLOR_BLUE}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_BLUE}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.out.color_magenta() {
-  local __BG_COLOR_MAGENTA="${__BG_COLOR_MAGENTA:-\e[0;35m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+bg.out.format_magenta() {
+  local __BG_FORMAT_MAGENTA="${__BG_FORMAT_MAGENTA:-\e[0;35m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_MAGENTA=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_MAGENTA=""
+    __BG_FORMAT_BLANK=""
   fi
 
-  printf "${__BG_COLOR_MAGENTA}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_MAGENTA}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.out.color_cyan() {
-  local __BG_COLOR_CYAN="${__BG_COLOR_CYAN:-\e[0;36m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+bg.out.format_cyan() {
+  local __BG_FORMAT_CYAN="${__BG_FORMAT_CYAN:-\e[0;36m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_CYAN=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_CYAN=""
+    __BG_FORMAT_BLANK=""
   fi
 
-  printf "${__BG_COLOR_CYAN}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_CYAN}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.out.color_white() {
-  local __BG_COLOR_WHITE="${__BG_COLOR_WHITE:-\e[0;37m}"
-  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+bg.out.format_white() {
+  local __BG_FORMAT_WHITE="${__BG_FORMAT_WHITE:-\e[0;37m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local string
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
-  if bg.var.is_set 'BG_NO_COLOR'; then
-    __BG_COLOR_WHITE=""
-    __BG_COLOR_BLANK=""
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_WHITE=""
+    __BG_FORMAT_BLANK=""
   fi
 
-  printf "${__BG_COLOR_WHITE}%s${__BG_COLOR_BLANK}\n" "$string"
+  printf "${__BG_FORMAT_WHITE}%s${__BG_FORMAT_BLANK}\n" "$string"
+}
+
+bg.out.format_bold() {
+  local __BG_FORMAT_BOLD="${__BG_FORMAT_BOLD:-\e[1m}"
+  local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_FORMAT'; then
+    __BG_FORMAT_BOLD=""
+    __BG_FORMAT_BLANK=""
+  fi
+
+  printf "${__BG_FORMAT_BOLD}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
