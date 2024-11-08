@@ -56,6 +56,105 @@ test_str.is_valid_var_name_returns_2_when_given_no_args() {
     "stderr should contain error message"
 }
 
+test_str.is_valid_command_returns_0_if_its_first_arg_is_a_function() {
+  set -euo pipefail
+  local stdout_and_stderr
+  test_fn() {
+    # shellcheck disable=SC2317
+    return 0
+  }
+  stdout_and_stderr="$(bg.str.is_valid_command test_fn arg1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+
+test_str.is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
+  set -euo pipefail
+  local stdout_and_stderr
+  stdout_and_stderr="$(bg.str.is_valid_command set arg1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_str.is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
+  set -euo pipefail
+  local stdout_and_stderr
+  stdout_and_stderr="$(bg.str.is_valid_command ls arg1)"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_str.is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
+  local stdout_and_stderr
+  stdout_and_stderr="$(bg.str.is_valid_command "{" "ls;" "}")"
+  ret_code="$?"
+  assert_equals "" "$stdout_and_stderr"
+  assert_equals "1" "$ret_code"
+}
+
+test_str.is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
+  set -euo pipefail
+  local test_opt="pipefail"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg.str.is_valid_shell_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+
+test_str.is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
+  local test_opt="pipefai"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg.str.is_valid_shell_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_str.is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
+  set -euo pipefail
+  local test_opt="cdspell"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg.str.is_valid_bash_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_str.is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
+  local test_opt="dspell"
+  local stdout_and_stderr
+  stdout_and_stderr="$( bg.str.is_valid_bash_opt "$test_opt" )"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$stdout_and_stderr"
+}
+
+test_str.escape_single_quotes_returns_unchanged_string_if_it_has_no_single_quotes() {
+  tst.create_buffer_files
+  set -euo pipefail
+  bg.str.escape_single_quotes "mystring" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "mystring" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
+test_str.escape_single_quotes_returns_string_with_escaped_single_quotes() {
+  tst.create_buffer_files
+  set -euo pipefail
+  bg.str.escape_single_quotes "mys'tr'ing" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "mys'\''tr'\''ing" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
 test_env.clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environment() {
   # Set a few specific options
   set -euo pipefail
@@ -265,84 +364,6 @@ test_func.is_declared_returns_1_when_the_given_name_does_not_refer_to_a_function
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_str.is_valid_command_returns_0_if_its_first_arg_is_a_function() {
-  set -euo pipefail
-  local stdout_and_stderr
-  test_fn() {
-    # shellcheck disable=SC2317
-    return 0
-  }
-  stdout_and_stderr="$(bg.str.is_valid_command test_fn arg1)"
-  ret_code="$?"
-  assert_equals "0" "$ret_code"
-  assert_equals "" "$stdout_and_stderr"
-}
-
-
-test_str.is_valid_command_returns_0_if_its_first_arg_is_a_shell_builtin() {
-  set -euo pipefail
-  local stdout_and_stderr
-  stdout_and_stderr="$(bg.str.is_valid_command set arg1)"
-  ret_code="$?"
-  assert_equals "0" "$ret_code"
-  assert_equals "" "$stdout_and_stderr"
-}
-
-test_str.is_valid_command_returns_0_if_its_first_arg_is_an_executable_in_the_path() {
-  set -euo pipefail
-  local stdout_and_stderr
-  stdout_and_stderr="$(bg.str.is_valid_command ls arg1)"
-  ret_code="$?"
-  assert_equals "0" "$ret_code"
-  assert_equals "" "$stdout_and_stderr"
-}
-
-test_str.is_valid_command_returns_1_if_its_first_arg_is_a_keyword() {
-  local stdout_and_stderr
-  stdout_and_stderr="$(bg.str.is_valid_command "{" "ls;" "}")"
-  ret_code="$?"
-  assert_equals "" "$stdout_and_stderr"
-  assert_equals "1" "$ret_code"
-}
-
-test_str.is_valid_shell_opt_returns_0_if_given_a_valid_shell_option() {
-  set -euo pipefail
-  local test_opt="pipefail"
-  local stdout_and_stderr
-  stdout_and_stderr="$( bg.str.is_valid_shell_opt "$test_opt" )"
-  ret_code="$?"
-  assert_equals "0" "$ret_code"
-  assert_equals "" "$stdout_and_stderr"
-}
-
-
-test_str.is_valid_shell_opt_returns_1_if_given_an_invalid_shell_option() {
-  local test_opt="pipefai"
-  local stdout_and_stderr
-  stdout_and_stderr="$( bg.str.is_valid_shell_opt "$test_opt" )"
-  ret_code="$?"
-  assert_equals "1" "$ret_code"
-  assert_equals "" "$stdout_and_stderr"
-}
-
-test_str.is_valid_bash_opt_returns_0_if_given_a_valid_bash_option() {
-  set -euo pipefail
-  local test_opt="cdspell"
-  local stdout_and_stderr
-  stdout_and_stderr="$( bg.str.is_valid_bash_opt "$test_opt" )"
-  ret_code="$?"
-  assert_equals "0" "$ret_code"
-  assert_equals "" "$stdout_and_stderr"
-}
-
-test_str.is_valid_bash_opt_returns_1_if_given_an_invalid_bash_option() {
-  local test_opt="dspell"
-  local stdout_and_stderr
-  stdout_and_stderr="$( bg.str.is_valid_bash_opt "$test_opt" )"
-  ret_code="$?"
-  assert_equals "1" "$ret_code"
-  assert_equals "" "$stdout_and_stderr"
-}
 
 test_env.is_shell_opt_set_returns_0_if_the_given_option_is_set() {
   set -euo pipefail

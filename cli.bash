@@ -57,7 +57,6 @@ bg.cli.add_description() {
     return 2 
   fi
 
-
   # read cli spec from stdin and print to stdout
   __bg.cli.stdin_to_stdout
 
@@ -232,6 +231,8 @@ bg.cli.parse() {
   local -a opt_help_messages=()
   local -a opt_help_summaries=()
   local -a opt_has_args=()
+  local -a args=()
+  local description
 
   local getopts_spec=""
 
@@ -283,6 +284,13 @@ bg.cli.parse() {
         opt_has_args+=( "true" )
         opt_help_summaries+=( "-$letter $env_var" )
         getopts_spec="${getopts_spec}${letter}:"
+        ;;
+      arg)
+        args+=( "$line" )
+        ;;
+      desc)
+        description="$line"
+        ;;
     esac
   done 
 
@@ -304,9 +312,31 @@ bg.cli.parse() {
     fi
   done
 
-  # Get number of option specs so we can iterate over them
+  # Find longest env var name so we can align
+  # auto-generated help message
+  local -i max_env_var_length=0
+  for env_var in "${opt_env_vars[@]}"; do
+    env_var_length="${#env_var}"
+    if [[ "${env_var_length}" -gt "${max_env_var_length}" ]]; then
+      max_env_var_length="${env_var_length}"
+    fi
+  done
+
+  # Get number of option specs and args to use
   # when creating the help message
+  local -i n_opt_specs n_arg_specs
   n_opt_specs="${#opt_letters[@]}"
+  n_arg_specs="${#args[@]}"
+
+  # Create usage string
+  local usage_string="$routine_name"
+  if (( n_opt_specs != 0 )); then
+    usage_string="${usage_string} [OPTIONS]"
+  fi
+
+  for arg in "${args[@]}"; do
+    usage_string="${usage_string} $arg"
+  done
 
   # Fill in help message template
   ## Emtpy IFS means no word splitting
@@ -314,15 +344,31 @@ bg.cli.parse() {
   local help_message
   IFS= read -d '' help_message << EOF || true
 $routine_name
-
-Usage: $routine_name [OPTIONS]
-
-Options:
+$( if bg.var.is_set 'description'; then printf "\n%s" "$description"; fi)
+$( if bg.var.is_set 'description'; then
+     printf '\n%s' "Usage: $usage_string" 
+   else 
+     printf '%s' "Usage: $usage_string"
+   fi
+)
 $( for (( i=0; i<n_opt_specs; i++  ));
     do
+      if (( i == 0 )); then
+        printf "\n%s\n" 'Options:'
+      fi
       printf "  %-${max_help_summary_length}s %s\n"\
         "${opt_help_summaries[$i]}" \
         "${opt_help_messages[$i]}"
+    done
+)
+$( for (( i=0; i<n_opt_specs; i++  ));
+    do
+      if (( i == 0 )); then
+        printf "\n%s\n" 'Environment Variables:'
+      fi
+      printf "  %-${max_env_var_length}s %s\n"\
+        "${opt_env_vars[$i]}" \
+        "Same as setting '-${opt_letters[$i]}'"
     done
 )
 EOF
@@ -350,7 +396,7 @@ EOF
     # Print error if option that expected arg did
     # not get one
     if [[ "$OPT" == ":" ]]; then
-      echo "[ERROR]: Option '-$OPTARG' expected an argument but none was provided" >&2
+      echo "ERROR: Option '-$OPTARG' expected an argument but none was provided" >&2
       return 1
     fi
 
@@ -366,21 +412,50 @@ EOF
 
 
     # if OPTARG is set, assign its value to env var
-    if bg.var.is_set 'OPT_ARG'; then
-      eval "$env_var='$OPT_ARG'"
+    if bg.var.is_set 'OPTARG'; then
+      # Escape single quotes in OPTARG
+      local sanitized_optarg
+      sanitized_optarg="$(bg.str.escape_single_quotes "$OPTARG")"
+      eval "$env_var='$sanitized_optarg'"
     fi
+
   done
   
   # Remove all processed options from args array
   shift $(( OPTIND - 1 ))
 
-  # If there are extra args, error out 
-  local -i n_args
-  n_args="${#@}"
-
-  if (( n_args > 0 )); then
-    echo "ERROR: Unexpected command line argument: '$1'" >&2
+  # Error out if less arguments than required were provided
+  if (( ${#} < n_arg_specs )); then
+    echo "ERROR: Expected positional argument '${args[$#]}' was not provided" >&2
     return 1
   fi
+
+  # Error out if more arguments than required were provided
+  if (( ${#} > n_arg_specs )); then
+    local -i u_arg_index=$(( n_arg_specs + 1 ))
+    echo "ERROR: Unexpected positional argument: '${!u_arg_index}'" >&2
+    return 1
+  fi
+
+  # Match every argument to its environment variable
+  local arg_env_var
+  local -i i=1
+  local sanitized_arg
+  for arg_env_var in "${args[@]}"; do
+    arg="${!i}"
+    declare -g "$arg_env_var"
+    sanitized_arg="$(bg.str.escape_single_quotes "$arg")" 
+    eval "$arg_env_var='$sanitized_arg'"
+    (( i++ ))
+  done
+
+  # If there are extra args, error out 
+  #local -i n_args
+  #n_args="${#@}"
+
+  #if (( n_args > 0 )); then
+  #  echo "ERROR: Unexpected command line argument: '$1'" >&2
+  #  return 1
+  #fi
 }
 

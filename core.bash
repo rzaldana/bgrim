@@ -315,6 +315,40 @@ bg.str.is_valid_bash_opt() (
   return 1
 )
 
+
+# description: |
+#   prints the given string to stdout with any single quotes escaped so the
+#   string itself can be put inside single quotes
+# inputs:
+#   stdin:
+#   args:
+#     1: "string to sanitize"
+# outputs:
+#   stdout: "string with escaped single quotes"
+#   stderr:
+#   return_code:
+#     0: "when the string is a valid bash option in the current bash"
+#     2: "when the required string is not provided"
+# tags:
+#   - "option decorators"
+# examples:
+# - script: |
+#     string_to_print="Today's date is Monday"
+#     escaped_string="$(bg.str.escape_single_quotes "$string_to_print")"
+#     eval "echo '$escaped_string'"
+#   output:
+#     Today's date is Monday 
+bg.str.escape_single_quotes() ( 
+  local string
+  local -a required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  string="${string//\'/\'\\\'\'}"
+  printf "%s" "$string"
+)
+
 ################################################################################
 # INPUT FUNCTIONS
 ################################################################################
@@ -616,8 +650,17 @@ bg.env.get_parent_routine_name() {
   # If calling function is running at top-level
   # or if calling routine is the top-level 'main'
   # routine, return the name of the script
-  if [[ "${#FUNCNAME[@]}" -le 3 ]]; then
-    printf "%s" "$( basename "${BASH_SOURCE[1]}" )"
+  
+  # Get the length of FUNCNAME
+  local -i funcname_length
+  funcname_length="${#FUNCNAME[@]}" 
+
+  # If length is less than 3, i.e. when this
+  # function is being called at the top level
+  if [[ "$funcname_length" -le 3 ]]; then
+    local -i top_level_index
+    top_level_index=$(( funcname_length - 1 ))
+    printf "%s" "$( basename "${BASH_SOURCE[$top_level_index]}" )"
   else
     printf "%s" "${FUNCNAME[2]}"
   fi

@@ -360,6 +360,9 @@ Usage: parse_with_one_opt [OPTIONS]
 
 Options:
   -f help message
+
+Environment Variables:
+  myflag Same as setting '-f'
 EOF
   assert_equals "$( printf '%s' "$expected_help_message")" "$(< "$stderr_file")" "stderr should contain an error message"
   #assert_equals "$expected_help_message" "$(< "$stderr_file")" "stderr should contain an error message"
@@ -410,19 +413,274 @@ test_cli.parse:parse_with_one_opt4() {
 test_cli.parse:parse_with_one_opt5() {
   tst.create_buffer_files
   parse_with_one_opt -g -f >"$stdout_file" 2>"$stderr_file"
- ret_code="$?"
+  ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
 }
 
-test_cli.parse:parse_with_one_opt5() {
+test_cli.parse:parse_with_one_opt6() {
   tst.create_buffer_files
   parse_with_one_opt -f arg >"$stdout_file" 2>"$stderr_file"
  ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: Unexpected command line argument: 'arg'" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "ERROR: Unexpected positional argument: 'arg'" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+parse_with_one_opt_with_arg() {
+  bg.cli.parse "$@" < <(
+    bg.cli.init \
+      | bg.cli.add_opt_with_arg "f" "myflag" "help message"
+  )
+}
+
+test_cli.parse:parse_with_one_opt_with_arg_help_message() {
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg -h >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  local expected_help_message=""
+  IFS= read -d '' expected_help_message << EOF || true 
+parse_with_one_opt_with_arg
+
+Usage: parse_with_one_opt_with_arg [OPTIONS]
+
+Options:
+  -f myflag help message
+
+Environment Variables:
+  myflag Same as setting '-f'
+EOF
+  assert_equals "$( printf '%s' "$expected_help_message")" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg1() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg2() {
+  set -uo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg -f >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: Option '-f' expected an argument but none was provided" \
+    "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg3() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg -f value >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  # shellcheck disable=SC2154
+  assert_equals "$myflag" "value" "variable 'myflag' should contain the value 'value'"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg4() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg -f 'value with spaces' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  # shellcheck disable=SC2154
+  assert_equals "$myflag" "value with spaces"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg5() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg -f "value 'with' quotes" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  # shellcheck disable=SC2154
+  assert_equals "value 'with' quotes" "$myflag"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg6() {
+  set -uo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt -g >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg7() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg -f -g >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr file should be empty"
+  assert_equals "$myflag" "-g"
+}
+
+test_cli.parse:parse_with_one_opt_with_arg8() {
+  set -uo pipefail
+  tst.create_buffer_files
+  parse_with_one_opt_with_arg -g -f >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+parse_with_arg() {
+  bg.cli.parse "$@" < <(
+    bg.cli.init \
+      | bg.cli.add_arg "MYARG"
+  )
+}
+
+test_cli.parse:parse_with_arg_help_message() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_arg -h >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  local expected_help_message=""
+  IFS= read -d '' expected_help_message << EOF || true 
+parse_with_arg
+
+Usage: parse_with_arg MYARG
+EOF
+  assert_equals "$( printf '%s' "$expected_help_message")" "$(< "$stderr_file")" "stderr should contain an error message"
+}
+
+test_cli.parse:parse_with_arg1() {
+  tst.create_buffer_files
+  parse_with_arg > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "ERROR: Expected positional argument 'MYARG' was not provided" "$(< "$stderr_file" )"
+}
+
+test_cli.parse:parse_with_arg2() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_arg myvalue > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "$MYARG" "myvalue"
+}
+
+test_cli.parse:parse_with_arg3() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_arg 'myvalue with spaces' > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "$MYARG" "myvalue with spaces"
+}
+
+test_cli.parse:parse_with_arg4() {
+  set -euo pipefail
+  tst.create_buffer_files
+  parse_with_arg 'myvalue "with "' > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "$MYARG" 'myvalue "with "'
+}
+
+test_cli.parse:parse_with_arg5() {
+  set -o pipefail
+  tst.create_buffer_files
+  parse_with_arg "myvalue 'with '" > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "$MYARG" "myvalue 'with '"
+}
+
+test_cli.parse:parse_with_arg6() {
+  tst.create_buffer_files
+  parse_with_arg arg1 arg2 > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "ERROR: Unexpected positional argument: 'arg2'" "$(< "$stderr_file" )"
+}
+
+test_cli.parse:parse_with_arg7() {
+  set -o pipefail
+  tst.create_buffer_files
+  parse_with_arg "-g" > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file" )"
+}
+
+test_cli.parse:parse_with_arg8() {
+  set -o pipefail
+  tst.create_buffer_files
+  parse_with_arg -- -g > "$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "$MYARG" "-g"
+}
+
+parse_with_description() {
+  bg.cli.parse "$@" < <(
+    bg.cli.init \
+      | bg.cli.add_opt "f" "myflag" "help message" \
+      | bg.cli.add_description "description 'of' cli"
+  )
+}
+
+test_cli.parse:parse_with_description_help_message() {
+  tst.create_buffer_files
+  parse_with_description -h >"$stdout_file" 2>"$stderr_file"
+ ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  local expected_help_message=""
+  IFS= read -d '' expected_help_message << EOF || true 
+parse_with_description
+
+description 'of' cli
+
+Usage: parse_with_description [OPTIONS]
+
+Options:
+  -f help message
+
+Environment Variables:
+  myflag Same as setting '-f'
+EOF
+  assert_equals "$( printf '%s' "$expected_help_message")" "$(< "$stderr_file")" "stderr should contain an error message"
 }
 
 #test_cli_parse_with_one_opt_and_one_arg_with_opt() {
