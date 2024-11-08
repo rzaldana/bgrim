@@ -1428,3 +1428,187 @@ test_arr.index_of_returns_the_index_of_the_provided_item_in_the_provided_array()
   assert_equals "1" "$(< "$stdout_file" )" "stdout should contain '1'"
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
+
+test_out.color_black_prints_the_given_string_in_red() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_BLACK="BLACK"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_black "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "BLACKmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_black_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_black "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}
+
+test_out.color_red_prints_the_given_string_in_red() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_RED="RED"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_red "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "REDmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_red_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_red "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}
+
+test_out.color_green_prints_the_given_string_in_green() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_GREEN="GREEN"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_green "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "GREENmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_green_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_green "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}
+
+test_out.color_yellow_prints_the_given_string_in_yellow() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_YELLOW="YELLOW"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_yellow "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "YELLOWmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_yellow_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_yellow "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}
+
+test_out.color_blue_prints_the_given_string_in_blue() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_BLUE="BLUE"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_blue "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "BLUEmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_blue_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_blue "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}
+
+test_out.color_magenta_prints_the_given_string_in_magenta() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_MAGENTA="MAGENTA"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_magenta "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "MAGENTAmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_magenta_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_magenta "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}
+
+test_out.color_cyan_prints_the_given_string_in_cyan() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_CYAN="CYAN"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_cyan "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "CYANmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_cyan_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_cyan "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}
+
+test_out.color_white_prints_the_given_string_in_white() {
+  set -euo pipefail
+  tst.create_buffer_files
+  __BG_COLOR_WHITE="WHITE"
+  __BG_COLOR_BLANK="BLANK"
+  bg.out.color_white "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "WHITEmy cool stringBLANK" "$(< "$stdout_file" )"
+}
+
+test_out.color_white_prints_the_given_string_with_no_color_code_if_no_color_env_var_is_set() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_NO_COLOR=""
+  bg.out.color_white "my cool string" 2>"$stderr_file" >"$stdout_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert_equals "my cool string" "$(< "$stdout_file" )"
+}

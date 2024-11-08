@@ -1509,14 +1509,144 @@ EOF
     eval "$arg_env_var='$sanitized_arg'"
     (( i++ ))
   done
-
-  # If there are extra args, error out 
-  #local -i n_args
-  #n_args="${#@}"
-
-  #if (( n_args > 0 )); then
-  #  echo "ERROR: Unexpected command line argument: '$1'" >&2
-  #  return 1
-  #fi
 }
 
+################################################################################
+# OUTPUT FUNCTIONS
+################################################################################
+bg.out.color_black() {
+  local __BG_COLOR_BLACK="${__BG_COLOR_BLACK:-\e[0;30m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_BLACK=""
+    __BG_COLOR_BLANK=""
+  fi
+    
+  printf "${__BG_COLOR_BLACK}%s${__BG_COLOR_BLANK}\n" "$string"
+}
+
+bg.out.color_red() {
+  local __BG_COLOR_RED="${__BG_COLOR_RED:-\e[0;31m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_RED=""
+    __BG_COLOR_BLANK=""
+  fi
+    
+  printf "${__BG_COLOR_RED}%s${__BG_COLOR_BLANK}\n" "$string"
+}
+
+bg.out.color_green() {
+  # red constant
+  local __BG_COLOR_GREEN="${__BG_COLOR_GREEN:-\e[0;32m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_GREEN=""
+    __BG_COLOR_BLANK=""
+  fi
+
+  printf "${__BG_COLOR_GREEN}%s${__BG_COLOR_BLANK}\n" "$string"
+}
+
+bg.out.color_yellow() {
+  local __BG_COLOR_YELLOW="${__BG_COLOR_YELLOW:-\e[0;33m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_YELLOW=""
+    __BG_COLOR_BLANK=""
+  fi
+
+  printf "${__BG_COLOR_YELLOW}%s${__BG_COLOR_BLANK}\n" "$string"
+}
+
+bg.out.color_blue() {
+  local __BG_COLOR_BLUE="${__BG_COLOR_BLUE:-\e[0;34m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_BLUE=""
+    __BG_COLOR_BLANK=""
+  fi
+
+  printf "${__BG_COLOR_BLUE}%s${__BG_COLOR_BLANK}\n" "$string"
+}
+
+bg.out.color_magenta() {
+  local __BG_COLOR_MAGENTA="${__BG_COLOR_MAGENTA:-\e[0;35m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_MAGENTA=""
+    __BG_COLOR_BLANK=""
+  fi
+
+  printf "${__BG_COLOR_MAGENTA}%s${__BG_COLOR_BLANK}\n" "$string"
+}
+
+bg.out.color_cyan() {
+  local __BG_COLOR_CYAN="${__BG_COLOR_CYAN:-\e[0;36m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_CYAN=""
+    __BG_COLOR_BLANK=""
+  fi
+
+  printf "${__BG_COLOR_CYAN}%s${__BG_COLOR_BLANK}\n" "$string"
+}
+
+bg.out.color_white() {
+  local __BG_COLOR_WHITE="${__BG_COLOR_WHITE:-\e[0;37m}"
+  local __BG_COLOR_BLANK="${__BG_COLOR_BLANK:-\e[0m}"
+  local string
+  required_args=( 'string' )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  if bg.var.is_set 'BG_NO_COLOR'; then
+    __BG_COLOR_WHITE=""
+    __BG_COLOR_BLANK=""
+  fi
+
+  printf "${__BG_COLOR_WHITE}%s${__BG_COLOR_BLANK}\n" "$string"
+}
