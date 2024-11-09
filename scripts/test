@@ -31,6 +31,8 @@ get_git_repo_root() {
 }
 
 
+#'./submodules/bash_unit/bash_unit' ./tests/test_*.bash \
+#-c 'echo "${BASH_VERSION}"' \
 run_tests_in_bash_version() {
   local bash_version 
   bash_version="${1:-}"
@@ -48,7 +50,9 @@ run_tests_in_bash_version() {
     docker compose \
     -f "$SCRIPT_DIR/docker-compose.yml"\
     run \
+    --entrypoint bash \
     --rm \
+    --build \
     bash \
     './submodules/bash_unit/bash_unit' ./tests/test_*.bash \
     && docker compose -f "$SCRIPT_DIR/docker-compose.yml" rm -fsv
