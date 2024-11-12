@@ -29,46 +29,6 @@ test_arr.is_member_returns_1_when_the_given_value_is_not_in_the_array_with_the_g
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_arr.is_var_readonly_returns_1_if_variable_is_unset() {
-  tst.create_buffer_files
-  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-}
-
-test_arr.is_var_readonly_returns_1_if_variable_is_set_but_not_readonly() {
-  tst.create_buffer_files
-  declare myvar
-  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-}
-
-test_arr.is_var_readonly_returns_0_if_variable_is_readonly() {
-  set -euo pipefail
-  tst.create_buffer_files
-  declare -r myvar
-  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-}
-
-test_arr.is_var_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes() {
-  set -euo pipefail
-  tst.create_buffer_files
-  declare -ra myvar
-  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-}
 
 test_arr.from_stdin_stores_a_single_line_from_stdin_into_new_array_array_name() {
   set -euo pipefail

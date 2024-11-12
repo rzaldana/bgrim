@@ -1,3 +1,5 @@
+source err.bash
+
 ################################################################################
 # VARIABLE FUNCTIONS 
 ################################################################################
@@ -15,10 +17,10 @@
 #   1 otherwise
 bg.var.is_array() ( 
   if (( ${#} < 1 )); then
-    echo "ERROR: argument 1 (array_name) is required but was not provided" >&2
+    bg.err.print "argument 1 (array_name) is required but was not provided"
     return 2
   fi
-  local array_name="${1:-}"  
+  local array_name="${1}"  
   local re="declare -a"
   local array_attributes
   array_attributes="$(declare -p "$array_name" 2>/dev/null)" \
@@ -47,11 +49,11 @@ bg.var.is_array() (
 # tags:
 #   - "cli parsing"
 bg.var.is_readonly() ( 
-  local var_name
-  local -a required_args=( 'var_name' )
-  if ! bg.in.require_args "$@"; then
+  if (( ${#} < 1 )); then
+    bg.err.print "argument 1 (var_name) is required but was not provided"
     return 2
   fi
+  local var_name="${1}"
 
   local re="^declare -[a-z]*r[a-z]* "
   local var_attributes
@@ -82,11 +84,12 @@ bg.var.is_readonly() (
 # tags:
 # - "utility"
 bg.var.is_declared() ( 
-  local var_name
-  local -a required_args=( "var_name" )
-  if ! bg.in.require_args "$@"; then
-    return 2 
+  if (( ${#} < 1 )); then
+    bg.err.print "argument 1 (var_name) is required but was not provided"
+    return 2
   fi
+  # shellcheck disable=SC2030
+  local var_name="${1}" 
   declare -p "$var_name" 1>/dev/null 2>&1
 )
 
@@ -108,11 +111,12 @@ bg.var.is_declared() (
 # tags:
 # - "utility"
 bg.var.is_set() ( 
-  local var_name
-  local -a required_args=( "var_name" )
-  if ! bg.in.require_args "$@"; then
-    return 2 
+  if (( ${#} < 1 )); then
+    bg.err.print "argument 1 (var_name) is required but was not provided"
+    return 2
   fi
+  # shellcheck disable=SC2030
+  local var_name="${1}" 
 
   if ! bg.var.is_declared "$var_name"; then
     return 1

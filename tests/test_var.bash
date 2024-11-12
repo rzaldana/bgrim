@@ -9,6 +9,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "var.bash"
+  export __BG_ERR_FORMAT='%s\n'
 }
 
 test_var.is_array_returns_2_if_no_argument_is_provided() {
@@ -18,7 +19,7 @@ test_var.is_array_returns_2_if_no_argument_is_provided() {
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")"
-  assert_equals "ERROR: argument 1 (array_name) is required but was not provided" "$(< "$stderr_file")"
+  assert_equals "argument 1 (array_name) is required but was not provided" "$(< "$stderr_file")"
 }
 
 test_var.is_array_returns_0_if_there_is_an_array_variable_with_the_given_name_and_the_variable_is_set() {
@@ -44,16 +45,6 @@ test_var.is_array_returns_1_if_a_var_with_the_given_name_exists_but_is_not_an_ar
   ret_code="$?"
   assert_equals "1" "$ret_code" "function call should return 1 when variable with given name is not an array" 
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
-}
-
-test_var.is_declared_returns_2_if_no_argument_is_provided() {
-  tst.create_buffer_files
-  set -o pipefail
-  bg.var.is_declared >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "2" "$ret_code" "should return exit code 2"
-  assert_equals "" "$(< "$stdout_file")"
-  assert_equals "ERROR: argument 1 (var_name) is required but was not provided" "$(< "$stderr_file")"
 }
 
 test_var.is_declared_returns_0_if_a_variable_is_declared() {
@@ -94,7 +85,7 @@ test_var.is_declared_returns_2_and_error_message_if_no_args_are_provided() {
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
+  assert_equals 'argument 1 (var_name) is required but was not provided' "$(< "$stderr_file")" "stderr should contain error messsage"
 }
 
 test_var.is_set_returns_2_and_error_message_if_no_args_are_provided() {
@@ -104,7 +95,7 @@ test_var.is_set_returns_2_and_error_message_if_no_args_are_provided() {
   ret_code="$?"
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_matches '^ERROR: .*$' "$(< "$stderr_file")" "stderr should contain error messsage"
+  assert_equals 'argument 1 (var_name) is required but was not provided' "$(< "$stderr_file")"
 }
 
 test_var.is_set_returns_1_if_a_variable_is_undeclared() {
@@ -161,3 +152,52 @@ test_var.is_set_returns_1_if_an_integer_variable_is_declared_but_unset() {
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
+test_var.is_readonly_returns_2_if_no_args_are_provided() {
+  tst.create_buffer_files
+  bg.var.is_readonly >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "2" "$ret_code" "should return exit code 2"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "argument 1 (var_name) is required but was not provided" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_var.is_readonly_returns_1_if_variable_is_unset() {
+  tst.create_buffer_files
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_var.is_readonly_returns_1_if_variable_is_set_but_not_readonly() {
+  tst.create_buffer_files
+  declare myvar
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_var.is_readonly_returns_0_if_variable_is_readonly() {
+  set -euo pipefail
+  tst.create_buffer_files
+  declare -r myvar
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_var.is_readonly_returns_0_if_variable_is_readonly_and_has_other_attributes() {
+  set -euo pipefail
+  tst.create_buffer_files
+  declare -ra myvar
+  bg.var.is_readonly 'myvar' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
