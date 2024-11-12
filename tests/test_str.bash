@@ -9,6 +9,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "bgrim.bash"
+  __BG_ERR_FORMAT="%s\n"
 }
 
 test_str.is_valid_var_name_returns_0_when_the_given_string_contains_only_alphanumeric_chars_and_underscore() {
@@ -51,7 +52,7 @@ test_str.is_valid_var_name_returns_2_when_given_no_args() {
   assert_equals "2" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout shouldb be empty"
   assert_equals \
-    "ERROR: bg.str.is_valid_var_name: argument 1 (var_name) is required but was not provided" \
+    "argument 1 (var_name) is required but was not provided" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
