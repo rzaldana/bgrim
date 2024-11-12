@@ -1,3 +1,6 @@
+source err.bash
+source var.bash
+
 ################################################################################
 # INPUT FUNCTIONS
 ################################################################################
@@ -73,13 +76,13 @@ bg.in.require_args() {
 
   # Fail if required_args array is not set 
   if ! bg.var.is_array 'required_args'; then
-    echo "ERROR: require_args: 'required_args' array not found" >&2
+    bg.err.print "'required_args' array not found"
     return 2
   fi
 
-  # Fail if required_args array has length 0
-  if [[ "${#required_args[@]}" == "0" ]]; then
-    echo "ERROR: require_args: 'required_args' array is empty" >&2
+  # Fail if required_args array is not set 
+  if ! bg.var.is_set 'required_args'; then
+    bg.err.print "'required_args' array is empty"
     return 2
   fi
 
@@ -91,17 +94,14 @@ bg.in.require_args() {
     # Remove type prefix, if present
     arg="${arg##*:}"
     if ! [[ "$arg" =~ $valid_var_name_re ]]; then
-      echo "ERROR: $calling_function: '$arg' is not a valid variable name" >&2
+      bg.err.print "'$arg' is not a valid variable name"
       return 1
     fi
   done
 
   # Check that there is a cli argument for every required arg
   if [[ "${#provided_args[@]}" -lt "${#required_args[@]}" ]]; then
-    printf "ERROR: $calling_function: argument %s (%s) is required but was not provided\n" \
-      "$(( ${#provided_args[@]} + 1 ))" \
-      "${required_args[${#provided_args[@]}]}" \
-      >&2
+    bg.err.print "argument $(( ${#provided_args[@]} + 1 )) (${required_args[${#provided_args[@]}]}) is required but was not provided"
     return 1
   else
     # assign the value of each cli argument to the corresponding required arg
@@ -124,34 +124,34 @@ bg.in.require_args() {
         case "${type_prefix}" in
           "ra")
             if ! bg.var.is_array "$provided_arg"; then
-              echo "ERROR: $calling_function: array variable with name '$provided_arg' does not exist" >&2
+              bg.err.print "array variable with name '$provided_arg' does not exist"
               return 1 
             fi
 
             if ! bg.var.is_set "$provided_arg"; then
-              echo "ERROR: $calling_function: array variable with name '$provided_arg' is not set" >&2
+              bg.err.print "array variable with name '$provided_arg' is not set"
               return 1
             fi
             ;;
 
           "rwa")
             if ! bg.var.is_array "$provided_arg"; then
-              echo "ERROR: $calling_function: array variable with name '$provided_arg' does not exist" >&2
+              bg.err.print "array variable with name '$provided_arg' does not exist"
               return 1 
             fi
 
             if ! bg.var.is_set "$provided_arg"; then
-              echo "ERROR: $calling_function: array variable with name '$provided_arg' is not set" >&2
+              bg.err.print "array variable with name '$provided_arg' is not set"
               return 1
             fi
 
             if bg.var.is_readonly "$provided_arg"; then
-              echo "ERROR: $calling_function: array variable with name '$provided_arg' is read-only" >&2
+              bg.err.print "array variable with name '$provided_arg' is read-only"
               return 1
             fi
             ;;
           *)
-            echo "ERROR: $calling_function: Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra' and 'rwa'" >&2
+            bg.err.print "Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra' and 'rwa'"
             return 1
             ;;
         esac

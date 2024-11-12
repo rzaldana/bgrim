@@ -9,6 +9,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "in.bash"
+  __BG_ERR_FORMAT='%s\n'
 }
 
 
@@ -39,22 +40,19 @@ test_in.require_args_returns_2_if_required_args_array_is_not_set() {
   assert_equals "2" "$ret_code" "should return exit code 2"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: require_args: 'required_args' array not found" \
+    "'required_args' array not found" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
 
-test_in.require_args_returns_2_if_required_args_array_is_empty() {
+test_in.require_args_returns_0_even_if_required_args_array_is_empty() {
   tst.create_buffer_files
   local -a required_args=()
   bg.in.require_args >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  assert_equals "2" "$ret_code" "should return exit code 2"
+  assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals \
-    "ERROR: require_args: 'required_args' array is empty" \
-    "$(< "$stderr_file")" \
-    "stderr should contain an error message"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
 test_in.require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided() {
@@ -65,7 +63,7 @@ test_in.require_args_returns_1_if_only_one_arg_is_required_and_none_are_provided
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: argument 1 (ARG) is required but was not provided" \
+    "argument 1 (ARG) is required but was not provided" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -93,7 +91,7 @@ test_in.require_args_returns_1_if_two_args_are_required_but_only_one_is_provided
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: argument 2 (ARG2) is required but was not provided" \
+    "argument 2 (ARG2) is required but was not provided" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -142,7 +140,7 @@ test_in.require_args_returns_1_if_three_args_are_required_and_three_args_are_pro
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: array variable with name 'new_array' is not set" \
+    "array variable with name 'new_array' is not set" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -155,7 +153,7 @@ test_in.require_args_returns_1_if_any_of_the_required_args_is_not_a_valid_variab
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: 'var()' is not a valid variable name" \
+    "'var()' is not a valid variable name" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -168,7 +166,7 @@ test_in.require_args_returns_1_if_readable_array_arg_is_required_but_a_regular_s
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: array variable with name 'nonarray' does not exist" \
+    "array variable with name 'nonarray' does not exist" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -182,7 +180,7 @@ test_in.require_args_returns_1_if_readable_array_arg_is_required_but_unset_array
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: array variable with name 'an_array' is not set" \
+    "array variable with name 'an_array' is not set" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -218,7 +216,7 @@ test_in.require_args_returns_1_if_readwrite_array_arg_is_required_but_a_regular_
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: array variable with name 'nonarray' does not exist" \
+    "array variable with name 'nonarray' does not exist" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -232,7 +230,7 @@ test_in.require_args_returns_1_if_readwrite_array_arg_is_required_but_unset_arra
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: array variable with name 'an_array' is not set" \
+    "array variable with name 'an_array' is not set" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -246,7 +244,7 @@ test_in.require_args_returns_1_if_readable_array_arg_is_required_and_set_read_on
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: array variable with name 'another_array' is read-only" \
+    "array variable with name 'another_array' is read-only" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
@@ -270,13 +268,13 @@ test_in.require_args_returns_1_if_invalid_prefix_is_provided() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals \
-    "ERROR: ${FUNCNAME[0]}: Type prefix 'dwa' for variable 'myarray' is not valid. Valid prefixes are: 'ra' and 'rwa'" \
+    "Type prefix 'dwa' for variable 'myarray' is not valid. Valid prefixes are: 'ra' and 'rwa'" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }
 
 test_in.require_args_places_args_with_spaces_in_correct_variable() {
-  set -euo pipefail
+  set -o pipefail
   local var1
   local var2
   test_func(){
