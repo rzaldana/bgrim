@@ -6,7 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
-  tst.source_lib_from_root "bgrim.bash"
+  tst.source_lib_from_root "log.bash"
 }
 
 test_cli.log_prints_message_if_env_log_level_is_lower_than_the_provided_level() {

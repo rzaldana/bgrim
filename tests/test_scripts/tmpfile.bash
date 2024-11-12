@@ -10,7 +10,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/../lib:$PATH" source tst.bash
 
 # Source library to be tested
-tst.source_lib_from_root "bgrim.bash"
+tst.source_lib_from_root "tmpfile.bash"
 
 # file to store name of temporary file
 tempfile_name_file1="$(mktemp)"

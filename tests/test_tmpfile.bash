@@ -8,7 +8,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
-  tst.source_lib_from_root "bgrim.bash"
+  tst.source_lib_from_root "tmpfile.bash"
 }
 
 test_tmpfile.new_fails_when_filename_var_is_not_a_valid_var_name() {
