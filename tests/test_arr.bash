@@ -8,7 +8,30 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
-  tst.source_lib_from_root "bgrim.bash"
+  tst.source_lib_from_root "arr.bash"
+  __BG_ERR_FORMAT="%s\n"
+}
+
+test_arr.length:returns_length_of_array_if_array_is_empty() {
+  set -euo pipefail
+  local -a test_arr=()
+  tst.create_buffer_files
+  bg.arr.length 'test_arr' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "0" "$(< "$stdout_file")" "stdout should be 0"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
+test_arr.length:returns_length_of_array_if_array_has_items() {
+  set -euo pipefail
+  local -a test_arr=( "item1" "item2" "item3" )
+  tst.create_buffer_files
+  bg.arr.length 'test_arr' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "3" "$(< "$stdout_file")" "stdout should be 0"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
 
@@ -72,7 +95,7 @@ test_arr.index_of_returns_error_if_item_not_found_in_array() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals \
-    "ERROR: item 'fourth' not found in array with name 'myarray'" \
+    "item 'fourth' not found in array with name 'myarray'" \
     "$(< "$stderr_file" )" "stderr should be empty"
 }
 
