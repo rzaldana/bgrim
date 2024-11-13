@@ -56,12 +56,12 @@ bg.env.clear_vars_with_prefix() {
 
   # Check that prefix is not empty
   [[ -z "$prefix" ]] \
-    && printf '%s\n' "ERROR: arg1 (prefix) is empty but is required" >&2 \
+    && bg.err.printf "arg1 (prefix) is empty but is required" \
     && return 1
 
   # Check that prefix is a valid variable name
   if ! bg.str.is_valid_var_name "$prefix"; then \
-    printf '%s\n' "ERROR: '$prefix' is not a valid variable prefix" >&2
+    bg.err.print "'$prefix' is not a valid variable prefix"
     return 1
   fi
 
@@ -110,7 +110,7 @@ bg.env.is_shell_opt_set() (
 
   # Print error message to stdout if given option is not valid
   [[ -z "$is_valid_opt" ]] \
-    && echo "'$opt_name' is not a valid shell option" >&2 \
+    && bg.err.print "'$opt_name' is not a valid shell option" \
     && return 2
   return 1
 )

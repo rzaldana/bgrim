@@ -7,6 +7,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "log.bash"
+  __BG_ERR_FORMAT='%s\n'
 }
 
 test_cli.log_prints_message_if_env_log_level_is_lower_than_the_provided_level() {
@@ -54,7 +55,7 @@ test_log.log_returns_1_if_env_log_level_is_not_valid() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")"
-  assert_equals "ERROR: 'TRCE' is not a valid log level. Valid values are: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', and 'FATAL'" "$(< "$stderr_file" )"
+  assert_equals "'TRCE' is not a valid log level. Valid values are: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', and 'FATAL'" "$(< "$stderr_file" )"
 }
 
 test_log.log_default_env_log_level_is_fatal1() {

@@ -17,7 +17,7 @@ __bg.log.log() {
   local -a LOG_LEVELS=( "TRACE" "DEBUG" "INFO" "WARN" "ERROR" "FATAL" )
 
   if ! bg.arr.is_member 'LOG_LEVELS' "$BG_LOG_LEVEL"; then
-    echo "ERROR: '${BG_LOG_LEVEL}' is not a valid log level. Valid values are: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', and 'FATAL'" >&2
+    bg.err.print "'${BG_LOG_LEVEL}' is not a valid log level. Valid values are: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', and 'FATAL'"
     return 1
   fi
 

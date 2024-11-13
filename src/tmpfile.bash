@@ -29,15 +29,15 @@ bg.tmpfile.new() {
 
   # Validate that filename_var is a valid variable name
   if ! bg.str.is_valid_var_name "$filename_var"; then
-    echo "ERROR: '$filename_var' is not a valid variable name" >&2
+    bg.err.print "'$filename_var' is not a valid variable name"
     return 1
   fi
 
   local tmpfile_name
   tmpfile_name="$("$__BG_MKTEMP")" \
-    || { echo "ERROR: Unable to create temporary file" >&2; return 1; }
+    || { bg.err.print "Unable to create temporary file"; return 1; }
   bg.trap.add "rm -f '$tmpfile_name'" 'EXIT' \
-    || { echo "ERROR: Unable to set exit trap to delete file '$tmpfile_name'" >&2; return 1; }
+    || { bg.err.print "Unable to set exit trap to delete file '$tmpfile_name'"; return 1; }
 
   # Assign name of tmpfile to variable whose name is contained in
   # filename_var

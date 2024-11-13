@@ -9,6 +9,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "env.bash"
+  export __BG_ERR_FORMAT='%s\n'
 }
 
 test_env.clear_shell_opts_clears_all_shell_and_bash_specific_options_in_the_environment() {
@@ -76,7 +77,7 @@ test_env.clear_vars_with_prefix_returns_error_if_prefix_is_not_a_valid_var_name(
     || exit_code="$?"
   assert_equals "1" "$exit_code"
   assert_equals "" "$(< "$stdout_file")"
-  assert_equals "ERROR: '*' is not a valid variable prefix" "$(< "$stderr_file")"
+  assert_equals "'*' is not a valid variable prefix" "$(< "$stderr_file")"
   assert_equals "my value" "${PREFIX_MY_VAR:-}" "PREFIX_MY_VAR should be empty"
   assert_equals "env value" "${PREFIX_ENV_VAR:-}" "PREFIX_ENV_VAR should be empty"
   assert_equals "local value" "${PREFIX_LOCAL_VAR:-}" "PREFIX_LOCAL_VAR should be empty"

@@ -9,6 +9,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "tmpfile.bash"
+  __BG_ERR_FORMAT='%s\n'
 }
 
 test_tmpfile.new_fails_when_filename_var_is_not_a_valid_var_name() {
@@ -21,7 +22,7 @@ test_tmpfile.new_fails_when_filename_var_is_not_a_valid_var_name() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "return code should be 1 filename_var is not a valid var name"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: '\$myvar' is not a valid variable name" "$(< "$stderr_file")"
+  assert_equals "'\$myvar' is not a valid variable name" "$(< "$stderr_file")"
 }
 
 
@@ -111,7 +112,6 @@ test_tmpfile.new_returns_1_if_mktemp_fails() {
   tst.rm_on_exit "$stdout_file" "$stderr_file"
 
   fake_mktemp() {
-    echo "ERROR!" >&2
     return 1
   }
 
@@ -126,7 +126,7 @@ test_tmpfile.new_returns_1_if_mktemp_fails() {
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "${filename:-}" "'filename' var should be empty"
-  assert_equals "$(printf "%s\n%s" "ERROR!" "ERROR: Unable to create temporary file")" "$(< "$stderr_file")" "stderr should contain error message"
+  assert_equals "Unable to create temporary file" "$(< "$stderr_file")" "stderr should contain error message"
   assert_equals "1" "$ret_code" "should return 1"
 }
 
@@ -144,7 +144,6 @@ test_tmpfile.new_returns_1_if_trap_fails() {
   }
 
   bg.trap.add() {
-    echo "ERROR!" >&2
     return 1
   }
 
@@ -154,6 +153,6 @@ test_tmpfile.new_returns_1_if_trap_fails() {
   ret_code="$?"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals "" "${filename:-}" "'filename' var should be empty"
-  assert_equals "$(printf "%s\n%s" "ERROR!" "ERROR: Unable to set exit trap to delete file 'test_file'")" "$(< "$stderr_file")" "stderr should contain error message"
+  assert_equals "Unable to set exit trap to delete file 'test_file'" "$(< "$stderr_file")" "stderr should contain error message"
   assert_equals "1" "$ret_code" "should return 1"
 }

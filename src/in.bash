@@ -67,7 +67,7 @@ source var.bash
 #       return code: 0
 #       Function invocation with required argument missing:
 #       ================================================
-#       ERROR: myfunc: argument 2 (arg2) is required but was not provided
+#       ERROR: argument 2 (arg2) is required but was not provided
 #       return code: 2
 bg.in.require_args() {
 

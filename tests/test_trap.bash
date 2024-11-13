@@ -9,6 +9,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "trap.bash"
+  __BG_ERR_FORMAT='%s'
 }
 
 test_trap.clear_all_clears_all_traps_set_in_the_current_and_parent_environment() {

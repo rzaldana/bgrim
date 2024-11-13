@@ -95,8 +95,12 @@ bg.trap.get() (
   local trap_list_output
   trap_list_output="$( trap -p "$signal_spec" 2>&1 )" \
     || { 
-      printf "Error retrieving trap for signal '%s'. " "$signal_spec" >&2
-      printf "Error message: '%s'" "$trap_list_output" >&2
+      bg.err.print \
+        "$(printf \
+            "Error retrieving trap for signal '%s'. Error message: '%s'" \
+              "$signal_spec" \
+              "$trap_list_output"
+         )"
       return 1
     }
 
