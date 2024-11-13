@@ -111,6 +111,50 @@ test_arr.index_of_returns_the_index_of_the_provided_item_in_the_provided_array()
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
+test_arr.itemize_returns_nothing_when_array_is_empty() {
+  set -euo pipefail
+  local -a myarray=()
+  tst.create_buffer_files
+  bg.arr.itemize 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty" 
+}
+
+test_arr.itemize_returns_single_word_when_array_has_a_single_item() {
+  set -euo pipefail
+  local -a myarray=( 'item' )
+  tst.create_buffer_files
+  bg.arr.itemize 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "'item'" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty" 
+}
+
+test_arr.itemize_returns_two_words_separated_by_and() {
+  set -euo pipefail
+  local -a myarray=( 'first' 'second' )
+  tst.create_buffer_files
+  bg.arr.itemize 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "'first' and 'second'" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty" 
+}
+
+test_arr.itemize_returns_three_or_more_words_with_last_word_separated_by_and_comma() {
+  set -euo pipefail
+  local -a myarray=( 'first' 'second' 'third' )
+  tst.create_buffer_files
+  bg.arr.itemize 'myarray' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "'first', 'second', and 'third'" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty" 
+}
+
 #test_arr.verbalize_prints_nothing_if_given_an_empty_array() {
 #  set -euo pipefail
 #  local -a myarray=()

@@ -166,7 +166,7 @@ bg.arr.index_of() {
 #   args:
 #     1: "array_name"
 # outputs:
-#   stdout: verbalized list of array items 
+#   stdout: itemized list of array items 
 #   stderr: |
 #     error message if validation of arguments fails
 #     or if the array does not exist 
@@ -176,13 +176,37 @@ bg.arr.index_of() {
 #     2: "when argument validation failed"
 # tags:
 #   - "arrays"
-#bg.arr.verbalize() {
-#  local array_name
-#
-#  # Check number of arguments
-#  local -a required_args=( "ra:array_name" )
-#  if ! bg.in.require_args "$@"; then
-#    return 2 
-#  fi
-#
-#}
+bg.arr.itemize() {
+  local array_name
+
+  # Check number of arguments
+  local -a required_args=( "ra:array_name" )
+  if ! bg.in.require_args "$@"; then
+    return 2 
+  fi
+
+  local array_length
+  array_length="$( bg.arr.length "$array_name" )"
+
+  case "${array_length}" in
+    0)
+      ;;
+    1)
+      eval "echo \"'\${${array_name}[0]}'\""
+      ;;
+    2)
+      eval "echo \"'\${${array_name}[0]}' and '\${${array_name}[1]}'\""
+      ;;
+    *)
+      eval "\
+        local i
+        for (( i = 0; i < ${array_length}; i++ )); do
+          if (( i + 1 == ${array_length} )); then
+            printf \"and '%s'\" \"\${${array_name}[\$i]}\"
+          else
+            printf \"'%s', \" \"\${${array_name}[\$i]}\"
+         fi
+        done
+      "
+  esac
+}
