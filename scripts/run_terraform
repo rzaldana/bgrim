@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+log_info() {
+  echo "[INFO]: ${1:-}" >&2
+}
+
+# Look for .terraform-version file, if available
+if [[ -r ".terraform-version" ]]; then
+  TF_VERSION="$(< .terraform-version)"
+  log_info "Using terraform version '$TF_VERSION' set through file '.terraform-version'"
+else
+  # otherwise, read from environment or set default
+  TF_VERSION="${TF_VERSION:-1.0.1}"
+  log_info "Running command in terraform version $TF_VERSION"
+fi
+
+AWS_PROFILE="${AWS_PROFILE:-default}"
+
+log_info "Using AWS_PROFILE=$AWS_PROFILE"
+
+docker run \
+  --interactive \
+  --rm \
+  --workdir "/tmp" \
+  --volume "$PWD:/tmp" \
+  --volume "$HOME/.aws:/root/.aws" \
+  --platform "linux/amd64" \
+  --entrypoint /bin/terraform \
+  --env "GIT_SSL_NO_VERIFY=hello" \
+  --env "AWS_PROFILE=${AWS_PROFILE}" \
+  --env "TF_LOG=${TF_LOG}" \
+  --env "TF_LOG_PROVIDER=${TF_LOG_PROVIDER}" \
+  --env "TF_LOG_PATH=${TF_LOG_PATH}" \
+  "hashicorp/terraform:${TF_VERSION}" \
+  "$@"
