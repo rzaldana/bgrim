@@ -1,5 +1,3 @@
-0. Refactor format functions to have a central format function with many wrapper functions 
-      (also rename to bg.fmt._)
 1. Change order of log level and script name in log function
 2. Introduce colors for log messages
 3. Implement stack trace mode (Look at https://github.com/elibs/ebash for error-handling inspo)
