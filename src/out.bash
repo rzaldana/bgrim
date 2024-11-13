@@ -1,4 +1,6 @@
 source in.bash
+source err.bash
+source arr.bash
 
 ################################################################################
 # OUTPUT FUNCTIONS
@@ -11,23 +13,49 @@ __bg.fmt.fmt() {
     return 2
   fi
 
-  # Format constants
+  # TODO: convert this into associative array
+  # Available formats
+  local -a available_formats=(
+    'black'
+    'red'
+    'green'
+    'yellow'
+    'blue'
+    'magenta'
+    'cyan'
+    'white'
+    'bold'
+  )
+
+  local -a escape_sequences=(
+    '\e[0;30m'
+    '\e[0;31m'
+    '\e[0;32m'
+    '\e[0;33m'
+    '\e[0;34m'
+    '\e[0;35m'
+    '\e[0;36m'
+    '\e[0;37m'
+    '\e[1m'
+  )
+
+  format_lowercase="${format,,}"
+  format_uppercase="${format^^}"
+
+  if ! bg.arr.is_member 'available_formats' "${format_lowercase}"; then
+    bg.err.print "'$format' is not a valid formatting. Valid options are: $( bg.arr.itemize 'available_formats' )"
+    return 1
+  fi
+
+  local -i index
+  index="$(bg.arr.index_of 'available_formats' "${format_lowercase}")"
+
   local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
-  local __BG_FORMAT_BLACK="${__BG_FORMAT_BLACK:-\e[0;30m}"
-  local __BG_FORMAT_RED="${__BG_FORMAT_RED:-\e[0;31m}"
-  local __BG_FORMAT_GREEN="${__BG_FORMAT_GREEN:-\e[0;32m}"
-  local __BG_FORMAT_YELLOW="${__BG_FORMAT_YELLOW:-\e[0;33m}"
-  local __BG_FORMAT_BLUE="${__BG_FORMAT_BLUE:-\e[0;34m}"
-  local __BG_FORMAT_MAGENTA="${__BG_FORMAT_MAGENTA:-\e[0;35m}"
-  local __BG_FORMAT_CYAN="${__BG_FORMAT_CYAN:-\e[0;36m}"
-  local __BG_FORMAT_WHITE="${__BG_FORMAT_WHITE:-\e[0;37m}"
-  local __BG_FORMAT_BOLD="${__BG_FORMAT_BOLD:-\e[1m}"
+  local env_var_name="__BG_FORMAT_${format_uppercase}"
+  eval "$env_var_name=\"\${${env_var_name}:-${escape_sequences[$index]}}\""
 
-  local format_var
-  format_var="__BG_FORMAT_${format}"
-  
-  printf "${!format_var}%s${__BG_FORMAT_BLANK}\n" "$string"
-
+  # shellcheck disable=SC2031 
+  printf "${!env_var_name}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
 bg.out.format_black() {
