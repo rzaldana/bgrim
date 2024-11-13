@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+log.debug() {
+  if [[ "$LOG_LEVEL" == "DEBUG" ]]; then
+    echo "DEBUG: ${1:-}"
+  fi
+}
+
+main() ( 
+  # This bash option makes
+  # sure dotfiles are included in 
+  # glob expansions
+  shopt -s dotglob
+
+  # Get a list of all files in the 
+  # current working directory
+  local -a files
+  files=( * )
+
+  # Filter out all non-directories 
+  # and sockets
+  local -a subdirs
+  for file in "${files[@]}"; do
+    if [[ -d "$file" ]]; then 
+      subdirs+=( "--exclude-dir" "$file" )
+      log.debug "$file is a directory"
+    fi
+
+    if [[ -S "$file" ]]; then 
+      subdirs+=( "--exclude" "$file" )
+      log.debug "$file is a socket"
+    fi
+  done
+
+  # Do a grep and exclude all subdirectories
+  grep -rn "${subdirs[@]}" "$@"
+)
+
+main "$@"
