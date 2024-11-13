@@ -7,6 +7,7 @@ PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
   tst.source_lib_from_root "cli.bash"
+  __BG_ERR_FORMAT='%s\n'
 }
 
 
@@ -69,7 +70,7 @@ test_cli.add_opt:returns_1_if_first_arg_is_a_number() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: option letter '2' should be a single lowercase letter" \
+    "option letter '2' should be a single lowercase letter" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -82,7 +83,7 @@ test_cli.add_opt:returns_1_if_first_arg_is_more_than_one_character() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: option letter 'fl' should be a single lowercase letter" \
+    "option letter 'fl' should be a single lowercase letter" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -96,7 +97,7 @@ test_cli.add_opt:returns_1_if_env_var_is_not_a_valid_var_name() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: '?' is not a valid variable name" \
+    "'?' is not a valid variable name" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -110,7 +111,7 @@ test_cli.add_opt:returns_1_if_env_var_is_a_readonly_variable() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: 'FLAG' is a readonly variable" \
+    "'FLAG' is a readonly variable" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -206,7 +207,7 @@ test_cli.add_arg:returns_1_if_first_arg_is_not_a_valid_variable_name() {
   ret_code="$?"
   assert_equals "1" "$ret_code"
   assert_equals "" "$(< "$stdout_file" )"
-  assert_equals "ERROR: '%arg' is not a valid variable name" "$(< "$stderr_file" )"
+  assert_equals "'%arg' is not a valid variable name" "$(< "$stderr_file" )"
 }
 
 test_cli.add_arg:calls_cli.stdin_to_stdout_before_adding_its_own_spec_line() {
@@ -316,7 +317,7 @@ test_cli_parse_returns_1_when_spec_is_empty() {
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
   assert_equals \
-    "ERROR: argparse spec is empty" \
+    "argparse spec is empty" \
     "$(< "$stderr_file")" \
     "stderr should contain error message"
 }
@@ -330,7 +331,7 @@ test_cli_parse_returns_1_when_spec_is_empty() {
 #  assert_equals "1" "$ret_code" "should return exit code 1"
 #  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
 #  assert_equals \
-#    "ERROR: Invalid argparse spec. Line 0: should be 'init' but was 'command'" \
+#    "Invalid argparse spec. Line 0: should be 'init' but was 'command'" \
 #    "$(< "$stderr_file")" \
 #    "stderr should contain error message"
 #}
@@ -398,7 +399,7 @@ test_cli.parse:parse_with_one_opt3() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "'-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
   assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
 }
 
@@ -408,7 +409,7 @@ test_cli.parse:parse_with_one_opt4() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "'-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
 }
 
 test_cli.parse:parse_with_one_opt5() {
@@ -417,7 +418,7 @@ test_cli.parse:parse_with_one_opt5() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "'-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
 }
 
 test_cli.parse:parse_with_one_opt6() {
@@ -426,7 +427,7 @@ test_cli.parse:parse_with_one_opt6() {
  ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: Unexpected positional argument: 'arg'" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "Unexpected positional argument: 'arg'" "$(< "$stderr_file")" "stderr should contain an error message"
 }
 
 parse_with_one_opt_with_arg() {
@@ -476,7 +477,7 @@ test_cli.parse:parse_with_one_opt_with_arg2() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: Option '-f' expected an argument but none was provided" \
+  assert_equals "Option '-f' expected an argument but none was provided" \
     "$(< "$stderr_file")" "stderr should contain an error message"
 }
 
@@ -523,7 +524,7 @@ test_cli.parse:parse_with_one_opt_with_arg6() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "'-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
   assert_fail "bg.var.is_declared 'myflag'" "var 'myflag' should not be set"
 }
 
@@ -545,7 +546,7 @@ test_cli.parse:parse_with_one_opt_with_arg8() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
+  assert_equals "'-g' is not a valid option" "$(< "$stderr_file")" "stderr should contain an error message"
 }
 
 parse_with_arg() {
@@ -578,7 +579,7 @@ test_cli.parse:parse_with_arg1() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )"
-  assert_equals "ERROR: Expected positional argument 'MYARG' was not provided" "$(< "$stderr_file" )"
+  assert_equals "Expected positional argument 'MYARG' was not provided" "$(< "$stderr_file" )"
 }
 
 test_cli.parse:parse_with_arg2() {
@@ -631,7 +632,7 @@ test_cli.parse:parse_with_arg6() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )"
-  assert_equals "ERROR: Unexpected positional argument: 'arg2'" "$(< "$stderr_file" )"
+  assert_equals "Unexpected positional argument: 'arg2'" "$(< "$stderr_file" )"
 }
 
 test_cli.parse:parse_with_arg7() {
@@ -641,7 +642,7 @@ test_cli.parse:parse_with_arg7() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )"
-  assert_equals "ERROR: '-g' is not a valid option" "$(< "$stderr_file" )"
+  assert_equals "'-g' is not a valid option" "$(< "$stderr_file" )"
 }
 
 test_cli.parse:parse_with_arg8() {

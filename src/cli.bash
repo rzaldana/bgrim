@@ -99,17 +99,17 @@ bg.cli.add_opt() {
 
   # Validate arguments
   if ! [[ "$opt_letter" =~ ^[a-z]$ ]]; then
-    echo "ERROR: option letter '$opt_letter' should be a single lowercase letter" >&2
+    bg.err.print "option letter '$opt_letter' should be a single lowercase letter"
     return 1
   fi
 
   if ! bg.str.is_valid_var_name "$env_var"; then
-    echo "ERROR: '$env_var' is not a valid variable name" >&2
+    bg.err.print "'$env_var' is not a valid variable name"
     return 1
   fi
 
   if bg.var.is_readonly "$env_var"; then
-    echo "ERROR: '$env_var' is a readonly variable" >&2
+    bg.err.print "'$env_var' is a readonly variable"
     return 1
   fi
 
@@ -154,17 +154,17 @@ bg.cli.add_opt_with_arg() {
 
   # Validate arguments
   if ! [[ "$opt_letter" =~ ^[a-z]$ ]]; then
-    echo "ERROR: option letter '$opt_letter' should be a single lowercase letter" >&2
+    bg.err.print "option letter '$opt_letter' should be a single lowercase letter"
     return 1
   fi
 
   if ! bg.str.is_valid_var_name "$env_var"; then
-    echo "ERROR: '$env_var' is not a valid variable name" >&2
+    bg.err.print "'$env_var' is not a valid variable name"
     return 1
   fi
 
   if bg.var.is_readonly "$env_var"; then
-    echo "ERROR: '$env_var' is a readonly variable" >&2
+    bg.err.print "'$env_var' is a readonly variable"
     return 1
   fi
 
@@ -198,7 +198,7 @@ bg.cli.add_arg() {
 
   # Validate that 'arg_name' is a valid variable name
   if ! bg.str.is_valid_var_name "$arg_name"; then
-    echo "ERROR: '$arg_name' is not a valid variable name" >&2
+    bg.err.print "'$arg_name' is not a valid variable name"
     return 1
   fi
 
@@ -217,7 +217,7 @@ bg.cli.parse() {
 
   # Check that spec is not empty
   if [[ "${#spec_array[@]}" == '0' ]]; then
-    echo "ERROR: argparse spec is empty" >&2
+    bg.err.print "argparse spec is empty"
     return 1
   fi
 
@@ -246,7 +246,7 @@ bg.cli.parse() {
     # Check that first command is 'init'
     if [[ "$line_no" -eq 0 ]]; then
       if [[ "$line" != "init" ]]; then
-        echo "ERROR: Invalid argparse spec. Line 0: should be 'init' but was '$line'" >&2
+        bg.err.print "Invalid argparse spec. Line 0: should be 'init' but was '$line'"
         return 1
       fi
       continue
@@ -388,7 +388,7 @@ EOF
         return 0
       else
       # Otherwise, print error message and exit
-      echo "ERROR: '-$OPTARG' is not a valid option" >&2
+        bg.err.print "'-$OPTARG' is not a valid option"
         return 1
       fi
     fi
@@ -397,7 +397,7 @@ EOF
     # Print error if option that expected arg did
     # not get one
     if [[ "$OPT" == ":" ]]; then
-      echo "ERROR: Option '-$OPTARG' expected an argument but none was provided" >&2
+      bg.err.print "Option '-$OPTARG' expected an argument but none was provided"
       return 1
     fi
 
@@ -427,14 +427,14 @@ EOF
 
   # Error out if less arguments than required were provided
   if (( ${#} < n_arg_specs )); then
-    echo "ERROR: Expected positional argument '${args[$#]}' was not provided" >&2
+    bg.err.print "Expected positional argument '${args[$#]}' was not provided"
     return 1
   fi
 
   # Error out if more arguments than required were provided
   if (( ${#} > n_arg_specs )); then
     local -i u_arg_index=$(( n_arg_specs + 1 ))
-    echo "ERROR: Unexpected positional argument: '${!u_arg_index}'" >&2
+    bg.err.print "Unexpected positional argument: '${!u_arg_index}'"
     return 1
   fi
 
