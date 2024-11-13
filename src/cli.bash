@@ -3,7 +3,7 @@ source str.bash
 source var.bash
 source arr.bash
 source env.bash
-source out.bash
+source fmt.bash
 
 ################################################################################
 # CLI FUNCTIONS
@@ -344,7 +344,7 @@ bg.cli.parse() {
   ## -d '' means read until end of file 
   local help_message
   IFS= read -d '' help_message << EOF || true
-$(bg.out.format_bold "$routine_name")
+$(bg.fmt.bold "$routine_name")
 $( if bg.var.is_set 'description'; then printf "\n%s" "$description"; fi)
 $( if bg.var.is_set 'description'; then
      printf '\n%s' "Usage: $usage_string" 

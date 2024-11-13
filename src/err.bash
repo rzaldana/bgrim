@@ -1,4 +1,16 @@
 ################################################################################
+# ERROR HANDLING CONSTANTS 
+################################################################################
+#readonly __BG_ERR_DEFAULT_OUT="&2"
+#readonly __BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
+if [[ -z "${__BG_TEST_MODE}" ]]; then
+  __BG_CONST_ATTR="${__BG_TEST_MODE:+r}"
+fi
+
+declare "-g${__BG_CONST_ATTR}" __BG_ERR_DEFAULT_OUT="&2"
+declare "-g${__BG_CONST_ATTR}" __BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
+
+################################################################################
 # ERROR HANDLING FUNCTIONS 
 ################################################################################
 # description: Prints a formatted error message. It will print error messages to
@@ -26,9 +38,8 @@
 #     0: "always"
 bg.err.print() ( 
   local err_default_format='ERROR: %s\n'
-  local err_default_out="&2"
-  local __BG_ERR_FORMAT="${__BG_ERR_FORMAT:-${err_default_format}}"
-  local __BG_ERR_OUT="${__BG_ERR_OUT:-${err_default_out}}"
+  local __BG_ERR_FORMAT="${__BG_ERR_FORMAT:-${__BG_ERR_DEFAULT_FORMAT}}"
+  local __BG_ERR_OUT="${__BG_ERR_OUT:-${__BG_ERR_DEFAULT_OUT}}"
   local err_out_without_fd_prefix="${__BG_ERR_OUT#&}"
   if [[ "${err_out_without_fd_prefix}" != "${__BG_ERR_OUT}" ]]; then
     #shellcheck disable=SC2059
