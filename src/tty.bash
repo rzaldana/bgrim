@@ -5,7 +5,7 @@ source arr.bash
 ################################################################################
 # OUTPUT FUNCTIONS
 ################################################################################
-__bg.fmt.fmt() {
+__bg.tty.tty() {
   local format
   local string
   required_args=( 'format' 'string' )
@@ -63,92 +63,92 @@ __bg.fmt.fmt() {
   printf "${!env_var_name}%s${__BG_FORMAT_BLANK}\n" "$string"
 }
 
-bg.fmt.black() {
+bg.tty.black() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "BLACK" "$string"
+  __bg.tty.tty "BLACK" "$string"
 }
 
-bg.fmt.red() {
+bg.tty.red() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "RED" "$string"
+  __bg.tty.tty "RED" "$string"
 }
 
-bg.fmt.green() {
+bg.tty.green() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "GREEN" "$string"
+  __bg.tty.tty "GREEN" "$string"
 }
 
-bg.fmt.yellow() {
+bg.tty.yellow() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "YELLOW" "$string"
+  __bg.tty.tty "YELLOW" "$string"
 }
 
-bg.fmt.blue() {
+bg.tty.blue() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "BLUE" "$string"
+  __bg.tty.tty "BLUE" "$string"
 }
 
-bg.fmt.magenta() {
+bg.tty.magenta() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "MAGENTA" "$string"
+  __bg.tty.tty "MAGENTA" "$string"
 }
 
-bg.fmt.cyan() {
+bg.tty.cyan() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "CYAN" "$string"
+  __bg.tty.tty "CYAN" "$string"
 }
 
-bg.fmt.white() {
+bg.tty.white() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "WHITE" "$string"
+  __bg.tty.tty "WHITE" "$string"
 }
 
-bg.fmt.bold() {
+bg.tty.bold() {
   required_args=( 'string' )
   if ! bg.in.require_args "$@"; then
     return 2
   fi
 
   # shellcheck disable=SC2031
-  __bg.fmt.fmt "BOLD" "$string"
+  __bg.tty.tty "BOLD" "$string"
 }

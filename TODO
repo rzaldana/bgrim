@@ -1,6 +1,5 @@
-1. Change order of log level and script name in log function
-2. Introduce colors for log messages
 3. Implement stack trace mode (Look at https://github.com/elibs/ebash for error-handling inspo)
+4. Bring back bashlink script to join all submodules into a single module
 4. Implement error methods:
       bg.err.message "print standardized error message and use in all functions. Should print name of function and code line"
       bg.err.exit "print error message and exit with code 1"
@@ -18,3 +17,4 @@
 11. Implement bash native replacement for mktemp and use it in tmpfile functions
 12. Rename tmpfile module to tmp
 13. Add documentation to functions that don't have it
+2. Revamp color output functions to be able to combine color and formattings such as italic, underline, and bold
