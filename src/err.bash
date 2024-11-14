@@ -3,7 +3,7 @@
 ################################################################################
 #readonly __BG_ERR_DEFAULT_OUT="&2"
 #readonly __BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
-if [[ -z "${__BG_TEST_MODE}" ]]; then
+if [[ -z "${__BG_TEST_MODE:-}" ]]; then
   __BG_CONST_ATTR="${__BG_TEST_MODE:+r}"
 fi
 

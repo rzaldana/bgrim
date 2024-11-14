@@ -1,12 +1,12 @@
 source in.bash
 source arr.bash
 source env.bash
-source fmt.bash
+source tty.bash
 
 ################################################################################
 # LOG CONSTANTS 
 ################################################################################
-if [[ -z "${__BG_TEST_MODE}" ]]; then
+if [[ -z "${__BG_TEST_MODE:-}" ]]; then
   __BG_CONST_ATTR="${__BG_TEST_MODE:+r}"
 fi
 
@@ -46,7 +46,7 @@ __bg.log.log() {
   if (( env_log_level_index <= provided_log_level_index )); then
     local formatted_log_level
     formatted_log_level="$( \
-      "bg.fmt.${LOG_COLOR[$provided_log_level_index]}"\
+      "bg.tty.${LOG_COLOR[$provided_log_level_index]}"\
       "$provided_log_level"
       )"
 
