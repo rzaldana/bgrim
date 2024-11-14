@@ -8,6 +8,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
+  __BG_TEST_MODE="true"
   tst.source_lib_from_root "tty.bash"
   __BG_ERR_FORMAT='%s\n'
 }

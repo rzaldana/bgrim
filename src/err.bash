@@ -3,12 +3,18 @@
 ################################################################################
 #readonly __BG_ERR_DEFAULT_OUT="&2"
 #readonly __BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
-if [[ -z "${__BG_TEST_MODE:-}" ]]; then
-  __BG_CONST_ATTR="${__BG_TEST_MODE:+r}"
-fi
+declare -A __BG_ERR_CONSTANTS=(
+  [__BG_ERR_DEFAULT_FORMAT]="ERROR: %s\n"
+  [__BG_ERR_DEFAULT_OUT]="&2"
+)
 
-declare "-g${__BG_CONST_ATTR}" __BG_ERR_DEFAULT_OUT="&2"
-declare "-g${__BG_CONST_ATTR}" __BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
+for constant in "${!__BG_ERR_CONSTANTS[@]}"; do
+  if [[ -z "${__BG_TEST_MODE:-}" ]]; then
+    readonly "${constant}=${__BG_ERR_CONSTANTS[$constant]}" 
+  else
+    declare -g "${constant}=${__BG_ERR_CONSTANTS[$constant]}" 
+  fi
+done
 
 ################################################################################
 # ERROR HANDLING FUNCTIONS 

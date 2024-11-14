@@ -8,8 +8,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
-  tst.source_lib_from_root "err.bash"
   __BG_TEST_MODE="true"
+  tst.source_lib_from_root "err.bash"
 }
 
 test_err.print_prints_formatted_error_message_to_stderr_using_default_formatting() {

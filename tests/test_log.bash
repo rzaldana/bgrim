@@ -6,11 +6,11 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/lib:$PATH" source tst.bash
 
 setup_suite() {
+  export __BG_TEST_MODE="true"
   tst.source_lib_from_root "log.bash"
   __BG_ERR_FORMAT='%s\n'
   BG_LOG_FORMAT='%s - %s - %s'
   BG_NO_FORMAT="true"
-  __BG_TEST_MODE="true"
 }
 
 test_log.log:prints_message_if_env_log_level_is_lower_than_the_provided_level() {
@@ -32,7 +32,7 @@ test_log.log:prints_message_if_env_log_level_is_equal_to_the_provided_level() {
   BG_LOG_LEVEL="INFO"
   __bg.log.log "INFO" "my message" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  #assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")"
   assert_equals "bash_unit - INFO - my message" "$(< "$stderr_file" )"
 }

@@ -6,12 +6,20 @@ source tty.bash
 ################################################################################
 # LOG CONSTANTS 
 ################################################################################
-if [[ -z "${__BG_TEST_MODE:-}" ]]; then
-  __BG_CONST_ATTR="${__BG_TEST_MODE:+r}"
-fi
+declare -A __BG_LOG_CONSTANTS=(
+  [__BG_LOG_DEFAULT_FORMAT]="[%-5s][%s]: %s\n"
+  [__BG_LOG_DEFAULT_OUT]="&2"
+)
 
-declare "-g${__BG_CONST_ATTR}" __BG_LOG_DEFAULT_FORMAT="[%-5s][%s]: %s\n"
-declare "-g${__BG_CONST_ATTR}" __BG_LOG_DEFAULT_OUT="&2"
+
+for constant in "${!__BG_LOG_CONSTANTS[@]}"; do
+  if [[ -z "${__BG_TEST_MODE:-}" ]]; then
+    readonly "${constant}=${__BG_LOG_CONSTANTS[$constant]}" 
+  else
+    declare -g "${constant}=${__BG_LOG_CONSTANTS[$constant]}" 
+  fi
+done
+
 
 ################################################################################
 # LOG FUNCTIONS
@@ -45,8 +53,8 @@ __bg.log.log() {
 
   if (( env_log_level_index <= provided_log_level_index )); then
     local formatted_log_level
-    formatted_log_level="$( \
-      "bg.tty.${LOG_COLOR[$provided_log_level_index]}"\
+    formatted_log_level="$( 
+      "bg.tty.${LOG_COLOR[$provided_log_level_index]}" \
       "$provided_log_level"
       )"
 
