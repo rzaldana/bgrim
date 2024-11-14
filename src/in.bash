@@ -1,5 +1,7 @@
-source err.bash
-source var.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source err.bash
+  source var.bash
+fi
 
 ################################################################################
 # INPUT FUNCTIONS

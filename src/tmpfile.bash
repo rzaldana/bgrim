@@ -1,5 +1,7 @@
-source trap.bash
-source str.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source trap.bash
+  source str.bash
+fi
 
 export __BG_MKTEMP="mktemp"
 

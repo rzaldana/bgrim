@@ -1,5 +1,8 @@
-source in.bash
-source str.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source in.bash
+  source str.bash
+fi
+
 ################################################################################
 # ENVIRONMENT FUNCTIONS
 ################################################################################

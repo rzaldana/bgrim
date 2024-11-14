@@ -1,24 +1,15 @@
-source in.bash
-source arr.bash
-source env.bash
-source tty.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source in.bash
+  source arr.bash
+  source env.bash
+  source tty.bash
+fi
 
 ################################################################################
 # LOG CONSTANTS 
 ################################################################################
-declare -A __BG_LOG_CONSTANTS=(
-  [__BG_LOG_DEFAULT_FORMAT]="[%-5s][%s]: %s\n"
-  [__BG_LOG_DEFAULT_OUT]="&2"
-)
-
-
-for constant in "${!__BG_LOG_CONSTANTS[@]}"; do
-  if [[ -z "${__BG_TEST_MODE:-}" ]]; then
-    readonly "${constant}=${__BG_LOG_CONSTANTS[$constant]}" 
-  else
-    declare -g "${constant}=${__BG_LOG_CONSTANTS[$constant]}" 
-  fi
-done
+__BG_LOG_DEFAULT_FORMAT="[%-5s][%s]: %s\n"
+__BG_LOG_DEFAULT_OUT="&2"
 
 
 ################################################################################

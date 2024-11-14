@@ -1,9 +1,11 @@
-source in.bash
-source str.bash
-source var.bash
-source arr.bash
-source env.bash
-source tty.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source in.bash
+  source str.bash
+  source var.bash
+  source arr.bash
+  source env.bash
+  source tty.bash
+fi
 
 ################################################################################
 # CLI FUNCTIONS

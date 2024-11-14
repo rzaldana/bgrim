@@ -1,6 +1,8 @@
-source in.bash
-source err.bash
-source arr.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source in.bash
+  source err.bash
+  source arr.bash
+fi
 
 ################################################################################
 # OUTPUT FUNCTIONS

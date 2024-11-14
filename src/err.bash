@@ -1,20 +1,8 @@
 ################################################################################
 # ERROR HANDLING CONSTANTS 
 ################################################################################
-#readonly __BG_ERR_DEFAULT_OUT="&2"
-#readonly __BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
-declare -A __BG_ERR_CONSTANTS=(
-  [__BG_ERR_DEFAULT_FORMAT]="ERROR: %s\n"
-  [__BG_ERR_DEFAULT_OUT]="&2"
-)
-
-for constant in "${!__BG_ERR_CONSTANTS[@]}"; do
-  if [[ -z "${__BG_TEST_MODE:-}" ]]; then
-    readonly "${constant}=${__BG_ERR_CONSTANTS[$constant]}" 
-  else
-    declare -g "${constant}=${__BG_ERR_CONSTANTS[$constant]}" 
-  fi
-done
+__BG_ERR_DEFAULT_OUT="&2"
+__BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
 
 ################################################################################
 # ERROR HANDLING FUNCTIONS 

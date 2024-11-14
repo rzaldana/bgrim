@@ -1,4 +1,6 @@
-source in.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source in.bash
+fi
 
 ################################################################################
 # Description: Checks if a function with the given name exists

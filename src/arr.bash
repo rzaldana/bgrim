@@ -1,6 +1,8 @@
-source err.bash
-source in.bash
-source str.bash
+if [[ -n "${__BG_TEST_MODE:-}" ]]; then
+  source err.bash
+  source in.bash
+  source str.bash
+fi
 
 ################################################################################
 # ARRAY FUNCTIONS
