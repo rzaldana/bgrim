@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Get absolute path of current directory 
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+output_file="$script_dir/../bgrim.bash"
+
+src_dir="${script_dir}/../src"
+
+# Print header
+cat "${src_dir}/header.bash" > "$output_file" 
+echo >> "$output_file"
+
+
+# Aggregate all source files
+for src_file in "${script_dir}/../src"/*.bash; do
+  # Skip header
+  if [[ "$(basename "$src_file")" == "header.bash" ]]; then
+    continue
+  fi
+  cat "$src_file" >> "$output_file"
+  echo >> "$output_file"
+done
+
