@@ -10,13 +10,13 @@ setup_suite() {
   tst.source_lib_from_root "log.bash"
   __BG_ERR_FORMAT='%s\n'
   BG_LOG_FORMAT='%s - %s - %s'
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
 }
 
 test_log.log:prints_message_if_env_log_level_is_lower_than_the_provided_level() {
   set -euo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   BG_LOG_LEVEL="TRACE"
   __bg.log.log "INFO" "my message" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -28,7 +28,7 @@ test_log.log:prints_message_if_env_log_level_is_lower_than_the_provided_level() 
 test_log.log:prints_message_if_env_log_level_is_equal_to_the_provided_level() {
   #set -euo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   BG_LOG_LEVEL="INFO"
   __bg.log.log "INFO" "my message" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -40,7 +40,7 @@ test_log.log:prints_message_if_env_log_level_is_equal_to_the_provided_level() {
 test_log.log:does_not_print_message_if_env_log_level_is_higher_than_the_provided_level() {
   set -euo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   BG_LOG_LEVEL="INFO"
   __bg.log.log "TRACE" "my message" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -52,7 +52,7 @@ test_log.log:does_not_print_message_if_env_log_level_is_higher_than_the_provided
 test_log.log:uses_default_log_format_if_no_log_format_is_provided() {
   set -euo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   BG_LOG_LEVEL="TRACE"
   unset BG_LOG_FORMAT
   __BG_LOG_DEFAULT_FORMAT="%s/%s/%s\n"
@@ -111,7 +111,7 @@ test_log.log:prints_logs_to_default_out_if_no_log_out_is_provided() {
 test_log.log_returns_1_if_env_log_level_is_not_valid() {
   set -uo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   BG_LOG_LEVEL="TRCE"
   __bg.log.log "INFO" "my message" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
@@ -123,7 +123,7 @@ test_log.log_returns_1_if_env_log_level_is_not_valid() {
 test_log.log_default_env_log_level_is_fatal1() {
   set -uo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   __bg.log.log "INFO" "my message" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
@@ -134,7 +134,7 @@ test_log.log_default_env_log_level_is_fatal1() {
 test_log.log_default_env_log_level_is_fatal2() {
   set -uo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   __bg.log.log "FATAL" "my message" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"

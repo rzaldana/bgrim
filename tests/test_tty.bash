@@ -48,10 +48,10 @@ test_tty.tty_returns_1_if_given_an_invalid_formatting_option() {
   assert_equals "" "$(< "$stdout_file")"
 }
 
-test_tty.tty_prints_string_untouched_if_BG_NO_FORMAT_is_set() {
+test_tty.tty_prints_string_untouched_if_BG_NO_TTY_is_set() {
   set -euo pipefail
   tst.create_buffer_files
-  BG_NO_FORMAT="true"
+  BG_NO_TTY="true"
   __bg.tty.tty "RED" "my string" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
   assert_equals "0" "$ret_code"

@@ -49,7 +49,7 @@ __bg.tty.tty() {
     return 1
   fi
 
-  if bg.var.is_set 'BG_NO_FORMAT'; then
+  if bg.var.is_set 'BG_NO_TTY'; then
     printf '%s\n' "${string}"
     return 0
   fi

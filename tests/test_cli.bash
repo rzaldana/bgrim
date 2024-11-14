@@ -342,7 +342,7 @@ test_cli_parse_returns_1_when_spec_is_empty() {
 ## Parse with one opt
 ###########################################################################################
 parse_with_one_opt() {
-  local BG_NO_FORMAT=""
+  local BG_NO_TTY=""
   bg.cli.parse "$@" < <(
     bg.cli.init \
       | bg.cli.add_opt "f" "myflag" "help message"
@@ -432,7 +432,7 @@ test_cli.parse:parse_with_one_opt6() {
 }
 
 parse_with_one_opt_with_arg() {
-  local BG_NO_FORMAT=""
+  local BG_NO_TTY=""
   bg.cli.parse "$@" < <(
     bg.cli.init \
       | bg.cli.add_opt_with_arg "f" "myflag" "help message"
@@ -551,7 +551,7 @@ test_cli.parse:parse_with_one_opt_with_arg8() {
 }
 
 parse_with_arg() {
-  local BG_NO_FORMAT=""
+  local BG_NO_TTY=""
   bg.cli.parse "$@" < <(
     bg.cli.init \
       | bg.cli.add_arg "MYARG"
@@ -658,7 +658,7 @@ test_cli.parse:parse_with_arg8() {
 }
 
 parse_with_description() {
-  local BG_NO_FORMAT=""
+  local BG_NO_TTY=""
   bg.cli.parse "$@" < <(
     bg.cli.init \
       | bg.cli.add_opt "f" "myflag" "help message" \
