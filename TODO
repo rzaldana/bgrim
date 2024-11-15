@@ -1,3 +1,5 @@
+0. POC using DEBUG trap to enrich stderr so we can fetch multi-line error messages when printing stacktraces
+1. Implement pure-bash realpath function
 3. Implement stack trace mode (Look at https://github.com/elibs/ebash for error-handling inspo)
   0. Implement 'int' type in bg.in.require_args function
   1. Implement __bg.err.caller function which stores same output as 'caller' builtin in array. It should take a frame number like caller
