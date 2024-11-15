@@ -1,5 +1,13 @@
 3. Implement stack trace mode (Look at https://github.com/elibs/ebash for error-handling inspo)
-4. Bring back bashlink script to join all submodules into a single module
+  0. Implement 'int' type in bg.in.require_args function
+  1. Implement __bg.err.caller function which stores same output as 'caller' builtin in array. It should take a frame number like caller
+    - It should return the right source file, even for functions in sourced files
+  2. Implement __bg.print_stackframe, which prints the contents of a stackframe array in a formatted way
+  3 Implement __bg.print_stacktrace, which uses __bg.print_stackframe to print stacktrace starting from the given stack frame index
+  4. Implement bg.err.enable_error_detection which should:
+      - call unhandled_error1 on ERR signal
+      - call unhandled_error2 on EXIT signal (for unset variable errors)
+  5. Implement die function, which should exit gracefully with no stacktrace
 4. Implement error methods:
       bg.err.message "print standardized error message and use in all functions. Should print name of function and code line"
       bg.err.exit "print error message and exit with code 1"
