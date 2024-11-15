@@ -256,9 +256,33 @@ test_in.require_args_returns_0_if_readable_array_arg_is_required_and_set_writabl
   local -a required_args=( "rwa:myarray")
   bg.in.require_args "another_array" >"$stdout_file" 2>"$stderr_file"
   ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 1"
+  assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_in.require_args_returns_1_if_int_args_is_required_but_non_int_is_provided() {
+  tst.create_buffer_files
+  local -a required_args=( "int:myint" )
+  bg.in.require_args "a" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals \
+    "string 'a' is not an integer"        \
+    "$(< "$stderr_file" )"                \
+    "stderr should contain error message"
+}
+
+test_in.require_args_returns_0_if_int_args_is_required_and_int_is_provided() {
+  tst.create_buffer_files
+  local -a required_args=( "int:myint" )
+  bg.in.require_args "234" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+  assert_equals "234" "$myint" "'myint' variable should contain 234"
 }
 
 test_in.require_args_returns_1_if_invalid_prefix_is_provided() { 
@@ -268,8 +292,8 @@ test_in.require_args_returns_1_if_invalid_prefix_is_provided() {
   ret_code="$?"
   assert_equals "1" "$ret_code" "should return exit code 1"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals \
-    "Type prefix 'dwa' for variable 'myarray' is not valid. Valid prefixes are: 'ra' and 'rwa'" \
+  assert_matches \
+    "Type prefix 'dwa' for variable 'myarray' is not valid. Valid prefixes are: *" \
     "$(< "$stderr_file")" \
     "stderr should contain an error message"
 }

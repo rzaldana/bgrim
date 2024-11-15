@@ -1,6 +1,7 @@
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
   source err.bash
   source var.bash
+  source str.bash
 fi
 
 ################################################################################
@@ -152,16 +153,22 @@ bg.in.require_args() {
               return 1
             fi
             ;;
+          "int")
+            if ! bg.str.is_int "$provided_arg"; then
+            bg.err.print "string '$provided_arg' is not an integer"
+              return 1
+            fi
+            ;;
           *)
-            bg.err.print "Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra' and 'rwa'"
+            bg.err.print "Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra', 'rwa', and 'int'"
             return 1
             ;;
         esac
       fi
 
-      # TODO: sanitize arguments in provided_args by replacing all double quotes(")
-      # in the arg with escaped double quotes to avoid arbitrary code execution
-      eval "${required_arg}=\"\${provided_arg}\""
+      # sanitize arguments in provided_args by replacing all single quotes(')
+      # in the arg with escaped single quotes to avoid arbitrary code execution
+      eval "${required_arg}='$( bg.str.escape_single_quotes "${provided_arg}" )'"
     done
   fi
 
