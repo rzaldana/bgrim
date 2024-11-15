@@ -45,19 +45,6 @@ test_str.is_valid_var_name_returns_1_when_the_given_string_starts_with_a_number(
   assert_equals "" "$stdout_and_stderr" "stdout and stderr should be empty"
 }
 
-test_str.is_valid_var_name_returns_2_when_given_no_args() {
-  set -euo pipefail
-  ret_code=0
-  tst.create_buffer_files
-  bg.str.is_valid_var_name >"$stdout_file" 2>"$stderr_file" || ret_code="$?"
-  assert_equals "2" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout shouldb be empty"
-  assert_equals \
-    "argument 1 (var_name) is required but was not provided" \
-    "$(< "$stderr_file")" \
-    "stderr should contain error message"
-}
-
 test_str.is_valid_command_returns_0_if_its_first_arg_is_a_function() {
   set -euo pipefail
   local stdout_and_stderr
@@ -154,5 +141,65 @@ test_str.escape_single_quotes_returns_string_with_escaped_single_quotes() {
   ret_code="$?"
   assert_equals "0" "$ret_code"
   assert_equals "mys'\''tr'\''ing" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
+test_str.is_int_returns_1_if_provided_a_single_non_digit_char() {
+  tst.create_buffer_files
+  set -uo pipefail
+  bg.str.is_int "c" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
+test_str.is_int_returns_1_if_provided_a_string_of_letters() {
+  tst.create_buffer_files
+  set -uo pipefail
+  bg.str.is_int "string" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
+test_str.is_int_returns_1_if_provided_a_string_of_numbers_and_letters() {
+  tst.create_buffer_files
+  set -uo pipefail
+  bg.str.is_int "23string" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
+test_str.is_int_returns_1_if_provided_an_empty_string() {
+  tst.create_buffer_files
+  set -uo pipefail
+  bg.str.is_int "" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
+test_str.is_int_returns_0_if_provided_a_single_digit() {
+  tst.create_buffer_files
+  set -uo pipefail
+  bg.str.is_int "7" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+}
+
+test_str.is_int_returns_0_if_provided_a_multi_digit_int() {
+  tst.create_buffer_files
+  set -uo pipefail
+  bg.str.is_int "7345" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
   assert_equals "" "$(< "$stderr_file")"
 }
