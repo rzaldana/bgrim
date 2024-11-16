@@ -177,10 +177,12 @@ bg.env.get_parent_script_name() {
 }
 
 __bg.env.get_stackframe() {
-  local frame
-  frame="$1"
-  local out_arr
-  out_arr="$2"
+  local -i frame
+  local -a out_arr
+  local -a required_args=( "int:frame" "rwa:out_arr" )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
 
   # empty out arr
   eval "$out_arr=()"
@@ -198,16 +200,29 @@ __bg.env.get_stackframe() {
   eval "${out_arr}+=( '${BASH_SOURCE[bash_source_index]}' )"
 }
 
-__bg.err.print_stackframe() {
-  local stackframe_array="$1"
+__bg.env.format_stackframe() {
+  local stackframe_array
+  local -a required_args=( "ra:stackframe_array" )  
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
 
-  # Check that array has at at least 3 elements
+  # Get lenght of stackframe array
   local array_length
   eval "array_length=\${#${stackframe_array}[@]}"
+
+  # check that stackframe array has at least 3 elements
   if (( array_length < 3 )); then
     bg.err.print "array '${stackframe_array}' has less than 3 elements"
     return 1
   fi
+
+  # check that stackframe array has at most 3 elements
+  if (( array_length > 3 )); then
+    bg.err.print "array '${stackframe_array}' has more than 3 elements"
+    return 1
+  fi
+
   local funcname
   local filename
   local lineno
@@ -215,4 +230,17 @@ __bg.err.print_stackframe() {
   eval "funcname=\"\${${stackframe_array}[1]}\""
   eval "filename=\"\${${stackframe_array}[2]}\""
   printf '  at %s (%s:%s)\n' "$funcname" "$filename" "$lineno"
+}
+__bg.env.print_stacktrace() {
+  # shellcheck disable=SC2034
+  local -i requested_frame
+  local -a required_args=( "int:requested_frame" )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  local -a stackframe=()
+  while __bg.env.get_stackframe "$requested_frame" 'stackframe' 2>/dev/null; do
+    __bg.env.format_stackframe 'stackframe'
+  done
 }

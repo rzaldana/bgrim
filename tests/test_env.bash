@@ -249,5 +249,88 @@ test_env.get_stackframe:returns_fails_when_caller_fails(){
     "$(< "$stderr_file" )"
 }
 
+test_env.format_stackframe:prints_formatted_stackframe_from_given_array_name(){
+  tst.create_buffer_files
+  local -a stackframe=( "72" "myfunc" "myfile" )
+  __bg.env.format_stackframe 'stackframe' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  assert_equals "  at myfunc (myfile:72)" "$(< "$stdout_file")"
+}
+
+test_env.format_stackframe:returns_error_if_array_has_less_than_3_elements(){
+  tst.create_buffer_files
+  local -a stackframe=( "72" "myfunc" )
+  __bg.env.format_stackframe 'stackframe' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals                                   \
+    "array 'stackframe' has less than 3 elements" \
+    "$(< "$stderr_file")"                         \
+    "stderr should contain error message"
+  assert_equals           \
+    ""                    \
+    "$(< "$stdout_file")" \
+    "stdout should be empty"
+}
+
+test_env.format_stackframe:returns_error_if_array_has_more_than_3_elements(){
+  tst.create_buffer_files
+  local -a stackframe=( "72" "myfunc" "myfile" "extra" )
+  __bg.env.format_stackframe 'stackframe' >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "$ret_code" "should return exit code 0"
+  assert_equals                                   \
+    "array 'stackframe' has more than 3 elements" \
+    "$(< "$stderr_file")"                         \
+    "stderr should contain error message"
+  assert_equals           \
+    ""                    \
+    "$(< "$stdout_file")" \
+    "stdout should be empty"
+}
+
+test_env.print_stacktrace:calls_get_stacktrace_starting_at_the_given_frame_until_it_fails() {
+  #set -euo pipefail
+  tst.create_buffer_files
+  local -i stackframe_count=0
+  local -a stackframe=()
+  # shellcheck disable=SC2317
+  __bg.env.get_stackframe() {
+    # shellcheck disable=SC2034
+    local -i requested_frame="$1"
+    local -a out_arr="$2"
+
+    # empty out arr
+    if (( stackframe_count >= 3 )); then
+      echo "end of stack!" >&2
+      return 1
+    fi
+
+    eval "$out_arr=( '$stackframe_count' 'func$stackframe_count' 'file$stackframe_count' )"
+    (( ++stackframe_count ))
+  }
+
+  __bg.env.print_stacktrace "0" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals         \
+    "3"                 \
+    "$stackframe_count" \
+    "__bg.env.get_stackframe should have been called at least 3 times"
+  local expected_stdout
+  local -a sf1=( "0" "func0" "file0" )
+  local -a sf2=( "1" "func1" "file1" )
+  local -a sf3=( "2" "func2" "file2" )
+  printf -v expected_stdout                              \
+    '%s\n%s\n%s'                                         \
+    "$( __bg.env.format_stackframe sf1 )" \
+    "$( __bg.env.format_stackframe sf2 )" \
+    "$( __bg.env.format_stackframe sf3 )" 
+  assert_equals "$expected_stdout" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+}
+
 
 
