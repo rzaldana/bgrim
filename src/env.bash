@@ -253,8 +253,22 @@ __bg.env.print_stacktrace() {
 }
 
 bg.env.exit() {
-  local exit_code="${1:-0}"
   declare -g __bg_env_exited_gracefully="true"
+  local -i exit_code="${1:-0}"
+  # if exit code is non-int, exit with code 2
+  if ! bg.str.is_int "$exit_code"; then
+    exit 2
+  fi
+
+
+  # if exit code is higher than 255, exit
+  # with code 1
+  if (( exit_code > 255 )); then
+    exit 1
+  fi
+
+  # otherwise, exit with the requested code
+  # or 0, if no exit code was provided
   exit "$exit_code"
 }
 
@@ -276,5 +290,5 @@ __bg.env.handle_non_zero_exit_code() {
       >"$BG_ENV_STACKTRACE_OUT"
   fi
 
-  bg.env.exit "$exit_code"
+  bg.env.exit "$non_zero_exit_code"
 }

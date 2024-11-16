@@ -337,8 +337,12 @@ test_env.exit:sets_env_var_and_exits_with_provided_code() {
   set -euo pipefail
   tst.create_buffer_files
   local requested_exit_code
+  local first_execution="true"
   exit() {
-    requested_exit_code="$1" 
+    if [[ "$first_execution" == "true" ]]; then
+      requested_exit_code="$1" 
+      first_execution="false"
+    fi
   }
   bg.env.exit "23" >"$stdout_file" 2>"$stderr_file"
   assert_equals "" "$(< "$stdout_file" )"
@@ -348,21 +352,42 @@ test_env.exit:sets_env_var_and_exits_with_provided_code() {
 }
 
 test_env.exit:sets_env_var_and_exits_with_0_if_no_code_is_provided() {
-  set -euo pipefail
+  #set -euo pipefail
   tst.create_buffer_files
   local requested_exit_code
+  local first_execution="true"
   exit() {
-    requested_exit_code="$1" 
+    if [[ "$first_execution" == "true" ]]; then
+      requested_exit_code="$1" 
+      first_execution="false"
+    fi
   }
   bg.env.exit >"$stdout_file" 2>"$stderr_file"
   assert_equals "" "$(< "$stdout_file" )"
   assert_equals "" "$(< "$stderr_file" )"
   assert 'bg.var.is_set __bg_env_exited_gracefully'
   assert_equals "0" "$requested_exit_code"
-
 }
 
-test_err.__BG_ENV_STACKTRACE_OUT_is_set_to_a_default_after_sourcing_library() {
+test_env.exit:sets_env_var_and_exits_with_1_if_exit_code_is_higher_than_255() {
+  set -euo pipefail
+  tst.create_buffer_files
+  local requested_exit_code
+  local first_execution="true"
+  exit() {
+    if [[ "$first_execution" == "true" ]]; then
+      requested_exit_code="$1" 
+      first_execution="false"
+    fi
+  }
+  bg.env.exit 300 >"$stdout_file" 2>"$stderr_file"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert 'bg.var.is_set __bg_env_exited_gracefully'
+  assert_equals "1" "$requested_exit_code"
+}
+
+test_env.__BG_ENV_STACKTRACE_OUT_is_set_to_a_default_after_sourcing_library() {
   set -euo pipefail
   tst.create_buffer_files
   unset __BG_ENV_STACKTRACE_OUT  
