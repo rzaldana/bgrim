@@ -333,275 +333,93 @@ test_env.print_stacktrace:calls_get_stacktrace_starting_at_the_given_frame_until
   assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
 }
 
-test_env.get_stderr_line_returns_error_if_capturing_hasnt_been_started(){
-  tst.create_buffer_files
-  __bg.env.get_stderr_line >"$stdout_file" 2>"$stderr_file"  
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals                                         \
-    "stderr capturing process hasn't been started yet"  \
-    "$(< "$stderr_file" )"                              \
-    "stderr should contain error message"
-}
-
-test_env.start_stderr_capturing_stores_original_stderr_fd_in_env_var() {
-  tst.create_buffer_files
+test_env.exit:sets_env_var_and_exits_with_provided_code() {
   set -euo pipefail
-  exec 2>"$stdout_file"
-  __bg.env.start_stderr_capturing
-  echo "hello" >&"$__bg_env_stderr_capture_original_fd}"
-  echo "$__bg_env_stderr_capture_original_fd">&-
-  assert_equals "hello" "$(< "$stdout_file")"
-}
-
-test_env.get_stderr_line_prints_last_line_from_stderr_if_capturing_has_started(){
   tst.create_buffer_files
-  set -euo pipefail
-  # Start stderr capturing
-  __bg.env.start_stderr_capturing
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 1"
-
-  # write to stderr
-  echo "stderr line 1" >&2
-  echo "stderr line 2" >&2
-
-  # Retrieve last line from stderr
-  __bg.env.get_stderr_line >"$stdout_file" 2>"$stderr_file"  
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals           \
-    "stderr line 2"       \
-    "$(< "$stdout_file")" \
-    "stdout should contain last line of stderr"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-}
-
-test_env.get_stderr_returns_an_error_if_there_is_nothing_in_stderr(){
-  tst.create_buffer_files
-
-  # Start stderr capturing
-  __bg.env.start_stderr_capturing
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-
-  # Retrieve last line from stderr
-  __bg.env.get_stderr_line >"$stdout_file" 2>"$stderr_file"  
-  ret_code="$?"
-  assert_equals "1" "$ret_code" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
-  assert_equals \
-    "stderr is empty" \
-    "$(< "$stderr_file" )" \
-    "stderr should contain error message"
-}
-
-test_env.start_stderr_enriching_adds_a_line_to_stderr_whenever_a_new_command_gets_executed(){
-  tst.create_buffer_files
-  #ret_code="$?"
-  #assert_equals "0" "$ret_code" "should return exit code 0"
-  set -euo pipefail
-  myfunc() { :; }
-  exec {original_stderr}>&2
-  exec 2>"$stderr_file"
-  __bg.env.start_stderr_enriching
-  :
-  myfunc
-  echo "hello" >&2
-  # stop enriching
-  trap - DEBUG
-  # restore stderr
-  exec 2>&"$original_stderr"
-  printf -v expected_stderr                                  \
-    '%s\n%s\n%s\n%s\n%s\n%s\n%s'                             \
-    "__bg_env_stderr_enriching: command::"                   \
-    "__bg_env_stderr_enriching: command:myfunc"              \
-    "__bg_env_stderr_enriching: command:myfunc"              \
-    "__bg_env_stderr_enriching: command::"                   \
-    "__bg_env_stderr_enriching: command:echo \"hello\" 1>&2" \
-    "hello"                                                  \
-    "__bg_env_stderr_enriching: command:trap - DEBUG"
-  assert_equals "$expected_stderr" "$(< "$stderr_file")"
-}
-
-test_env.get_stderr_for_command_reads_all_lines_from_stderr_until_its_captured_all_lines_for_the_given_command() {
-  tst.create_buffer_files
-  #set -euo pipefail
-  myfunc() {
-    echo "line1" >&2
-    echo "line2" >&2
-    echo "line3" >&2
+  local requested_exit_code
+  exit() {
+    requested_exit_code="$1" 
   }
-  local -a captured_stderr_lines=()
-  __bg.env.start_stderr_capturing
-  __bg.env.start_stderr_enriching
-  myfunc
-  trap - DEBUG
-  # drop last stderr line
-  __bg.env.get_stderr_line >/dev/null
-  __bg.env.get_stderr_for_command \
-    'myfunc'                      \
-    'captured_stderr_lines'       \
-    >"$stdout_file"               \
-    2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "${ret_code}" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
-  local -a expected_captured_stderr_lines=(
-    "line1"
-    "line2"
-    "line3"
-  )
-  for i in "${!expected_captured_stderr_lines[@]}"; do
-    assert_equals                             \
-      "${expected_captured_stderr_lines[$i]}" \
-      "${captured_stderr_lines[$i]}"
-  done
+  bg.env.exit "23" >"$stdout_file" 2>"$stderr_file"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert 'bg.var.is_set __bg_env_exited_gracefully'
+  assert_equals "23" "$requested_exit_code"
 }
 
-
-test_env.get_stderr_for_command_returns_error_if_command_not_found() {
-  tst.create_buffer_files
-  myfunc() {
-    echo "line1" >&2
-    echo "line2" >&2
-    echo "line3" >&2
-  }
-  local -a captured_stderr_lines=()
-  __bg.env.start_stderr_capturing
-  __bg.env.start_stderr_enriching
-  myfunc
-  trap - DEBUG
-  # drop last stderr line
-  __bg.env.get_stderr_line >/dev/null
-  __bg.env.get_stderr_for_command \
-    'myfunc2'                     \
-    'captured_stderr_lines'       \
-    >"$stdout_file"               \
-    2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "1" "${ret_code}" "should return exit code 1"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals                                            \
-    "could not find stderr messages for command 'myfunc2'" \
-    "$(< "$stderr_file")"                                  \
-    "stderr should contain error"
-}
-
-test_env.handle_error_turns_off_any_debug_traps() {
-  tst.create_buffer_files
-  set -euTo pipefail
-  trap ":" DEBUG
-  __bg.env.handle_error >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-  assert_equals                   \
-    ""                            \
-    "$(bg.trap.get "DEBUG")"      \
-    "there should be no traps on DEBUG"
-}
-
-test_env.handle_error_doesnt_read_any_stderr_lines_if_capturing_is_not_enabled() {  
+test_env.exit:sets_env_var_and_exits_with_0_if_no_code_is_provided() {
   set -euo pipefail
   tst.create_buffer_files
-  # mock __bg.env.get_stderr_line
-  local -i times_stderr_read=0
-  __bg.env.get_stderr_line() {
-    (( ++times_stderr_read ))
+  local requested_exit_code
+  exit() {
+    requested_exit_code="$1" 
   }
-  set -euTo pipefail
-  __bg.env.handle_error >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-  assert_equals "0" "$times_stderr_read" "times stderr read should be 0"
+  bg.env.exit >"$stdout_file" 2>"$stderr_file"
+  assert_equals "" "$(< "$stdout_file" )"
+  assert_equals "" "$(< "$stderr_file" )"
+  assert 'bg.var.is_set __bg_env_exited_gracefully'
+  assert_equals "0" "$requested_exit_code"
+
 }
 
-test_env.handle_error_drops_last_three_stderr_lines_if_capturing_is_enabled() {  
+test_err.__BG_ENV_STACKTRACE_OUT_is_set_to_a_default_after_sourcing_library() {
+  set -euo pipefail
   tst.create_buffer_files
-  # mock __bg.env.get_stderr_line
-  local -i times_stderr_read=0
-  __bg.env.get_stderr_for_command() {
+  unset __BG_ENV_STACKTRACE_OUT  
+  tst.source_lib_from_root "env.bash"
+  bg.var.is_set "BG_ENV_STACKTRACE_OUT"
+  assert_equals "&2" "$BG_ENV_STACKTRACE_OUT"
+}
+
+test_env.handle_non_zero_exit_code_prints_error_message_to_file_specified_in_env_var() {
+  set -euo pipefail
+  tst.create_buffer_files
+  BG_ENV_STACKTRACE_OUT="$stdout_file"
+  bg.env.exit() {
     :
   }
-  __bg.env.get_stderr_line() {
-    (( ++times_stderr_read ))
-  }
-  set -euTo pipefail
-  __bg.env.start_stderr_capturing
-  __bg.env.handle_error >"$stdout_file" 2>"$stderr_file"
+  :
+  __bg.env.handle_non_zero_exit_code >"$stderr_file" 2>&1
   ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-  assert_equals "3" "$times_stderr_read" "times stderr read should be 3"
-}
-
-test_env.handle_error_reads_stderr_for_current_command_in_BASH_COMMAND_if_capturing_is_enabled() {
-  tst.create_buffer_files
-  # mock __bg.env.get_stderr_line
-  local -i times_stderr_read=0
-  local received_command
-  __bg.env.get_stderr_for_command() {
-    received_command="$1" 
-    eval "$2=( 'line 1' 'line 2' 'line 3' )"
-  }
-  set -euTo pipefail
-  __bg.env.start_stderr_capturing
-  echo "dummy line 1" >&2
-  echo "dummy line 2" >&2
-  echo "dummy line 3" >&2
-  local BASH_COMMAND="mycommand"
-  __bg.env.handle_error >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
-  assert_equals \
-    "mycommand" \
-    "$received_command" \
-    "received_command should be mycommand"
-}
-
-test_env.handle_error_prints_stderr_for_command_to_original_stderr_fd() {
-  tst.create_buffer_files
-  # open stderr file with FD stored in __bg_env_stderr_capture_original_fd
-  exec {__bg_env_stderr_capture_original_fd}>"$stderr_file"
-
-  # mock __bg.env.get_stderr_for_command
-  local -i times_stderr_read=0
-  local received_command
-  __bg.env.get_stderr_for_command() {
-    received_command="$1" 
-    eval "$2=( 'line 1' 'line 2' 'line 3' )"
-  }
-  set -euTo pipefail
-  __bg.env.start_stderr_capturing
-  echo "dummy line 1" >&2
-  echo "dummy line 2" >&2
-  echo "dummy line 3" >&2
-  local BASH_COMMAND="mycommand"
-  __bg.env.handle_error >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
-  printf -v expected_stderr \
-    '%s\n%s\n%s\n%s\n'      \
-    'UNHANDLED ERROR:'      \
-    'line 1'                \
-    'line 2'                \
-    'line 3'
   assert_equals            \
-    "$expected_stderr"     \
+    ""                     \
     "$(< "$stderr_file" )" \
-    "stderr should contain stderr for command"
-  assert_equals         \
-    "mycommand"         \
-    "$received_command" \
-    "received_command should be mycommand"
+    "stderr and stdout should be empty"
+  printf -v expected_output '%s' 'NON-ZERO EXIT CODE: 0'
+  assert_equals "$expected_output" "$(< "$stdout_file" )"
+}
+
+test_env.handle_non_zero_exit_code_prints_error_message_to_fd_specified_in_env_var() {
+  #set -euo pipefail
+  tst.create_buffer_files
+  bg.env.exit() {
+    :
+  }
+  exec 3>"$stdout_file"
+  BG_ENV_STACKTRACE_OUT="&3"
+  :
+  __bg.env.handle_non_zero_exit_code >"$stderr_file" 2>&1
+  assert_equals            \
+    ""                     \
+    "$(< "$stderr_file" )" \
+    "stderr and stdout should be empty"
+  printf -v expected_output '%s' 'NON-ZERO EXIT CODE: 0'
+  assert_equals "$expected_output" "$(< "$stdout_file" )"
+}
+
+test_env.handle_non_zero_exit_code_calls_env.exit_with_previous_exit_code() {
+  set -uo pipefail
+  tst.create_buffer_files
+  # mock exit function
+  local requested_exit_code
+  bg.env.exit() {
+    requested_exit_code="$1"
+  }
+  myfunc() { return 23; }
+  myfunc
+  __bg.env.handle_non_zero_exit_code >"$stdout_file" 2>"$stderr_file"
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  printf -v expected_output '%s' 'NON-ZERO EXIT CODE: 23'
+  assert_equals "$expected_output" "$(< "$stderr_file" )"
+  assert_equals "23" "$requested_exit_code"
 }

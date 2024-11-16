@@ -6,6 +6,11 @@ if [[ -n "${__BG_TEST_MODE:-}" ]]; then
 fi
 
 ################################################################################
+# ENVIRONMENT CONSTANTS 
+################################################################################
+BG_ENV_STACKTRACE_OUT="&2"
+
+################################################################################
 # ENVIRONMENT FUNCTIONS
 ################################################################################
 
@@ -247,112 +252,29 @@ __bg.env.print_stacktrace() {
   done
 }
 
-__bg.env.get_stderr_line() {
-  if ! bg.var.is_set '__bg_env_stderr_capture_read_fd'; then
-    bg.err.print "stderr capturing process hasn't been started yet"
-    return 1
-  fi
-  kill -s SIGUSR1 "${__bg_env_stderr_capture_pid}"
-  local stderr_line
-  read -ru "${__bg_env_stderr_capture_read_fd}" stderr_line
-  if [[ "$stderr_line" == "__bg_env_stderr_capture: stderr is empty" ]]; then
-    bg.err.print "stderr is empty"
-    return 1
-  fi
-  echo "$stderr_line"
+bg.env.exit() {
+  local exit_code="${1:-0}"
+  declare -g __bg_env_exited_gracefully="true"
+  exit "$exit_code"
 }
 
-__bg.env.start_stderr_capturing() {
-  coproc __bg_env_stderr_capture {
-    trap - DEBUG
-    declare -a captured_lines=()
-    declare -i index
-    declare -i captured_lines_len
-    trap '{ 
-      captured_lines_len="$( bg.arr.length captured_lines )"
-      if (( captured_lines_len == 0 )); then
-        echo "__bg_env_stderr_capture: stderr is empty"
-        return 0
-      fi
-      echo "${captured_lines[-1]}";
-      unset "captured_lines[-1]";
-    }' SIGUSR1
-    # read from stdin into captured_lines array
-    while IFS= read -r line; do
-      # shellcheck disable=SC2031
-      captured_lines+=( "${line}" )
-    done
-  }
-  declare -g __bg_env_stderr_capture_read_fd="${__bg_env_stderr_capture[0]}"
-  # shellcheck disable=SC2154
-  declare -g __bg_env_stderr_capture_pid="${__bg_env_stderr_capture_PID}"
-  exec {__bg_env_stderr_capture_original_fd}>&2
-  exec 2>&"${__bg_env_stderr_capture[1]}"
-}
-
-__bg.env.start_stderr_enriching() {
-  set -o functrace
-  trap '
-    echo "__bg_env_stderr_enriching: command:${BASH_COMMAND}" >&2
-  ' DEBUG
-  # Make DEBUG trap be inherited by shell functions,
-  # command substitutions, and subshells
-}
-
-__bg.env.get_stderr_for_command() {
-  local -a required_args=( "command" "rwa:output_arr" )
-  if ! bg.in.require_args "$@"; then
-    return 2
+__bg.env.handle_non_zero_exit_code() {
+  local non_zero_exit_code="$?"
+  local stacktrace_out_without_fd_prefix="${BG_ENV_STACKTRACE_OUT#&}"
+  # shellcheck disable=SC2059
+  if [[ "${stacktrace_out_without_fd_prefix}" != "${BG_ENV_STACKTRACE_OUT}" ]]; then
+    printf                  \
+      '%s: %s\n'            \
+      'NON-ZERO EXIT CODE' \
+      "$non_zero_exit_code" \
+      >&"${stacktrace_out_without_fd_prefix}"
+  else
+    printf                  \
+      '%s: %s\n'            \
+      'NON-ZERO EXIT CODE' \
+      "$non_zero_exit_code" \
+      >"$BG_ENV_STACKTRACE_OUT"
   fi
 
-  local line
-  local -a pre_output_arr
-  local found_command="false"
-  while line="$(__bg.env.get_stderr_line 2>/dev/null)"; do
-    if [[ "$line" != "__bg_env_stderr_enriching: command:${command}" ]]; then
-      # filter out all enriched lines
-      local re="__bg_env_stderr_enriching:*"
-      if ! [[ "$line" =~ $re ]]; then
-        pre_output_arr+=( "${line}" )
-      fi
-    else
-      found_command="true"
-    fi
-  done
-
-  if [[ "$found_command" != "true" ]]; then
-    bg.err.print "could not find stderr messages for command '$command'"
-    return 1
-  fi
-
-  # Reverse pre_output_arr
-  pre_output_arr_len="$( bg.arr.length 'pre_output_arr' )"
-  local -i i=$(( pre_output_arr_len - 1 ))
-  while (( i >= 0 )); do
-    # shellcheck disable=SC2154
-    eval "${output_arr}+=( '${pre_output_arr[$i]}' )"
-    (( i-- )) || : 
-  done
-}
-
-__bg.env.handle_error() {
-  trap - DEBUG
-
-  # read stderr for command if stderr capturing is enabled
-  if bg.var.is_set '__bg_env_stderr_capture_read_fd'; then
-    # discard first three lines of stderr
-    __bg.env.get_stderr_line >/dev/null
-    __bg.env.get_stderr_line >/dev/null
-    __bg.env.get_stderr_line >/dev/null
-    local -a stderr_from_cmd=()
-    __bg.env.get_stderr_for_command "${BASH_COMMAND}" stderr_from_cmd
-  fi
-
-  # Print stderr for command to original stderr
-  echo "UNHANDLED ERROR:" >&"$__bg_env_stderr_capture_read_fd"
-  for line in "${stderr_from_cmd[@]}"; do
-    echo "$line" >&"$__bg_env_stderr_capture_read_fd"
-  done
- 
-
+  bg.env.exit "$exit_code"
 }
