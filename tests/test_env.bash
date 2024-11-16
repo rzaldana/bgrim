@@ -390,6 +390,7 @@ test_env.start_stderr_enriching_adds_a_line_to_stderr_whenever_a_new_command_get
   tst.create_buffer_files
   #ret_code="$?"
   #assert_equals "0" "$ret_code" "should return exit code 0"
+  set -euo pipefail
   myfunc() { :; }
   exec {original_stderr}>&2
   exec 2>"$stderr_file"
@@ -411,4 +412,70 @@ test_env.start_stderr_enriching_adds_a_line_to_stderr_whenever_a_new_command_get
     "hello"                                                  \
     "__bg_env_stderr_enriching: command:trap - DEBUG"
   assert_equals "$expected_stderr" "$(< "$stderr_file")"
+}
+
+test_env.get_stderr_for_command_reads_all_lines_from_stderr_until_its_captured_all_lines_for_the_given_command() {
+  tst.create_buffer_files
+  #set -euo pipefail
+  myfunc() {
+    echo "line1" >&2
+    echo "line2" >&2
+    echo "line3" >&2
+  }
+  local -a captured_stderr_lines=()
+  __bg.env.start_stderr_capturing
+  __bg.env.start_stderr_enriching
+  myfunc
+  trap - DEBUG
+  # drop last stderr line
+  __bg.env.get_stderr_line >/dev/null
+  __bg.env.get_stderr_for_command \
+    'myfunc'                      \
+    'captured_stderr_lines'       \
+    >"$stdout_file"               \
+    2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "${ret_code}" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+  local -a expected_captured_stderr_lines=(
+    "line1"
+    "line2"
+    "line3"
+  )
+  for i in "${!expected_captured_stderr_lines[@]}"; do
+    assert_equals                             \
+      "${expected_captured_stderr_lines[$i]}" \
+      "${captured_stderr_lines[$i]}"
+  done
+}
+
+
+test_env.get_stderr_for_command_returns_error_if_command_not_found() {
+  tst.create_buffer_files
+  #set -euo pipefail
+  myfunc() {
+    echo "line1" >&2
+    echo "line2" >&2
+    echo "line3" >&2
+  }
+  local -a captured_stderr_lines=()
+  __bg.env.start_stderr_capturing
+  __bg.env.start_stderr_enriching
+  myfunc
+  trap - DEBUG
+  # drop last stderr line
+  __bg.env.get_stderr_line >/dev/null
+  __bg.env.get_stderr_for_command \
+    'myfunc2'                     \
+    'captured_stderr_lines'       \
+    >"$stdout_file"               \
+    2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "1" "${ret_code}" "should return exit code 1"
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals                                            \
+    "could not find stderr messages for command 'myfunc2'" \
+    "$(< "$stderr_file")"                                  \
+    "stderr should contain error"
 }

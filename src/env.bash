@@ -264,7 +264,7 @@ __bg.env.get_stderr_line() {
 
 __bg.env.start_stderr_capturing() {
   coproc __bg_env_stderr_capture {
-    #trap - DEBUG
+    trap - DEBUG
     declare -a captured_lines=()
     declare -i index
     declare -i captured_lines_len
@@ -296,4 +296,40 @@ __bg.env.start_stderr_enriching() {
   ' DEBUG
   # Make DEBUG trap be inherited by shell functions,
   # command substitutions, and subshells
+}
+
+__bg.env.get_stderr_for_command() {
+  local -a required_args=( "command" "rwa:output_arr" )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  local line
+  local -a pre_output_arr
+  local found_command="false"
+  while line="$(__bg.env.get_stderr_line 2>/dev/null)"; do
+    if [[ "$line" != "__bg_env_stderr_enriching: command:${command}" ]]; then
+      # filter out all enriched lines
+      local re="__bg_env_stderr_enriching:*"
+      if ! [[ "$line" =~ $re ]]; then
+        pre_output_arr+=( "${line}" )
+      fi
+    else
+      found_command="true"
+    fi
+  done
+
+  if [[ "$found_command" != "true" ]]; then
+    bg.err.print "could not find stderr messages for command '$command'"
+    return 1
+  fi
+
+  # Reverse pre_output_arr
+  pre_output_arr_len="$( bg.arr.length 'pre_output_arr' )"
+  local -i i=$(( pre_output_arr_len - 1 ))
+  while (( i >= 0 )); do
+    # shellcheck disable=SC2154
+    eval "${output_arr}+=( '${pre_output_arr[$i]}' )"
+    (( i-- )) || : 
+  done
 }

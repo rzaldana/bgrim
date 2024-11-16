@@ -3,6 +3,7 @@
 
 source bgrim.bash
 source lib.bash
+#set +x
 
 die() {
   declare -g __BG_DIED_GRACEFULLY=1
@@ -73,10 +74,40 @@ die() {
 }
 
 unhandled_error() {
-  kill -s SIGUSR1 "${capture_stdout_PID}"
-  read -ru "${capture_stdout[0]}" mymessage
+  trap - DEBUG
+  local header
+  header="__BG_BASH_COMMAND='${BASH_COMMAND}'"
+  local -a captured_stderr=()
+  # Drop first 3 stderr messages
+  local i=0
+  while (( i < 3 )); do 
+    kill -s SIGUSR1 "${capture_stdout_PID}"
+    IFS=: read -ru "${capture_stdout[0]}" dud_msg 
+    echo "dropping msg: $dud_msg" >/dev/tty
+    (( i++ )) || :
+  done
+
+  # Read messages from stderr until we find header
+  local stderr_msg=""
+  while [[ "$stderr_msg" != "$header" ]]; do
+    captured_stderr+=( "$stderr_msg" )
+    kill -s SIGUSR1 "${capture_stdout_PID}"
+    read -ru "${capture_stdout[0]}" stderr_msg 
+  done
+
   if ! bg.var.is_set '__BG_UNHANDLED_ERROR'; then
-    printf "UNHANDLED ERROR: '%s'\n" "$mymessage"
+    echo "UNHANDLED ERROR:"
+    local arr_leng
+    arr_len="$( bg.arr.length 'captured_stderr' )"
+    local -i i=$(( arr_len - 1 ))
+    while (( i > 0 )); do 
+      echo "${captured_stderr[$i]}"
+      (( i-- )) || :
+    done
+    #for msg in "${captured_stderr[@]}"; do
+    #  echo "${msg}"
+    #done
+    #printf "UNHANDLED ERROR: '%s'\n" "$mymessage"
     print_stacktrace 1 
   fi
   declare -g __BG_UNHANDLED_ERROR=1
@@ -87,11 +118,23 @@ unhandled_error2() {
   if [[ "$?" == 0 ]]; then
     exit 0
   fi
+  trap - DEBUG
   if bg.var.is_set __BG_DIED_GRACEFULLY; then
     exit 1
   fi
+
+  # Drop first 4 stderr messages
+  local i=0
+  while (( i < 4 )); do 
+    kill -s SIGUSR1 "${capture_stdout_PID}"
+    IFS=: read -ru "${capture_stdout[0]}" dud_msg 
+    (( i++ )) || :
+  done
+  # Read next message from stderr
   kill -s SIGUSR1 "${capture_stdout_PID}"
   IFS=: read -ru "${capture_stdout[0]}" _  line_no message
+  echo "message: $message" >/dev/tty
+  echo "line_no: $line_no" >/dev/tty
   #lib.bash: line 5: hello: unbound variable
   # parse stderr message
   local -a stackframe=()
@@ -111,25 +154,54 @@ unhandled_error2() {
 
 declare -ga __BG_STDOUT_CAPTURE
 coproc capture_stdout {
+  trap - DEBUG
   declare -a myarray=()
   declare -i stdout_len
+  declare -i index
+  declare first_time=1
   trap '{ 
-    stdout_len="$( bg.arr.length myarray)"; 
+    # if this is the first time the trap
+    # gets called, drop last three elements
+    # of array
+    #if [[ "$first_time" == "1" ]]; then
+    #  for msg in "${myarray[@]}"; do
+    #    echo "stderr: ${msg}" >/dev/tty
+    #  done
+    #  echo "unsetting ${myarray[-1]}" >/dev/tty
+    #  unset myarray[-1];
+    #  echo "unsetting ${myarray[-1]}" >/dev/tty
+    #  unset myarray[-1];
+    #  echo "unsetting ${myarray[-1]}" >/dev/tty
+    #  unset myarray[-1];
+    #  first_time=0;
+    #fi
+    stdout_len="$( bg.arr.length myarray )"; 
+    index=$(( stdout_len - 1));
     if (( stdout_len > 0 )); then
-      echo "${myarray[$stdout_len - 1]}"; 
+      echo "${myarray[-1]}";
+      unset "myarray[-1]";
     else
-      echo ""
+      exit 0
     fi
   }' SIGUSR1
   bg.arr.from_stdin 'myarray'
 }
 
-set -eEuo pipefail
+enrich_stderr() {
+  #echo "${FUNCNAME[1]} ${BASH_SOURCE[1]} ${BASH_LINENO[0]} __BG_BASH_COMMAND='${BASH_COMMAND}'" >&2
+  echo "__BG_BASH_COMMAND='${BASH_COMMAND}'" >&2
+}
+
+
+set -eTEuo pipefail
 exec 2>&"${capture_stdout[1]}"
 
 bg.trap.add 'unhandled_error' ERR 
 bg.trap.add 'unhandled_error2' EXIT 
+bg.trap.add 'enrich_stderr' DEBUG
 
 #echo "$hello"
+#myfunc
+
 myfunc
 echo "hello my name is Raul"
