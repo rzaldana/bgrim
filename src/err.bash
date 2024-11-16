@@ -41,24 +41,3 @@ bg.err.print() (
   fi
 )
 
-__bg.err.get_stackframe() {
-  local frame
-  frame="$1"
-  local out_arr
-  out_arr="$2"
-
-  # empty out arr
-  eval "$out_arr=()"
-
-  local -i funcname_arr_len="${#FUNCNAME[@]}"
-  if (( frame+2 >= funcname_arr_len )); then
-    bg.err.print "requested frame '${frame}' but there are only frames 0-$((funcname_arr_len-3)) in the call stack"
-    return 1
-  fi
-  local line_no_index=$(( frame + 1 ))
-  local funcname_index=$(( frame + 2 ))
-  local bash_source_index=$(( frame + 2 ))
-  eval "${out_arr}+=( '${BASH_LINENO[line_no_index]}' )"
-  eval "${out_arr}+=( '${FUNCNAME[funcname_index]}' )"
-  eval "${out_arr}+=( '${BASH_SOURCE[bash_source_index]}' )"
-}

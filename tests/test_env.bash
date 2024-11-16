@@ -179,5 +179,75 @@ test_get_parent_script_name_returns_name_of_script_currently_executing_if_called
   assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
 }
 
+test_env.get_stackframe:returns_same_information_as_caller_builtin_in_output_arr(){
+  tst.create_buffer_files
+  set -euo pipefail
+  local -a stackframe=()
+  __bg.env.get_stackframe "0" "stackframe" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+  rm "$stdout_file" "$stderr_file" 
+  touch "$stdout_file" "$stderr_file"
+  caller 0 >"$stdout_file"
+  assert_equals "$(< "$stdout_file")" "${stackframe[0]} ${stackframe[1]} ${stackframe[2]}"
+}
+
+test_env.get_stackframe:returns_same_information_as_caller_builtin_in_output_arr_when_requesting_non_zero_frame(){
+  tst.create_buffer_files
+  set -euo pipefail
+  local -a stackframe=()
+  __bg.env.get_stackframe "1" "stackframe" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file")"
+  rm "$stdout_file" "$stderr_file" 
+  touch "$stdout_file" "$stderr_file"
+  caller 1 >"$stdout_file"
+  assert_equals "$(< "$stdout_file")" "${stackframe[0]} ${stackframe[1]} ${stackframe[2]}"
+}
+
+test_env.get_stackframe:returns_same_information_as_caller_builtin_when_called_in_function_from_sourced_file(){
+  tst.create_buffer_files
+  set -euo pipefail
+  . ./test_scripts/test_env.get_stackframe1.bash
+  myfunc >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "$(< "$stdout_file" )" "$(< "$stderr_file")"
+}
+
+test_env.get_stackframe:returns_same_information_as_caller_builtin_when_called_in_function_from_sourced_file_in_nested_function(){
+  tst.create_buffer_files
+  set -euo pipefail
+  . ./test_scripts/test_env.get_stackframe2.bash
+  myfunc >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code"
+  assert_equals "$(< "$stdout_file" )" "$(< "$stderr_file")"
+}
+
+test_env.get_stackframe:returns_fails_when_caller_fails(){
+  tst.create_buffer_files
+  set -euo pipefail
+  local caller_i=0
+  while caller "$caller_i" >/dev/null 2>&1; do
+    (( ++caller_i ))
+  done
+
+  local stackframe=()
+  local get_stackframe_i=0
+  while __bg.env.get_stackframe "$get_stackframe_i" 'stackframe' 2>"$stderr_file"; do
+    (( ++get_stackframe_i ))
+  done
+
+  assert_equals "$caller_i" "$get_stackframe_i"
+  assert_equals \
+    "requested frame '${get_stackframe_i}' but there are only frames 0-$((get_stackframe_i-1)) in the call stack" \
+    "$(< "$stderr_file" )"
+}
+
 
 

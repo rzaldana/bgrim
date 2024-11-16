@@ -8,12 +8,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PATH="$SCRIPT_DIR/../lib:$PATH" source tst.bash
 
 # Source library to be tested
-tst.source_lib_from_root "err.bash"
+tst.source_lib_from_root "env.bash"
 
 
 myfunc_inner() {
   local -a stackframe=()
-  caller 0 && __bg.err.get_stackframe "0" stackframe
+  caller 0 && __bg.env.get_stackframe "0" stackframe
   echo "${stackframe[0]} ${stackframe[1]} ${stackframe[2]}" >&2
 }
 

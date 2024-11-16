@@ -59,7 +59,7 @@ bg.env.clear_vars_with_prefix() {
 
   # Check that prefix is not empty
   [[ -z "$prefix" ]] \
-    && bg.err.printf "arg1 (prefix) is empty but is required" \
+    && bg.err.print "arg1 (prefix) is empty but is required" \
     && return 1
 
   # Check that prefix is a valid variable name
@@ -176,3 +176,43 @@ bg.env.get_parent_script_name() {
   printf "%s" "$( basename "${BASH_SOURCE[$top_level_index]}" )"
 }
 
+__bg.env.get_stackframe() {
+  local frame
+  frame="$1"
+  local out_arr
+  out_arr="$2"
+
+  # empty out arr
+  eval "$out_arr=()"
+
+  local -i funcname_arr_len="${#FUNCNAME[@]}"
+  if (( frame+2 >= funcname_arr_len )); then
+    bg.err.print "requested frame '${frame}' but there are only frames 0-$((funcname_arr_len-3)) in the call stack"
+    return 1
+  fi
+  local line_no_index=$(( frame + 1 ))
+  local funcname_index=$(( frame + 2 ))
+  local bash_source_index=$(( frame + 2 ))
+  eval "${out_arr}+=( '${BASH_LINENO[line_no_index]}' )"
+  eval "${out_arr}+=( '${FUNCNAME[funcname_index]}' )"
+  eval "${out_arr}+=( '${BASH_SOURCE[bash_source_index]}' )"
+}
+
+__bg.err.print_stackframe() {
+  local stackframe_array="$1"
+
+  # Check that array has at at least 3 elements
+  local array_length
+  eval "array_length=\${#${stackframe_array}[@]}"
+  if (( array_length < 3 )); then
+    bg.err.print "array '${stackframe_array}' has less than 3 elements"
+    return 1
+  fi
+  local funcname
+  local filename
+  local lineno
+  eval "lineno=\"\${${stackframe_array}[0]}\""
+  eval "funcname=\"\${${stackframe_array}[1]}\""
+  eval "filename=\"\${${stackframe_array}[2]}\""
+  printf '  at %s (%s:%s)\n' "$funcname" "$filename" "$lineno"
+}
