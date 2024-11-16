@@ -286,6 +286,7 @@ __bg.env.start_stderr_capturing() {
   declare -g __bg_env_stderr_capture_read_fd="${__bg_env_stderr_capture[0]}"
   # shellcheck disable=SC2154
   declare -g __bg_env_stderr_capture_pid="${__bg_env_stderr_capture_PID}"
+  exec {__bg_env_stderr_capture_original_fd}>&2
   exec 2>&"${__bg_env_stderr_capture[1]}"
 }
 
@@ -332,4 +333,26 @@ __bg.env.get_stderr_for_command() {
     eval "${output_arr}+=( '${pre_output_arr[$i]}' )"
     (( i-- )) || : 
   done
+}
+
+__bg.env.handle_error() {
+  trap - DEBUG
+
+  # read stderr for command if stderr capturing is enabled
+  if bg.var.is_set '__bg_env_stderr_capture_read_fd'; then
+    # discard first three lines of stderr
+    __bg.env.get_stderr_line >/dev/null
+    __bg.env.get_stderr_line >/dev/null
+    __bg.env.get_stderr_line >/dev/null
+    local -a stderr_from_cmd=()
+    __bg.env.get_stderr_for_command "${BASH_COMMAND}" stderr_from_cmd
+  fi
+
+  # Print stderr for command to original stderr
+  echo "UNHANDLED ERROR:" >&"$__bg_env_stderr_capture_read_fd"
+  for line in "${stderr_from_cmd[@]}"; do
+    echo "$line" >&"$__bg_env_stderr_capture_read_fd"
+  done
+ 
+
 }
