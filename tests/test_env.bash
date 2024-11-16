@@ -403,6 +403,11 @@ test_env.handle_non_zero_exit_code_prints_error_message_to_file_specified_in_env
   bg.env.exit() {
     :
   }
+  local -i stackframe_requested
+  __bg.env.print_stacktrace() {
+    stackframe_requested="$1"
+    echo "stacktrace"
+  }
   :
   __bg.env.handle_non_zero_exit_code >"$stderr_file" 2>&1
   ret_code="$?"
@@ -410,13 +415,26 @@ test_env.handle_non_zero_exit_code_prints_error_message_to_file_specified_in_env
     ""                     \
     "$(< "$stderr_file" )" \
     "stderr and stdout should be empty"
-  printf -v expected_output '%s' 'NON-ZERO EXIT CODE: 0'
+  printf                    \
+    -v expected_output      \
+    '%s\n%s'                \
+    'NON-ZERO EXIT CODE: 0' \
+    'stacktrace'
   assert_equals "$expected_output" "$(< "$stdout_file" )"
+  assert_equals             \
+    "1"                     \
+    "$stackframe_requested" \
+    "should call print_stackframe with 1 as its arg"
 }
 
 test_env.handle_non_zero_exit_code_prints_error_message_to_fd_specified_in_env_var() {
-  #set -euo pipefail
+  set -euo pipefail
   tst.create_buffer_files
+  local -i stackframe_requested
+  __bg.env.print_stacktrace() {
+    stackframe_requested="$1"
+    echo "stacktrace"
+  }
   bg.env.exit() {
     :
   }
@@ -428,8 +446,16 @@ test_env.handle_non_zero_exit_code_prints_error_message_to_fd_specified_in_env_v
     ""                     \
     "$(< "$stderr_file" )" \
     "stderr and stdout should be empty"
-  printf -v expected_output '%s' 'NON-ZERO EXIT CODE: 0'
+  printf                    \
+    -v expected_output      \
+    '%s\n%s'                \
+    'NON-ZERO EXIT CODE: 0' \
+    'stacktrace'
   assert_equals "$expected_output" "$(< "$stdout_file" )"
+  assert_equals             \
+    "1"                     \
+    "$stackframe_requested" \
+    "should call print_stackframe with 1 as its arg"
 }
 
 test_env.handle_non_zero_exit_code_calls_env.exit_with_previous_exit_code() {

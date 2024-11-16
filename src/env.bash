@@ -282,12 +282,14 @@ __bg.env.handle_non_zero_exit_code() {
       'NON-ZERO EXIT CODE' \
       "$non_zero_exit_code" \
       >&"${stacktrace_out_without_fd_prefix}"
+    __bg.env.print_stacktrace "1" >&"${stacktrace_out_without_fd_prefix}"
   else
     printf                  \
       '%s: %s\n'            \
       'NON-ZERO EXIT CODE' \
       "$non_zero_exit_code" \
       >"$BG_ENV_STACKTRACE_OUT"
+    __bg.env.print_stacktrace "1" >"$BG_ENV_STACKTRACE_OUT"
   fi
 
   bg.env.exit "$non_zero_exit_code"
