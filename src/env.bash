@@ -1,6 +1,8 @@
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
   source in.bash
   source str.bash
+  source var.bash
+  source arr.bash
 fi
 
 ################################################################################
@@ -243,4 +245,55 @@ __bg.env.print_stacktrace() {
   while __bg.env.get_stackframe "$requested_frame" 'stackframe' 2>/dev/null; do
     __bg.env.format_stackframe 'stackframe'
   done
+}
+
+__bg.env.get_stderr_line() {
+  if ! bg.var.is_set '__bg_env_stderr_capture_read_fd'; then
+    bg.err.print "stderr capturing process hasn't been started yet"
+    return 1
+  fi
+  kill -s SIGUSR1 "${__bg_env_stderr_capture_pid}"
+  local stderr_line
+  read -ru "${__bg_env_stderr_capture_read_fd}" stderr_line
+  if [[ "$stderr_line" == "__bg_env_stderr_capture: stderr is empty" ]]; then
+    bg.err.print "stderr is empty"
+    return 1
+  fi
+  echo "$stderr_line"
+}
+
+__bg.env.start_stderr_capturing() {
+  coproc __bg_env_stderr_capture {
+    #trap - DEBUG
+    declare -a captured_lines=()
+    declare -i index
+    declare -i captured_lines_len
+    trap '{ 
+      captured_lines_len="$( bg.arr.length captured_lines )"
+      if (( captured_lines_len == 0 )); then
+        echo "__bg_env_stderr_capture: stderr is empty"
+        return 0
+      fi
+      echo "${captured_lines[-1]}";
+      unset "captured_lines[-1]";
+    }' SIGUSR1
+    # read from stdin into captured_lines array
+    while IFS= read -r line; do
+      # shellcheck disable=SC2031
+      captured_lines+=( "${line}" )
+    done
+  }
+  declare -g __bg_env_stderr_capture_read_fd="${__bg_env_stderr_capture[0]}"
+  # shellcheck disable=SC2154
+  declare -g __bg_env_stderr_capture_pid="${__bg_env_stderr_capture_PID}"
+  exec 2>&"${__bg_env_stderr_capture[1]}"
+}
+
+__bg.env.start_stderr_enriching() {
+  set -o functrace
+  trap '
+    echo "__bg_env_stderr_enriching: command:${BASH_COMMAND}" >&2
+  ' DEBUG
+  # Make DEBUG trap be inherited by shell functions,
+  # command substitutions, and subshells
 }
