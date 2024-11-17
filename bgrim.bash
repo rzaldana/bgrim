@@ -710,7 +710,14 @@ EOF
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
   source in.bash
   source str.bash
+  source var.bash
+  source arr.bash
 fi
+
+################################################################################
+# ENVIRONMENT CONSTANTS 
+################################################################################
+BG_ENV_STACKTRACE_OUT="&2"
 
 ################################################################################
 # ENVIRONMENT FUNCTIONS
@@ -768,7 +775,7 @@ bg.env.clear_vars_with_prefix() {
 
   # Check that prefix is not empty
   [[ -z "$prefix" ]] \
-    && bg.err.printf "arg1 (prefix) is empty but is required" \
+    && bg.err.print "arg1 (prefix) is empty but is required" \
     && return 1
 
   # Check that prefix is a valid variable name
@@ -885,12 +892,161 @@ bg.env.get_parent_script_name() {
   printf "%s" "$( basename "${BASH_SOURCE[$top_level_index]}" )"
 }
 
+__bg.env.get_stackframe() {
+  local -i frame
+  local -a out_arr
+  local -a required_args=( "int:frame" "rwa:out_arr" )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  # empty out arr
+  eval "$out_arr=()"
+  local -i funcname_arr_len="${#FUNCNAME[@]}"
+  if (( frame+2 >= funcname_arr_len )); then
+    bg.err.print "requested frame '${frame}' but there are only frames 0-$((funcname_arr_len-3)) in the call stack"
+    return 1
+  fi
+  local line_no_index=$(( frame + 1 ))
+  local funcname_index=$(( frame + 2 ))
+  local bash_source_index=$(( frame + 2 ))
+  eval "${out_arr}+=( '${BASH_LINENO[line_no_index]}' )"
+  eval "${out_arr}+=( '${FUNCNAME[funcname_index]}' )"
+  eval "${out_arr}+=( '${BASH_SOURCE[bash_source_index]}' )"
+}
+
+__bg.env.format_stackframe() {
+  local stackframe_array
+  local -a required_args=( "ra:stackframe_array" )  
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+
+  # Get lenght of stackframe array
+  local array_length
+  eval "array_length=\${#${stackframe_array}[@]}"
+
+  # check that stackframe array has at least 3 elements
+  if (( array_length < 3 )); then
+    bg.err.print "array '${stackframe_array}' has less than 3 elements"
+    return 1
+  fi
+
+  # check that stackframe array has at most 3 elements
+  if (( array_length > 3 )); then
+    bg.err.print "array '${stackframe_array}' has more than 3 elements"
+    return 1
+  fi
+
+  local funcname
+  local filename
+  local lineno
+  eval "lineno=\"\${${stackframe_array}[0]}\""
+  eval "funcname=\"\${${stackframe_array}[1]}\""
+  eval "filename=\"\${${stackframe_array}[2]}\""
+  printf '  at %s (%s:%s)\n' "$funcname" "$filename" "$lineno"
+}
+__bg.env.print_stacktrace() {
+  # shellcheck disable=SC2034
+  local -i requested_frame
+  local -a required_args=( "int:requested_frame" )
+  if ! bg.in.require_args "$@"; then
+    return 2
+  fi
+  
+  local -a stackframe=()
+  while __bg.env.get_stackframe "$requested_frame" 'stackframe' 2>/dev/null; do
+    __bg.env.format_stackframe 'stackframe'
+    (( ++requested_frame ))
+  done
+}
+
+bg.env.exit() {
+  declare -g __bg_env_exited_gracefully="true"
+  local -i exit_code="${1:-0}"
+  # if exit code is non-int, exit with code 2
+  if ! bg.str.is_int "$exit_code"; then
+    exit 2
+  fi
+
+
+  # if exit code is higher than 255, exit
+  # with code 1
+  if (( exit_code > 255 )); then
+    exit 1
+  fi
+
+  # otherwise, exit with the requested code
+  # or 0, if no exit code was provided
+  exit "$exit_code"
+}
+
+__bg.env.handle_non_zero_exit_code() {
+  local non_zero_exit_code="$?"
+  local stacktrace_out_without_fd_prefix="${BG_ENV_STACKTRACE_OUT#&}"
+  # shellcheck disable=SC2059
+  if [[ "${stacktrace_out_without_fd_prefix}" != "${BG_ENV_STACKTRACE_OUT}" ]]; then
+    printf                  \
+      '%s: %s\n'            \
+      'NON-ZERO EXIT CODE' \
+      "$non_zero_exit_code" \
+      >&"${stacktrace_out_without_fd_prefix}"
+    __bg.env.print_stacktrace "1" >&"${stacktrace_out_without_fd_prefix}"
+  else
+    printf                  \
+      '%s: %s\n'            \
+      'NON-ZERO EXIT CODE' \
+      "$non_zero_exit_code" \
+      >"$BG_ENV_STACKTRACE_OUT"
+    __bg.env.print_stacktrace "1" >>"$BG_ENV_STACKTRACE_OUT"
+  fi
+  bg.env.exit "$non_zero_exit_code"
+}
+
+__bg.env.handle_unset_var() {
+  local exit_code="$?"
+  if bg.var.is_set '__bg_env_exited_gracefully'; then
+    exit "$exit_code"
+  else
+    local stacktrace_out_without_fd_prefix="${BG_ENV_STACKTRACE_OUT#&}"
+    # shellcheck disable=SC2059
+    if                                           \
+      [[                                         \
+        "${stacktrace_out_without_fd_prefix}" != \
+        "${BG_ENV_STACKTRACE_OUT}"               \
+      ]]; then
+        echo "UNSET VARIABLE" >&"${stacktrace_out_without_fd_prefix}"
+        __bg.env.print_stacktrace "1" >&"${stacktrace_out_without_fd_prefix}"
+        exit "1"
+    else
+
+        echo "UNSET VARIABLE" >>"${BG_ENV_STACKTRACE_OUT}"
+        __bg.env.print_stacktrace "1" >>"${BG_ENV_STACKTRACE_OUT}"
+        exit "1"
+    fi
+  fi
+}
+
+bg.env.enable_safe_mode() {
+  # sets errexit to exit on non-zero exit codes
+  set -o errexit
+  # sets errtrace so ERR trap is inherited by shell functions
+  set -o errtrace
+  # sets nounset to fail when trying to read unset variables
+  set -o nounset
+  # sets pipefail so any failures in a pipeline before
+  # the last command cause the whole pipeline command
+  # to fail
+  set -o pipefail
+  bg.trap.add '__bg.env.handle_non_zero_exit_code' 'ERR'
+  bg.trap.add '__bg.env.handle_unset_var' 'EXIT'
+}
 
 ################################################################################
 # ERROR HANDLING CONSTANTS 
 ################################################################################
-__BG_ERR_DEFAULT_OUT="&2"
-__BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
+__BG_ERR_OUT="&2"
+__BG_ERR_FORMAT='ERROR: %s\n'
 
 ################################################################################
 # ERROR HANDLING FUNCTIONS 
@@ -919,9 +1075,6 @@ __BG_ERR_DEFAULT_FORMAT='ERROR: %s\n'
 #   return_code:
 #     0: "always"
 bg.err.print() ( 
-  local err_default_format='ERROR: %s\n'
-  local __BG_ERR_FORMAT="${__BG_ERR_FORMAT:-${__BG_ERR_DEFAULT_FORMAT}}"
-  local __BG_ERR_OUT="${__BG_ERR_OUT:-${__BG_ERR_DEFAULT_OUT}}"
   local err_out_without_fd_prefix="${__BG_ERR_OUT#&}"
   if [[ "${err_out_without_fd_prefix}" != "${__BG_ERR_OUT}" ]]; then
     #shellcheck disable=SC2059
@@ -931,6 +1084,7 @@ bg.err.print() (
     printf "${__BG_ERR_FORMAT}" "${1:-}" >"$err_out_without_fd_prefix" || :
   fi
 )
+
 
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
   source in.bash
@@ -974,6 +1128,7 @@ bg.func.is_declared() (
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
   source err.bash
   source var.bash
+  source str.bash
 fi
 
 ################################################################################
@@ -1125,16 +1280,22 @@ bg.in.require_args() {
               return 1
             fi
             ;;
+          "int")
+            if ! bg.str.is_int "$provided_arg"; then
+            bg.err.print "string '$provided_arg' is not an integer"
+              return 1
+            fi
+            ;;
           *)
-            bg.err.print "Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra' and 'rwa'"
+            bg.err.print "Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra', 'rwa', and 'int'"
             return 1
             ;;
         esac
       fi
 
-      # TODO: sanitize arguments in provided_args by replacing all double quotes(")
-      # in the arg with escaped double quotes to avoid arbitrary code execution
-      eval "${required_arg}=\"\${provided_arg}\""
+      # sanitize arguments in provided_args by replacing all single quotes(')
+      # in the arg with escaped single quotes to avoid arbitrary code execution
+      eval "${required_arg}='$( bg.str.escape_single_quotes "${provided_arg}" )'"
     done
   fi
 
@@ -1198,7 +1359,7 @@ __bg.log.log() {
       printf "${BG_LOG_FORMAT}" "$( bg.env.get_parent_script_name )" "$formatted_log_level" "$message" >&"$log_out_without_fd_prefix"
     else
       #shellcheck disable=SC2059
-      printf "${BG_LOG_FORMAT}" "$( bg.env.get_parent_script_name )" "$formatted_log_level" "$message" >"${BG_LOG_OUT}"
+      printf "${BG_LOG_FORMAT}" "$( bg.env.get_parent_script_name )" "$formatted_log_level" "$message" >>"${BG_LOG_OUT}"
     fi
 
   fi
@@ -1264,10 +1425,6 @@ bg.log.fatal() {
   __bg.log.log "FATAL" "$message"
 }
 
-if [[ -n "${__BG_TEST_MODE:-}" ]]; then
-  source in.bash
-fi
-
 ################################################################################
 # STRING FUNCTIONS
 ################################################################################
@@ -1285,19 +1442,33 @@ fi
 #   0 if the given string is a valid variable name 
 #   1 otherwise
 bg.str.is_valid_var_name() ( 
-  local var_name
-  local -a required_args=( "var_name" )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
   local re="^[a-zA-Z_][a-zA-Z0-9_]*$"
-  if [[ "$var_name" =~ $re ]]; then
+  if [[ "${1:-}" =~ $re ]]; then
     return 0
   else
     return 1
   fi
 )
+
+# description: |
+#   returns 0 if the first argument is an integer and eturns 1 otherwise.
+# inputs:
+#   stdin:
+#   args:
+#    1: "first command-line argument"
+#    rest: all other parameters are ignored 
+# outputs:
+#   stdout:
+#   stderr:
+#   return_code:
+#     0: "if the first arg is an integer"
+#     1: "otherwise"
+bg.str.is_int() {
+  local re='^[0-9]+$'
+  if ! [[ "${1:-}" =~ $re ]]; then
+    return 1
+  fi
+}
 
 # description: |
 #   returns 0 if the first argument refers to a function, shell built-in, or
@@ -1313,22 +1484,15 @@ bg.str.is_valid_var_name() (
 #   return_code:
 #     0: "if the first arg is a function, shell built-in or executable in PATH"
 #     1: "otherwise"
-# tags:
-#   - "syntax_sugar"
 bg.str.is_valid_command() ( 
-  local command_name
-  local -a required_args=( 'command_name' )
-  if ! bg.in.require_args "$@"; then
-    return 2
+  local command_type
+  if ! command_type="$(type -t "${1:-}" 2>/dev/null)"; then
+    return 1
   fi
 
-  local command_type
-  command_type="$(type -t "$command_name" 2>/dev/null)"
-  local ret_code="$?"
-
-  [[ "$ret_code" != 0 ]] && return 1 
-  [[ "$command_type" = "keyword" ]] && return 1
-  return 0
+  if [[ "$command_type" = "keyword" ]] ; then
+    return 1
+  fi
 )
 
 # description: |
@@ -1346,15 +1510,10 @@ bg.str.is_valid_command() (
 #     1: "when the string is not a valid shell option in the current bash"
 # tags:
 #   - "option decorators"
-bg.str.is_valid_shell_opt() ( 
+bg.str.is_valid_shell_opt() { 
   local opt_name
   local opt_name_iterator
   local opt_value
-
-  local -a required_args=( 'opt_name' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
 
   opt_name="${1:-}"
 
@@ -1364,7 +1523,7 @@ bg.str.is_valid_shell_opt() (
       && return 0
   done < <(set -o 2>/dev/null)
   return 1
-)
+}
 
 # description: |
 #   returns 0 if the given string is a valid option name that can be set with the
@@ -1385,11 +1544,7 @@ bg.str.is_valid_bash_opt() (
   local opt_name
   local opt_name_iterator
   local opt_value
-  local -a required_args=( 'opt_name' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
+  opt_name="${1:-}"
   # shellcheck disable=SC2034
   while IFS=$' \t\n' read -r opt_name_iterator opt_value; do
     [[ "$opt_name" == "$opt_name_iterator" ]] \
@@ -1423,11 +1578,7 @@ bg.str.is_valid_bash_opt() (
 #     Today's date is Monday 
 bg.str.escape_single_quotes() ( 
   local string
-  local -a required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
+  string="${1:-}"
   string="${string//\'/\'\\\'\'}"
   printf "%s" "$string"
 )

@@ -304,7 +304,7 @@ test_env.print_stacktrace:calls_get_stacktrace_starting_at_the_given_frame_until
     local -a out_arr="$2"
 
     # empty out arr
-    if (( stackframe_count >= 3 )); then
+    if (( requested_frame >= 3 )); then
       echo "end of stack!" >&2
       return 1
     fi
@@ -461,6 +461,11 @@ test_env.handle_non_zero_exit_code_prints_error_message_to_fd_specified_in_env_v
 test_env.handle_non_zero_exit_code_calls_env.exit_with_previous_exit_code() {
   set -uo pipefail
   tst.create_buffer_files
+  local -i stackframe_requested
+  __bg.env.print_stacktrace() {
+    stackframe_requested="$1"
+    echo "stacktrace"
+  }
   # mock exit function
   local requested_exit_code
   bg.env.exit() {
@@ -471,6 +476,140 @@ test_env.handle_non_zero_exit_code_calls_env.exit_with_previous_exit_code() {
   __bg.env.handle_non_zero_exit_code >"$stdout_file" 2>"$stderr_file"
   assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
   printf -v expected_output '%s' 'NON-ZERO EXIT CODE: 23'
+  printf                     \
+    -v expected_output       \
+    '%s\n%s'                 \
+    'NON-ZERO EXIT CODE: 23' \
+    'stacktrace'
   assert_equals "$expected_output" "$(< "$stderr_file" )"
   assert_equals "23" "$requested_exit_code"
+}
+
+test_env.handle_unset_var_exits_with_previous_exit_code_if__bg_env_exited_gracefully_variable_is_set() {
+  tst.create_buffer_files
+  set -uo pipefail
+  myfunc() { return 43; }
+  local requested_exit_code
+  local first_execution="true"
+  exit() {
+    if [[ "$first_execution" == "true" ]]; then
+      requested_exit_code="$1" 
+      first_execution="false"
+    fi
+  }
+  __bg_env_exited_gracefully="0"
+  myfunc
+  __bg.env.handle_unset_var >"$stdout_file" 2>"$stderr_file"
+  assert_equals "43" "$requested_exit_code"  
+  assert_equals "" "$(< "$stdout_file" )" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_env.handle_unset_var_prints_error_and_stacktrace_to_specified_file_if__bg_env_exited_gracefully_variable_is_not_set() {
+  tst.create_buffer_files
+  set -uo pipefail
+  BG_ENV_STACKTRACE_OUT="$stdout_file"
+  local stackframe_requested
+  __bg.env.print_stacktrace() {
+    stackframe_requested="$1"
+    echo "stacktrace"
+  }
+  :
+  myfunc() { return 43; }
+  local requested_exit_code
+  local first_execution="true"
+  exit() {
+    if [[ "$first_execution" == "true" ]]; then
+      requested_exit_code="$1" 
+      first_execution="false"
+    fi
+  }
+  myfunc
+  __bg.env.handle_unset_var >"$stdout_file" 2>"$stderr_file"
+  assert_equals "1" "$stackframe_requested"
+  printf                     \
+    -v expected_output       \
+    '%s\n%s'                 \
+    'UNSET VARIABLE' \
+    'stacktrace'
+  assert_equals "1" "$requested_exit_code"  
+  assert_equals \
+    "$expected_output" \
+    "$(< "$stdout_file" )" \
+    "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+
+test_env.handle_unset_var_prints_error_and_stacktrace_to_specified_fd_if__bg_env_exited_gracefully_variable_is_not_set() {
+  tst.create_buffer_files
+  set -uo pipefail
+  BG_ENV_STACKTRACE_OUT="&3"
+  exec 3>"$stdout_file"
+  local stackframe_requested
+  __bg.env.print_stacktrace() {
+    stackframe_requested="$1"
+    echo "stacktrace"
+  }
+  :
+  myfunc() { return 43; }
+  local requested_exit_code
+  local first_execution="true"
+  exit() {
+    if [[ "$first_execution" == "true" ]]; then
+      requested_exit_code="$1" 
+      first_execution="false"
+    fi
+  }
+  myfunc
+  __bg.env.handle_unset_var >"$stdout_file" 2>"$stderr_file"
+  assert_equals "1" "$stackframe_requested"
+  printf                     \
+    -v expected_output       \
+    '%s\n%s'                 \
+    'UNSET VARIABLE' \
+    'stacktrace'
+  assert_equals "1" "$requested_exit_code"  
+  assert_equals \
+    "$expected_output" \
+    "$(< "$stdout_file" )" \
+    "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file" )" "stderr should be empty"
+}
+
+test_env.enable_safe_mode_sets_appropriate_shell_options_and_traps() {
+  tst.create_buffer_files
+  bg.env.enable_safe_mode >"$stdout_file" 2>"$stderr_file"
+  # sets errexit to exit on non-zero exit codes
+  assert "bg.env.is_shell_opt_set 'errexit'"
+  # sets errtrace so ERR trap is inherited by shell functions
+  assert "bg.env.is_shell_opt_set 'errtrace'"
+  # sets nounset to fail when trying to read unset variables
+  assert "bg.env.is_shell_opt_set 'nounset'"
+  # sets pipefail so any failures in a pipeline before
+  # the last command cause the whole pipeline command
+  # to fail
+  assert "bg.env.is_shell_opt_set 'pipefail'"
+
+  assert_equals "" "$(< "$stdout_file")" "stdout should be empty"
+  assert_equals "" "$(< "$stderr_file")" "stderr should be empty"
+
+  # Mock error handling functions
+  __bg.env.handle_non_zero_exit_code() { :; }
+  __bg.env.handle_unset_var() { :; }
+
+  bg.trap.get 'ERR' >"$stdout_file"
+  bg.trap.get 'EXIT' >"$stderr_file"
+
+  # Retrieve second exit trap
+  local -a err_traps=()
+  bg.arr.from_stdin 'err_traps' <"$stderr_file"
+  assert_equals                 \
+    "__bg.env.handle_non_zero_exit_code" \
+    "$(< "$stdout_file")"       \
+    "handle_non_zero_exit_code should be set on ERR trap"
+  assert_equals           \
+    "__bg.env.handle_unset_var"    \
+    "${err_traps[1]}" \
+    "handle_unset_var should be set on EXIT trap"
 }

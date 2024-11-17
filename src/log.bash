@@ -55,7 +55,7 @@ __bg.log.log() {
       printf "${BG_LOG_FORMAT}" "$( bg.env.get_parent_script_name )" "$formatted_log_level" "$message" >&"$log_out_without_fd_prefix"
     else
       #shellcheck disable=SC2059
-      printf "${BG_LOG_FORMAT}" "$( bg.env.get_parent_script_name )" "$formatted_log_level" "$message" >"${BG_LOG_OUT}"
+      printf "${BG_LOG_FORMAT}" "$( bg.env.get_parent_script_name )" "$formatted_log_level" "$message" >>"${BG_LOG_OUT}"
     fi
 
   fi

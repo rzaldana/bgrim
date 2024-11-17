@@ -193,7 +193,6 @@ __bg.env.get_stackframe() {
 
   # empty out arr
   eval "$out_arr=()"
-
   local -i funcname_arr_len="${#FUNCNAME[@]}"
   if (( frame+2 >= funcname_arr_len )); then
     bg.err.print "requested frame '${frame}' but there are only frames 0-$((funcname_arr_len-3)) in the call stack"
@@ -245,10 +244,11 @@ __bg.env.print_stacktrace() {
   if ! bg.in.require_args "$@"; then
     return 2
   fi
-
+  
   local -a stackframe=()
   while __bg.env.get_stackframe "$requested_frame" 'stackframe' 2>/dev/null; do
     __bg.env.format_stackframe 'stackframe'
+    (( ++requested_frame ))
   done
 }
 
@@ -289,8 +289,46 @@ __bg.env.handle_non_zero_exit_code() {
       'NON-ZERO EXIT CODE' \
       "$non_zero_exit_code" \
       >"$BG_ENV_STACKTRACE_OUT"
-    __bg.env.print_stacktrace "1" >"$BG_ENV_STACKTRACE_OUT"
+    __bg.env.print_stacktrace "1" >>"$BG_ENV_STACKTRACE_OUT"
   fi
-
   bg.env.exit "$non_zero_exit_code"
+}
+
+__bg.env.handle_unset_var() {
+  local exit_code="$?"
+  if bg.var.is_set '__bg_env_exited_gracefully'; then
+    exit "$exit_code"
+  else
+    local stacktrace_out_without_fd_prefix="${BG_ENV_STACKTRACE_OUT#&}"
+    # shellcheck disable=SC2059
+    if                                           \
+      [[                                         \
+        "${stacktrace_out_without_fd_prefix}" != \
+        "${BG_ENV_STACKTRACE_OUT}"               \
+      ]]; then
+        echo "UNSET VARIABLE" >&"${stacktrace_out_without_fd_prefix}"
+        __bg.env.print_stacktrace "1" >&"${stacktrace_out_without_fd_prefix}"
+        exit "1"
+    else
+
+        echo "UNSET VARIABLE" >>"${BG_ENV_STACKTRACE_OUT}"
+        __bg.env.print_stacktrace "1" >>"${BG_ENV_STACKTRACE_OUT}"
+        exit "1"
+    fi
+  fi
+}
+
+bg.env.enable_safe_mode() {
+  # sets errexit to exit on non-zero exit codes
+  set -o errexit
+  # sets errtrace so ERR trap is inherited by shell functions
+  set -o errtrace
+  # sets nounset to fail when trying to read unset variables
+  set -o nounset
+  # sets pipefail so any failures in a pipeline before
+  # the last command cause the whole pipeline command
+  # to fail
+  set -o pipefail
+  bg.trap.add '__bg.env.handle_non_zero_exit_code' 'ERR'
+  bg.trap.add '__bg.env.handle_unset_var' 'EXIT'
 }
