@@ -4,7 +4,7 @@
 # Overview
 **bgrim** is an open-source library of functions that make writing scripts for GNU BASH easier and more convenient. It includes functions to avoid writing lengthy boilerplate (such as when processing cli arguments), more easily parse text from stdin into bash arrays, log messages with different levels of verbosity, etc. 
 
-Have a look at the **modules** section below and inside the files in the `src/` directory for more details on the included function. 
+Have a look at the **modules** section below and inside the files in the `src/` directory for more details on the included functions. 
 
 Keep in mind a lot of these functions are **opinionated** as this is a collection of snippets that I use in my daily job as a DevOps Engineer/SRE and are thus most useful to my specific use-cases.
 
