@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash 
 
 # Copyright (c) 2024 Raul Armando Zaldana Calles
 
@@ -36,3 +36,30 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+# Check that we're running bash 
+# This part needs to be POSIX shell compliant
+# shellcheck disable=SC2128
+if [ -z "${BASH_VERSINFO}" ]; then
+  echo "[$0][ERROR]: This script is only compatible with Bash and cannot be run in other shells"
+  exit 1
+fi
+
+# Check that we're running a supported version of bash
+readonly -a __bg_min_bash_version=( '4' '4' '23' )
+for vers_index in "${!BASH_VERSINFO[@]}"; do
+  subversion="${BASH_VERSINFO[$vers_index]}"
+  if (( subversion < __bg_min_bash_version[vers_index] )); then
+    printf "[$0][ERROR]: This script is only compatible with Bash versions higher than %s.%s.%s but it's being run in bash version ${BASH_VERSION}\n" \
+      "${__bg_min_bash_version[0]}" \
+      "${__bg_min_bash_version[1]}" \
+      "${__bg_min_bash_version[2]}"
+    exit 1
+  else
+    break
+  fi
+done
+
+################################################################################
+# GLOBAL CONSTANTS
+################################################################################

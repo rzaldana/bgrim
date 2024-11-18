@@ -7,9 +7,15 @@ output_file="$script_dir/../bgrim.bash"
 
 src_dir="${script_dir}/../src"
 
-# Print header
+# Add header 
 cat "${src_dir}/header.bash" > "$output_file" 
-echo >> "$output_file"
+
+# Add version 
+{
+  echo "__BG_VERSION='$(< "$script_dir/../VERSION" )'"
+  echo
+} >> "$output_file"
+
 
 
 # Aggregate all source files

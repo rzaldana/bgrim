@@ -1,3 +1,5 @@
+0. Fix or ignore all shellcheck issues
+    - Also format with shfmt (https://github.com/mvdan/sh?tab=readme-ov-file)
 1. Implement integration tests for bg.env.enable_safe_mode
 2. Implement more tests for cli.parse function with different specs
     Things to test:
