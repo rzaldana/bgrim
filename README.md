@@ -1,5 +1,5 @@
 # <p align="center">⛧ bgrim</p>
-A book of spell for bash witches and wizards
+<p align="center">bash grimoire (bgrim): A book of spell for bash witches and wizards</p>
 
 # Dependencies
 bgrim is pure bash code so there are no external binary dependencies (not even GNU core utilities). This is by design to make the library compatible with as many platforms as possible (as long as they're running a supported bash version).
