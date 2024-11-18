@@ -1,5 +1,12 @@
-# <p align="center">📖🧙 bgrim</p>
-An open-source standard library for bash
+# <p align="center">⛧ bgrim</p>
+<p align="center"><b>Bash Grimoire (bgrim)</b>: A book of spells for bash witches and wizards</p>
+
+# Overview
+**bgrim** is an open-source library of functions that make writing scripts for GNU BASH easier and more convenient. It includes functions to avoid writing lengthy boilerplate (such as when processing cli arguments), more easily parse text from stdin into bash arrays, log messages with different levels of verbosity, etc. 
+
+Have a look at the **modules** section below and inside the files in the `src/` directory for more details on the included function. 
+
+Keep in mind a lot of these functions are **opinionated** as this is a collection of snippets that I use in my daily job as a DevOps Engineer/SRE and are thus most useful to my specific use-cases.
 
 # Dependencies
 bgrim is pure bash code so there are no external binary dependencies (not even GNU core utilities). This is by design to make the library compatible with as many platforms as possible (as long as they're running a supported bash version).
