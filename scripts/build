@@ -12,7 +12,7 @@ cat "${src_dir}/header.bash" > "$output_file"
 
 # Add version 
 {
-  echo "__BG_VERSION='$(< "$script_dir/../VERSION" )'"
+  echo "__bg_version='$(< "$script_dir/../VERSION" )'"
   echo
 } >> "$output_file"
 
