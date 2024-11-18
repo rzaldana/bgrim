@@ -1,4 +1,4 @@
-# <p align="center">📖🧙 bgrim</p>
+# <p align="center">⛧ bgrim</p>
 An open-source standard library for bash
 
 # Dependencies
