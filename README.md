@@ -1,4 +1,4 @@
-# Bgrim
+# 📖🧙 Bgrim
 An open-source standard library for bash
 
 # Dependencies
