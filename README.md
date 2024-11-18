@@ -1,5 +1,5 @@
 # <p align="center">⛧ bgrim ⛧</p>
-<p align="center"> A book of spells for bash witches and wizards</p>
+<p align="center"><b>Bash Grimoire (bgrim)</b>: A book of spells for bash witches and wizards</p>
 
 # Overview
 **bgrim** is an open-source library of functions that make writing scripts for GNU BASH easier and more convenient. It includes functions to avoid writing lengthy boilerplate (such as when processing cli arguments), more easily parse text from stdin into bash arrays, log messages with different levels of verbosity, etc. 
