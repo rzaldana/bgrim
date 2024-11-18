@@ -1,6 +1,9 @@
 # Bgrim
 An open-source standard library for bash
 
+# Dependencies
+bgrim is pure bash code so there are no external binary dependencies (not even GNU core utilities). This is by design to make the library compatible with as many platforms as possible (as long as they're running a supported bash version)
+
 # Supported Bash versions
 4.4.23+
 
@@ -24,11 +27,34 @@ Library can be sourced with simple source command:
 source ./bgrim bash 
 
 # Use library functions
-bg.log.fatal "exiting script $0"
+__BG_LOG_LEVEL=INFO
+bg.log.info "exiting script $0"
 ```
 
 ## Just paste
 It can also simply be pasted at the beginning of your script. In fact,
 this is the recommended approach to avoid having to handle separate
-file dependencies and keep your scripts as portable single files
+file dependencies and keep your scripts as portable single files. For example,
+if you have a script `orinal-script.bash` that looks like this:
+```bash
+# Use library functions
+__BG_LOG_LEVEL=INFO
+bg.log.info "exiting script $0"
+```
+
+You can simply create a new file with the library code at the top,
+followed by your script, as follows:
+```bash
+cat ./bgrim.bash >> new-script.bash
+cat ./original-script.bash >> new-script.bash
+```
+
+You can copy the library into your script in any other way but you
+need to make sure the library code comes *BEFORE* any code that
+depends on it.
+
+
+# Docs
+All functions documented inline. 
+
 
