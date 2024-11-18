@@ -1,5 +1,5 @@
 # <p align="center">⛧ bgrim ⛧</p>
-# <p align="center">![bgrim logo](relative%20logo/pentagram.png?raw=True)</p>
+# <p align="center">![bgrim logo](./logo/pentagram.png?raw=True)</p>
 <p align="center">bash grimoire (bgrim): A book of spells for bash witches and wizards</p>
 
 # Overview
