@@ -63,4 +63,25 @@ depends on it.
 # Docs
 All functions documented inline. 
 
+# Contributing
+## Development Dependencies
+- git v2.44.0+
+- bash v4.4.23+ installed on your machine (necessary to run build and test scripts)
+- docker cli v27.2.0+
+
+## Running tests
+To run the library's tests, simply run the following commands from this repository's root:
+```bash
+make configure
+make test
+```
+
+The `make configure` fetches all git submodules associated with this repo. Most notably, it fetches the [bash_unit](https://github.com/pgrange/bash_unit) repo, which contains the `bash_unit` script, which is used to run the library's tests.
+
+The `make test` command runs the `scripts/test` script, which runs the unit tests once per each of the supported bash versions. For each bash version, the tests are run in an Alpine Docker container running the specified bash version. These docker containers are modified using the Dockerfile in the 'scripts' directory. To add a new tested version, add the version string to the `SUPPORTED_VERSIONS` array at the top of the `scripts/test` script.
+
+Tests are in the `tests` directory. Each file with a filename that follows the `test_*.bash` naming convention contains test cases to be run. To add a new test, simply add a function with a name that starts with `test_` to one of the test files or to a new test file. The new file will be run with the other tests when you invoke 'make test', as long as it follows hte `test_*.bash` naming convention. 
+
+## Adding new features
+Each test file in the `tests/` directory corresponds to a file in the `src/` directory. All tests for functions in that file should be in the corresponding `tests/test_*.bash` test file. To add a new function or make a change to a new function, first edit the test in the corresponding test file or add a new file, then run `make test` and make sure the new test fails. Then edit the function or add a new function in the corresponding file in `/src`. Once all your tests are passing again, run `make build` from the repo's root directory. This will aggregate all files in the `src/` directory into a single file `bgrim.bash` at the root of the repo that is the built library.
 
