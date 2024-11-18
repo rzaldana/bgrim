@@ -11,7 +11,7 @@ The following Bash versions are tested on Linux Alpine:
 
 However, given the small differences between minor Bash versions and different platform binaries, the library sshould be broadly compatible with any Bash versions higher than 4.4.23. Bash versions lower than that, are explicitly not supported.
 
-**Note for MacOS Users**: By default, MacOS ships with an ancient version of Bash (3.2.57). This version lacks some important features used by the library, including but not limited to associative arrays and the lastpipe shopt. This library will not run on your system unless you upgrade to a higher version of Bash.
+**IMPORTANT NOTE FOR MACOS USERS**: By default, MacOS ships with an ancient version of Bash (3.2.57). This version lacks some important features used by the library, including but not limited to associative arrays and the lastpipe shopt. This library will not run on your system unless you upgrade to a higher version of Bash.
 
 # Modules
 - **arr**: functions for array manipulation
