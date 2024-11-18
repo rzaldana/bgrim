@@ -2,7 +2,7 @@
 <p align="center">bash grimoire (bgrim): A book of spells for bash witches and wizards</p>
 
 # Overview
-**bgrim** is a library of useful functions that can make working with the GNU bash script shell easier and more convenient. It includes functions to avoid writing lengthy boilerplate (such as when processing cli arguments), more easily parse text from stdin into bash arrays, log messages with different levels of verbosity, etc. 
+**bgrim** is an open-source library of functions that can make writing scripts for GNU BASH easier and more convenient. It includes functions to avoid writing lengthy boilerplate (such as when processing cli arguments), more easily parse text from stdin into bash arrays, log messages with different levels of verbosity, etc. 
 
 Have a look at the **modules** section below and inside the files in the `src/` directory for more details on the included function. 
 
