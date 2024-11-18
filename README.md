@@ -1,4 +1,4 @@
-# <p align="center">🜟 ⛧ bgrim ⛧ 🜟</p>
+# <p align="center">⛧ bgrim ⛧</p>
 <p align="center">bash grimoire (bgrim): A book of spells for bash witches and wizards</p>
 
 # Overview
