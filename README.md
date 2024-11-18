@@ -17,6 +17,7 @@ An open-source standard library for bash
 - **var**: functions for manipulation of bash variables
 
 # Usage
+## Source
 Library can be sourced with simple source command:
 ```bash
 # Assuming library is in same directory as sourcing script
@@ -26,6 +27,7 @@ source ./bgrim bash
 bg.log.fatal "exiting script $0"
 ```
 
+## Just paste
 It can also simply be pasted at the beginning of your script. In fact,
 this is the recommended approach to avoid having to handle separate
 file dependencies and keep your scripts as portable single files
