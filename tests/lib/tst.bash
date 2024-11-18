@@ -77,7 +77,7 @@ tst.source_lib_from_root() {
   [[ "$#" -gt 0 ]] || { echo "tst.source_lib_from_root: No library name was provided" >&2; return 1; }
   local lib_name="${1}"
   local root_dir
-  root_dir="$(tst.get_repo_root)" \
+  root_dir="$(tst.get_repo_root)/src" \
     || { echo "tst.source_lib_from_root: Unable to get root directory of current repo" >/dev/tty; return 1; } 
   PATH="${root_dir}:${PATH}" source "$lib_name" \
     || { echo "tst.source_lib_from_root: Unable to source library '$lib_name'" >/dev/tty; return 1; }

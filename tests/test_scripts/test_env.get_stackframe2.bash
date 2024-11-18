@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Get the directory of the script that's currently running
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -8,4 +10,13 @@ PATH="$SCRIPT_DIR/../lib:$PATH" source tst.bash
 # Source library to be tested
 tst.source_lib_from_root "env.bash"
 
-bg.env.get_parent_script_name
+
+myfunc_inner() {
+  local -a stackframe=()
+  caller 0 && __bg.env.get_stackframe "0" stackframe
+  echo "${stackframe[0]} ${stackframe[1]} ${stackframe[2]}" >&2
+}
+
+myfunc() {
+  myfunc_inner 
+}

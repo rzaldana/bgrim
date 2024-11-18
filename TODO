@@ -1,20 +1,16 @@
-0. Refactor format functions to have a central format function with many wrapper functions 
-      (also rename to bg.fmt._)
-1. Change order of log level and script name in log function
-2. Introduce colors for log messages
-3. Implement stack trace mode (Look at https://github.com/elibs/ebash for error-handling inspo)
-4. Implement error methods:
-      bg.err.message "print standardized error message and use in all functions. Should print name of function and code line"
-      bg.err.exit "print error message and exit with code 1"
-5. Implement more tests for cli.parse function with different specs
+0. Fix or ignore all shellcheck issues
+    - Also format with shfmt (https://github.com/mvdan/sh?tab=readme-ov-file)
+1. Implement integration tests for bg.env.enable_safe_mode
+2. Implement more tests for cli.parse function with different specs
     Things to test:
       - mix of opts and opts with args work
       - mix of opts and args work
       - mix of opts with args and args work
       - mix of opts, opts with args and args work
-6. Implement bg.cli.add_name function to change the name of the cli in the help message
-7. Implement bg.cli.add_footer to add footer to help message
-8. Implement bg.cli.add_header to add header to help message
-9. Implement bg.cli.help_message to override auto-generated help message
-10. Implement bash native replacement for basename and substitute it in bg.get_parent_routine_name
-11. Add documentation to functions that don't have it
+3. Implement bg.cli.add_name function to change the name of the cli in the help message
+4. Implement bg.cli.add_footer to add footer to help message
+5. Implement bg.cli.add_header to add header to help message
+6. Implement bg.cli.help_message to override auto-generated help message
+7. Implement bash native replacement for basename and substitute it in bg.get_parent_routine_name
+8. Add documentation to functions that don't have it
+9. Revamp color output functions to be able to combine color and formattings such as italic, underline, and bold
