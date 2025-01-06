@@ -1,7 +1,5 @@
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
-  source in.bash
   source err.bash
-  source arr.bash
 fi
 
 ################################################################################
@@ -10,10 +8,11 @@ fi
 __bg.tty.tty() {
   local format
   local string
-  required_args=( 'format' 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
+  local BG_NO_TTY="${BG_NO_TTY:-}"
+
+  # No need to do input validation here as it's an internal function
+  format="$1"
+  string="$2"
 
   # TODO: convert this into associative array
   # Available formats
@@ -44,18 +43,28 @@ __bg.tty.tty() {
   format_lowercase="${format,,}"
   format_uppercase="${format^^}"
 
-  if ! bg.arr.is_member 'available_formats' "${format_lowercase}"; then
-    bg.err.print "'$format' is not a valid formatting. Valid options are: $( bg.arr.itemize 'available_formats' )"
+  # check if the provided formatting is present in the available_formats array
+  # and retrieve its index in the array
+  local -i index
+  local is_provided_format_available="false"
+  for i in "${!available_formats[@]}"; do
+    if [[ "${available_formats[$i]}" == "$format_lowercase" ]]; then
+      is_provided_format_available="true"
+      index="$i"
+    fi
+  done
+
+  if [[ "$is_provided_format_available" != "true" ]]; then
+    bg.err.print "'$format' is not a valid formatting. Valid options are: 'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan' 'white' 'bold'"
     return 1
   fi
 
-  if bg.var.is_set 'BG_NO_TTY'; then
+  # If BG_NO_TTY is set to a non-empty string,
+  # omit any formatting
+  if [[ -n "$BG_NO_TTY" ]]; then
     printf '%s\n' "${string}"
     return 0
   fi
-
-  local -i index
-  index="$(bg.arr.index_of 'available_formats' "${format_lowercase}")"
 
   local __BG_FORMAT_BLANK="${__BG_FORMAT_BLANK:-\e[0m}"
   local env_var_name="__BG_FORMAT_${format_uppercase}"
@@ -66,91 +75,37 @@ __bg.tty.tty() {
 }
 
 bg.tty.black() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "BLACK" "$string"
+  __bg.tty.tty "BLACK" "${1:-}"
 }
 
 bg.tty.red() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "RED" "$string"
+  __bg.tty.tty "RED" "${1:-}"
 }
 
 bg.tty.green() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "GREEN" "$string"
+  __bg.tty.tty "GREEN" "${1:-}"
 }
 
 bg.tty.yellow() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "YELLOW" "$string"
+  __bg.tty.tty "YELLOW" "${1:-}"
 }
 
 bg.tty.blue() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "BLUE" "$string"
+  __bg.tty.tty "BLUE" "${1:-}"
 }
 
 bg.tty.magenta() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "MAGENTA" "$string"
+  __bg.tty.tty "MAGENTA" "${1:-}"
 }
 
 bg.tty.cyan() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "CYAN" "$string"
+  __bg.tty.tty "CYAN" "${1:-}"
 }
 
 bg.tty.white() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "WHITE" "$string"
+  __bg.tty.tty "WHITE" "${1:-}"
 }
 
 bg.tty.bold() {
-  required_args=( 'string' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # shellcheck disable=SC2031
-  __bg.tty.tty "BOLD" "$string"
+  __bg.tty.tty "BOLD" "${1:-}"
 }
