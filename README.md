@@ -21,13 +21,8 @@ However, given the small differences between minor Bash versions and different p
 **IMPORTANT NOTE FOR MACOS USERS**: By default, MacOS ships with an ancient version of Bash (3.2.57). This version lacks some important features used by the library, including but not limited to associative arrays and the lastpipe shopt. This library will not run on your system unless you upgrade to a higher version of Bash.
 
 # Modules
-- **arr**: functions for array manipulation
-- **env**: functions for manipulation of execution environment
-- **in**: functions for function input validation 
 - **log**: logging functions
-- **str**: functions for string manipulation and validation
 - **tty**: functions for tty-specific output (e.g. colored and bold text)
-- **var**: functions for manipulation of bash variables
 
 # Usage
 ## Source
