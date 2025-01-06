@@ -4,33 +4,8 @@
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
   source err.bash
   source in.bash
-  source str.bash
 fi
 
-
-# description: returns the length of the array with the given name
-# inputs:
-#   stdin:
-#   args:
-#    1: "name of array"
-# outputs:
-#   stdout: "length of array"
-#   stderr: "error message, if any"
-#   return_code:
-#     0: "if length was retrieved with no problem"
-#     1: "if there was a problem with the given args"
-bg.arr.length() {
-  # Verify input arguments
-  local -a required_args=( 'ra:array_name' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  local -i array_length
-  # shellcheck disable=SC2031
-  eval "array_length=\"\${#${array_name}[@]}\""
-  echo "$array_length"
-}
 
 ################################################################################
 # Checks if the given value exists in the array with the given name 
@@ -65,42 +40,6 @@ bg.arr.is_member() (
   done
   return 1
 )
-
-# description: |
-#   reads lines from stdin and stores each line as an element
-#   of the array whose name is provided in the first arg.
-#   Lines are assumed to be separated by newlines
-# inputs:
-#   stdin: elements to store in array
-#   args:
-#     1: "array name"
-# outputs:
-#   stdout:
-#   stderr: |
-#     error message when array name is missing or array is readonly 
-#   return_code:
-#     0: "when lines were successfully stored in array"
-#     1: "when an error ocurred"
-# tags:
-#   - "cli parsing"
-bg.arr.from_stdin() {
-  local array_name
-  local -a required_args=( 'rwa:array_name' )
-  if ! bg.in.require_args "$@"; then
-    return 2
-  fi
-
-  # Empty array
-  # shellcheck disable=SC2031
-  eval "${array_name}=()"
-
-  # Read lines from stdin
-  # shellcheck disable=SC2034
-  while IFS= read -r line; do
-    # shellcheck disable=SC2031
-    eval "${array_name}+=( \"\${line}\")"
-  done
-}
 
 # description: |
 #   Takes a string and the name of an array and prints 
@@ -188,7 +127,7 @@ bg.arr.itemize() {
   fi
 
   local array_length
-  array_length="$( bg.arr.length "$array_name" )"
+  eval "array_length=\"\${#${array_name}[@]}\""
 
   case "${array_length}" in
     0)

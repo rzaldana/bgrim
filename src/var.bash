@@ -36,41 +36,6 @@ bg.var.is_array() (
 )
 
 # description: |
-#   returns 0 if the given string is a readonly variable
-#   returns 1 if the variable is not readonly or is unset
-# inputs:
-#   stdin:
-#   args:
-#     1: "variable name"
-# outputs:
-#   stdout:
-#   stderr: error message when string was not provided
-#   return_code:
-#     0: "when the variable is readonly"
-#     1: "when the variable is not readonly or unset"
-# tags:
-#   - "cli parsing"
-bg.var.is_readonly() ( 
-  if (( ${#} < 1 )); then
-    bg.err.print "argument 1 (var_name) is required but was not provided"
-    return 2
-  fi
-  local var_name="${1}"
-
-  local re="^declare -[a-z]*r[a-z]* "
-  local var_attributes
-  var_attributes="$(declare -p "$var_name" 2>/dev/null)" \
-    || return 1
-
-  if [[ "$var_attributes" =~ $re ]]; then
-    return 0
-  else
-    return 1
-  fi
-)
-
-
-# description: |
 #   returns 0 if the given variable name refers to a declared variable 
 #   returns 1 if the given variable name is not declared in the execution context 
 # inputs:

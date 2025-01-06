@@ -22,13 +22,10 @@ However, given the small differences between minor Bash versions and different p
 
 # Modules
 - **arr**: functions for array manipulation
-- **cli**: command line arguments parser
 - **env**: functions for manipulation of execution environment
-- **func**: functions for bash function manipulation
 - **in**: functions for function input validation 
 - **log**: logging functions
 - **str**: functions for string manipulation and validation
-- **trap**: functions for manipulation of traps
 - **tty**: functions for tty-specific output (e.g. colored and bold text)
 - **var**: functions for manipulation of bash variables
 

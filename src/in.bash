@@ -136,29 +136,6 @@ bg.in.require_args() {
               return 1
             fi
             ;;
-
-          "rwa")
-            if ! bg.var.is_array "$provided_arg"; then
-              bg.err.print "array variable with name '$provided_arg' does not exist"
-              return 1 
-            fi
-
-            if ! bg.var.is_set "$provided_arg"; then
-              bg.err.print "array variable with name '$provided_arg' is not set"
-              return 1
-            fi
-
-            if bg.var.is_readonly "$provided_arg"; then
-              bg.err.print "array variable with name '$provided_arg' is read-only"
-              return 1
-            fi
-            ;;
-          "int")
-            if ! bg.str.is_int "$provided_arg"; then
-            bg.err.print "string '$provided_arg' is not an integer"
-              return 1
-            fi
-            ;;
           *)
             bg.err.print "Type prefix '${type_prefix}' for variable '$required_arg' is not valid. Valid prefixes are: 'ra', 'rwa', and 'int'"
             return 1
