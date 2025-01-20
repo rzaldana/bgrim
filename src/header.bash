@@ -1,6 +1,7 @@
 #!/usr/bin/env bash 
 
 # Copyright (c) 2024 Raul Armando Zaldana Calles
+# Source: https://github.com/rzaldana/bgrim
 
 ################################################################################
 ##############       ######      ###       #####  ###         ##################
