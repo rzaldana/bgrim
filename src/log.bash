@@ -1,5 +1,4 @@
 if [[ -n "${__BG_TEST_MODE:-}" ]]; then
-  source env.bash
   source tty.bash
 fi
 
