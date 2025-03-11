@@ -7,6 +7,7 @@ fi
 ################################################################################
 __BG_LOG_DEFAULT_FORMAT="[%-5s][%s]: %s\n"
 __BG_LOG_DEFAULT_OUT="&2"
+__BG_LOG_DEFAULT_LEVEL="ERROR"
 
 ################################################################################
 # HELPER FUNCTIONS 
@@ -81,56 +82,56 @@ __bg.log.log() {
   provided_log_level="$1"
   message="$2"
 
-  local BG_LOG_LEVEL="${BG_LOG_LEVEL:-FATAL}"
-  local BG_LOG_FORMAT="${BG_LOG_FORMAT:-${__BG_LOG_DEFAULT_FORMAT}}"
-  local -a LOG_LEVELS=( "TRACE" "DEBUG" "INFO" "WARN" "ERROR" "FATAL" )
-  local -a LOG_COLOR=( "cyan" "magenta" "green" "yellow" "red" "red" )
+  local bg_log_level="${BG_LOG_LEVEL:-${__BG_LOG_DEFAULT_LEVEL}}"
+  local bg_log_format="${BG_LOG_FORMAT:-${__BG_LOG_DEFAULT_FORMAT}}"
+  local -a log_levels=( "TRACE" "DEBUG" "INFO" "WARN" "ERROR" "FATAL" )
+  local -a log_colors=( "cyan" "magenta" "green" "yellow" "red" "red" )
 
   # find index of BG_LOG_LEVEL in LOG_LEVELS array
   # and fail if value of BG_LOG_LEVEL is not found
   # in array
   local is_bg_log_level_valid="false"
   local -i env_log_level_index
-  for i in "${!LOG_LEVELS[@]}"; do
-    if [[ "${LOG_LEVELS[$i]}" == "${BG_LOG_LEVEL}" ]]; then
+  for i in "${!log_levels[@]}"; do
+    if [[ "${log_levels[$i]}" == "${bg_log_level}" ]]; then
       is_bg_log_level_valid="true"
       env_log_level_index="$i"
     fi
   done
 
   if [[ "$is_bg_log_level_valid" != "true" ]]; then
-    bg.err.print "'${BG_LOG_LEVEL}' is not a valid log level. Valid values are: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', and 'FATAL'"
+    bg.err.print "'${bg_log_level}' is not a valid log level. Valid values are: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', and 'FATAL'"
     return 1
   fi
 
 
   # find index of provided log level in LOG_LEVELS array
   local -i provided_log_level_index  
-  for i in "${!LOG_LEVELS[@]}"; do
-    if [[ "${LOG_LEVELS[$i]}" == "${provided_log_level}" ]]; then
+  for i in "${!log_levels[@]}"; do
+    if [[ "${log_levels[$i]}" == "${provided_log_level}" ]]; then
       provided_log_level_index="$i"
     fi
   done
 
-  local BG_LOG_OUT="${BG_LOG_OUT:-${__BG_LOG_DEFAULT_OUT}}"
-  local log_out_without_fd_prefix="${BG_LOG_OUT#&}"
+  local bg_log_out="${BG_LOG_OUT:-${__BG_LOG_DEFAULT_OUT}}"
+  local log_out_without_fd_prefix="${bg_log_out#&}"
 
   if (( env_log_level_index <= provided_log_level_index )); then
     local formatted_log_level
     formatted_log_level="$( 
-      "bg.tty.${LOG_COLOR[$provided_log_level_index]}" \
+      "bg.tty.${log_colors[$provided_log_level_index]}" \
       "$provided_log_level"
       )"
 
     local parent_script_name
     parent_script_name="$( __bg.log.get_parent_script_name )"
     # shellcheck disable=SC2059
-    if [[ "${log_out_without_fd_prefix}" != "${BG_LOG_OUT}" ]]; then
+    if [[ "${log_out_without_fd_prefix}" != "${bg_log_out}" ]]; then
       #shellcheck disable=SC2059
-      printf "${BG_LOG_FORMAT}" "${parent_script_name}" "$formatted_log_level" "$message" >&"$log_out_without_fd_prefix"
+      printf "${bg_log_format}" "${parent_script_name}" "$formatted_log_level" "$message" >&"$log_out_without_fd_prefix"
     else
       #shellcheck disable=SC2059
-      printf "${BG_LOG_FORMAT}" "${parent_script_name}" "$formatted_log_level" "$message" >>"${BG_LOG_OUT}"
+      printf "${bg_log_format}" "${parent_script_name}" "$formatted_log_level" "$message" >>"${bg_log_out}"
     fi
 
   fi
