@@ -59,7 +59,7 @@ tst.get_repo_root() {
 
   # Traverse up the directory tree
   while [[ "$current_dir" != "/" ]]; do
-    if [[ -d "$current_dir/.git" ]]; then
+    if [[ -a "$current_dir/.git" ]]; then
       printf '%s' "$current_dir"
       return 0
     fi
