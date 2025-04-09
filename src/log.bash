@@ -7,7 +7,7 @@ fi
 ################################################################################
 __BG_LOG_DEFAULT_FORMAT="[%-5s][%s]: %s\n"
 __BG_LOG_DEFAULT_OUT="&2"
-__BG_LOG_DEFAULT_LEVEL="ERROR"
+__BG_LOG_DEFAULT_LEVEL="INFO"
 
 ################################################################################
 # HELPER FUNCTIONS 

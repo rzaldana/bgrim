@@ -120,7 +120,18 @@ test_log.log_returns_1_if_env_log_level_is_not_valid() {
   assert_equals "'TRCE' is not a valid log level. Valid values are: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', and 'FATAL'" "$(< "$stderr_file" )"
 }
 
-test_log.log_default_env_log_level_is_fatal1() {
+test_log.log_default_env_log_level_is_info1() {
+  set -uo pipefail
+  tst.create_buffer_files
+  BG_NO_TTY="true"
+  __bg.log.log "DEBUG" "my message" >"$stdout_file" 2>"$stderr_file"
+  ret_code="$?"
+  assert_equals "0" "$ret_code" "should return exit code 0"
+  assert_equals "" "$(< "$stdout_file")"
+  assert_equals "" "$(< "$stderr_file" )"
+}
+
+test_log.log_default_env_log_level_is_info2() {
   set -uo pipefail
   tst.create_buffer_files
   BG_NO_TTY="true"
@@ -128,18 +139,7 @@ test_log.log_default_env_log_level_is_fatal1() {
   ret_code="$?"
   assert_equals "0" "$ret_code" "should return exit code 0"
   assert_equals "" "$(< "$stdout_file")"
-  assert_equals "" "$(< "$stderr_file" )"
-}
-
-test_log.log_default_env_log_level_is_fatal2() {
-  set -uo pipefail
-  tst.create_buffer_files
-  BG_NO_TTY="true"
-  __bg.log.log "FATAL" "my message" >"$stdout_file" 2>"$stderr_file"
-  ret_code="$?"
-  assert_equals "0" "$ret_code" "should return exit code 0"
-  assert_equals "" "$(< "$stdout_file")"
-  assert_equals "bash_unit - FATAL - my message" "$(< "$stderr_file" )"
+  assert_equals "bash_unit - INFO - my message" "$(< "$stderr_file" )"
 }
 
 test_log.trace_calls_internal_log_function_with_trace_level() {

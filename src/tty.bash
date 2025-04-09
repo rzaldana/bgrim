@@ -3,7 +3,7 @@ if [[ -n "${__BG_TEST_MODE:-}" ]]; then
 fi
 
 ################################################################################
-# OUTPUT FUNCTIONS
+# Functions for manipulating TTY display 
 ################################################################################
 __bg.tty.tty() {
   local format

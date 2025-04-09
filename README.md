@@ -22,7 +22,8 @@ However, given the small differences between minor Bash versions and different p
 
 # Modules
 - **log**: logging functions
-- **tty**: functions for tty-specific output (e.g. colored and bold text)
+- **tty**: functions for manipulating tty display (e.g. colored and bold text)
+- **fmt**: functions for formatting text
 
 # Usage
 ## Source
